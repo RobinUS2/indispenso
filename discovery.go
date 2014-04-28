@@ -8,9 +8,12 @@ import (
 	"fmt"
 	"log"
 	"net"
+	"net/http"
 	"strconv"
 	"strings"
 	"time"
+	"sync"
+	"io/ioutil"
 )
 
 // Discovery constants
@@ -20,20 +23,57 @@ const PING_TIMEOUT = 30 * time.Second
 type Node struct {
 	Host string // Fully qualified hostname
 	Port int    // Port on which Dispenso runs
+
+	metaReceived bool // Did we receive metadata?
+	mux sync.RWMutex // Locking mechanism
 }
 
-// Full display name
+// Full name
 func (n *Node) FullName() string {
 	return fmt.Sprintf("%s:%d", n.Host, n.Port)
 }
 
+// Full url
+func (n *Node) FullUrl(service string) string {
+	return fmt.Sprintf("http://%s/%s", n.FullName(), service)
+}
+
+// Fetch node metadata
+func (n *Node) FetchMeta() bool {
+	resp, err := http.Get(n.FullUrl("discovery"))
+	if err != nil {
+		log.Println(fmt.Sprintf("ERR: Failed to fetch node metadata %s"), err)
+		return false
+	}
+	defer resp.Body.Close()
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		log.Println(fmt.Sprintf("ERR: Failed to read node metadata %s"), err)
+		return false
+	}
+	log.Println(fmt.Sprintf("%s" , body))
+	return true
+}
+
 // Ping a node
 func (n *Node) Ping() bool {
+	// Knock on the door
 	conn, err := net.DialTimeout("tcp", n.FullName(), PING_TIMEOUT)
 	if err != nil {
 		return false
 	}
 	conn.Close()
+
+	// Try to fetch metadata
+	n.mux.RLock()
+	if n.metaReceived == false {
+		go func() {
+			n.FetchMeta()
+		}()
+	}
+	n.mux.RUnlock()
+
+	// OK
 	return true
 }
 
