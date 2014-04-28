@@ -5,14 +5,13 @@ package main
 
 // Imports
 import (
+	"fmt"
 	"log"
 	"net/http"
-	"fmt"
 )
 
 // Server
 type Server struct {
-
 }
 
 // Init server
@@ -22,15 +21,27 @@ func NewServer() *Server {
 
 // Start server
 func (s *Server) Start() bool {
-	log.Println("INFO: Starting server")
+	log.Println("INFO: Starting server on port %d", serverPort)
 	go func() {
-		http.HandleFunc("/", handler)
-
+		http.HandleFunc("/discovery", discoveryHandler)
+		http.HandleFunc("/task", taskHandler)
+		http.HandleFunc("/config", configHandler)
+		http.ListenAndServe(fmt.Sprintf(":%d", serverPort), nil)
 	}()
 	return true
 }
 
-// HTTP handler
-func handler(w http.ResponseWriter, r *http.Request) {
-    fmt.Fprintf(w, "Hi there, I love %s!", r.URL.Path[1:])
+// Discovery handler
+func discoveryHandler(w http.ResponseWriter, r *http.Request) {
+	fmt.Fprintf(w, "Hi there, I love %s!", r.URL.Path[1:])
+}
+
+// Task handler
+func taskHandler(w http.ResponseWriter, r *http.Request) {
+	fmt.Fprintf(w, "Hi there, I love %s!", r.URL.Path[1:])
+}
+
+// Config handler
+func configHandler(w http.ResponseWriter, r *http.Request) {
+	fmt.Fprintf(w, "Hi there, I love %s!", r.URL.Path[1:])
 }

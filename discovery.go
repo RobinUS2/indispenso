@@ -117,7 +117,7 @@ func (d *DiscoveryService) Start() bool {
 
 		// @todo Run every once in a while, and remove shutdown
 
-		shutdown <- true
+		//shutdown <- true
 	}()
 	return true
 }
