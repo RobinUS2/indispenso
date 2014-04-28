@@ -1,5 +1,7 @@
-package main
 // @author Robin Verlangen
+// Main function of Dispenso ( https://github.com/RobinUS2/dispenso )
+
+package main
 
 // Imports
 import (
