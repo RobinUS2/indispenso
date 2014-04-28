@@ -8,6 +8,7 @@ import (
 	"log"
 	"flag"
 	"fmt"
+	"strings"
 )
 
 // Constants
@@ -33,6 +34,9 @@ func main() {
 
 	// Start discovery
 	var disco *DiscoveryService = NewDiscoveryService()
+	if len(strings.TrimSpace(seedNodes)) > 0 {
+		disco.SetSeeds(strings.Split(seedNodes, ","))
+	}
 	disco.Start()
 
 	// Wait for shutdown

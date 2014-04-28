@@ -46,6 +46,15 @@ func NewDiscoveryService() *DiscoveryService {
 	return &DiscoveryService{}
 }
 
+// Set seeds
+func (*DiscoveryService) SetSeeds(seeds []string) error {
+	for _,seed := range seeds {
+		log.Println(seed)
+	}
+	return nil
+}
+
+
 // Run discovery service
 func (*DiscoveryService) Start() {
 	go func() {
