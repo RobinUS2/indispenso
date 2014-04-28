@@ -1,4 +1,5 @@
 package main
+// @author Robin Verlangen
 
 // Imports
 import (
