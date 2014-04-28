@@ -21,7 +21,7 @@ func NewServer() *Server {
 
 // Start server
 func (s *Server) Start() bool {
-	log.Println("INFO: Starting server on port %d", serverPort)
+	log.Println(fmt.Sprintf("INFO: Starting server on port %d", serverPort))
 	go func() {
 		http.HandleFunc("/discovery", discoveryHandler)
 		http.HandleFunc("/task", taskHandler)
