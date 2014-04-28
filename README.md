@@ -30,7 +30,7 @@ One can for example reboot a service on a server based on a pre-defined template
 ## Implementation
 There are 3 key user roles within despenso:
 | Name | Manage templates | Request job | Approve request |
------------------------------------------------------------
+|------|------------------|-------------|-----------------|
 | Administrator | x | x | x |
 | Requester |  | x | x |
 | Approver |  |  | x |
