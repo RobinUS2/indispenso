@@ -102,7 +102,7 @@ func (d *DiscoveryService) SetSeeds(seeds []string) error {
 }
 
 // Run discovery service
-func (d *DiscoveryService) Start() {
+func (d *DiscoveryService) Start() bool {
 	go func() {
 		log.Println("INFO: Starting discovery")
 
@@ -119,4 +119,5 @@ func (d *DiscoveryService) Start() {
 
 		shutdown <- true
 	}()
+	return true
 }

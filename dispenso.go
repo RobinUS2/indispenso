@@ -39,6 +39,10 @@ func main() {
 	}
 	disco.Start()
 
+	// Start server
+	var server *Server = NewServer()
+	server.Start()
+
 	// Wait for shutdown
 	<-shutdown
 }

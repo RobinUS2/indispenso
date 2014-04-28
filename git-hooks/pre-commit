@@ -8,4 +8,5 @@ REPO=$0/../../../
 
 # Auto format
 GO_BIN=`which go`
+echo $REPO
 $GO_BIN fmt $REPO
