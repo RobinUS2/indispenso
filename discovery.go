@@ -50,5 +50,7 @@ func NewDiscoveryService() *DiscoveryService {
 func (*DiscoveryService) Start() {
 	go func() {
 		log.Println("Starting discovery")
+		// @todo Implement
+		shutdown <- true
 	}()
 }
