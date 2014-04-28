@@ -22,7 +22,7 @@ If this completes without errors you have a dispenso binary.
 
 ## Background
 This project is being developed as there are a lot of companies that rely on a handful of people to manage critical infrastructure.
-Most companies who run critical infrastructure dislike the [_Bus_factor_](http://en.wikipedia.org/wiki/Bus_factor).
+Most companies who run critical infrastructure dislike the [_Bus factor_](http://en.wikipedia.org/wiki/Bus_factor).
 This is where Dispenso comes in and allows people to take actions based upon consenus. 
 
 One can for example reboot a service on a server based on a pre-defined template.
