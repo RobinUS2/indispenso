@@ -7,8 +7,8 @@ Distribute, manage, regulate, arrange. Simple &amp; secure management based on c
 This project request Go 1.2 or later to compile. 
 
 	$ go get github.com/RobinUS2/dispenso
-	$ go test github.com/RobinUS2/dispenso
-	$ go build github.com/RobinUS2/dispenso
+	$ go test
+	$ go build
 
 If this completes without errors you have a dispenso binary.
 

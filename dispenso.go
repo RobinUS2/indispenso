@@ -17,6 +17,9 @@ const defaultPort int = 8011
 var seedNodes string
 var serverPort int
 
+// Signal channels
+var shutdown chan bool = make (chan bool)
+
 // Set configuration from flags
 func init() {
 	flag.StringVar(&seedNodes, "seeds", "", "Seed nodes, comma separated host:port tuples (e.g. 12.34.56.78,23.34.45.56:8080")
@@ -27,4 +30,11 @@ func init() {
 // Main function of dispenso
 func main() {
 	log.Println("Starting dispenso")
+
+	// Start discovery
+	var disco *DiscoveryService = NewDiscoveryService()
+	disco.Start()
+
+	// Wait for shutdown
+	<-shutdown
 }

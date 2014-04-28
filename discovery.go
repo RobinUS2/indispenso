@@ -3,6 +3,11 @@
 
 package main
 
+// Imports
+import (
+	"log"
+)
+
 // Node (entity in the Dispenso cluster)
 type Node struct {
 	Host string // Fully qualified hostname
@@ -11,7 +16,8 @@ type Node struct {
 
 // Message (payload transmitted between nodes containing instructions)
 type Message struct {
-	Type MessageType
+	Type MessageType // Type of message
+	Payload string // JSON payload
 }
 
 // Message types
@@ -28,4 +34,21 @@ const (
 )
 type MessageType struct {
 	code messageType
+}
+
+// Discovery service
+type DiscoveryService struct {
+	Nodes []Node // List of nodes
+}
+
+// Create discovery service
+func NewDiscoveryService() *DiscoveryService {
+	return &DiscoveryService{}
+}
+
+// Run discovery service
+func (*DiscoveryService) Start() {
+	go func() {
+		log.Println("Starting discovery")
+	}()
 }
