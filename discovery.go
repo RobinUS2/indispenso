@@ -20,7 +20,10 @@ type Message struct {
 	Payload string // JSON payload
 }
 
-// Message types
+// Message types, enum-like datastructure, use "MessageType" as wrapper
+type MessageType struct {
+	code messageType
+}
 type messageType int
 const (
 	discoveryPing	messageType = iota+1 // Initial discovery ping
@@ -32,9 +35,6 @@ const (
 	taskReject // Reject task
 	taskExecution // After being approved a task execution will be sent to the nodes
 )
-type MessageType struct {
-	code messageType
-}
 
 // Discovery service
 type DiscoveryService struct {
