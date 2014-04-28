@@ -30,7 +30,7 @@ func init() {
 
 // Main function of dispenso
 func main() {
-	log.Println("Starting dispenso")
+	log.Println("INFO: Starting dispenso")
 
 	// Start discovery
 	var disco *DiscoveryService = NewDiscoveryService()
