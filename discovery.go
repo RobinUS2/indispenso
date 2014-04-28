@@ -6,12 +6,28 @@ package main
 // Imports
 import (
 	"log"
+	"time"
+	"net"
+	"fmt"
+	"strings"
+	"strconv"
 )
 
 // Node (entity in the Dispenso cluster)
 type Node struct {
 	Host string // Fully qualified hostname
 	Port int // Port on which Dispenso runs
+}
+
+// Ping a node
+const PING_TIMEOUT = 30 * time.Second
+func (n *Node) Ping() bool {
+	conn, err := net.DialTimeout("tcp", fmt.Sprintf("%s:%d", n.Host, n.Port), PING_TIMEOUT)
+	if err != nil {
+		return false
+	}
+	conn.Close()
+	return true
 }
 
 // Message (payload transmitted between nodes containing instructions)
@@ -38,7 +54,7 @@ const (
 
 // Discovery service
 type DiscoveryService struct {
-	Nodes []Node // List of nodes
+	Nodes []*Node // List of nodes
 }
 
 // Create discovery service
@@ -47,19 +63,46 @@ func NewDiscoveryService() *DiscoveryService {
 }
 
 // Set seeds
-func (*DiscoveryService) SetSeeds(seeds []string) error {
+func (d *DiscoveryService) SetSeeds(seeds []string) error {
 	for _,seed := range seeds {
-		log.Println(seed)
+		// Simple seed validation
+		split := strings.Split(seed, ":")
+		if len(split) > 2 {
+			log.Println(fmt.Sprintf("ERR: Seed %s host:port format invalid", seed))
+			continue
+		} else if len(split) == 1 {
+			// Default port
+			split[1] = fmt.Sprintf("%s" ,defaultPort)
+		}
+		port, err := strconv.Atoi(split[1])
+		if err != nil {
+			log.Println(fmt.Sprintf("ERR: Seed %s port format invalid", seed))
+			continue
+		}
+
+		// Add node
+		n := &Node{
+			Host: split[0],
+			Port: port,
+		}
+		d.Nodes = append(d.Nodes, n)
 	}
 	return nil
 }
 
 
 // Run discovery service
-func (*DiscoveryService) Start() {
+func (d *DiscoveryService) Start() {
 	go func() {
 		log.Println("Starting discovery")
-		// @todo Implement
+		
+		// Iterate nodes
+		for _,node := range d.Nodes {
+			node.Ping()
+		}
+
+		// @todo Run every once in a while, and remove shutdown
+
 		shutdown <- true
 	}()
 }
