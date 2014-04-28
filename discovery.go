@@ -6,14 +6,14 @@ package main
 // Imports
 import (
 	"fmt"
+	"io/ioutil"
 	"log"
 	"net"
 	"net/http"
 	"strconv"
 	"strings"
-	"time"
 	"sync"
-	"io/ioutil"
+	"time"
 )
 
 // Discovery constants
@@ -24,8 +24,8 @@ type Node struct {
 	Host string // Fully qualified hostname
 	Port int    // Port on which Dispenso runs
 
-	metaReceived bool // Did we receive metadata?
-	mux sync.RWMutex // Locking mechanism
+	metaReceived bool         // Did we receive metadata?
+	mux          sync.RWMutex // Locking mechanism
 }
 
 // Full name
@@ -51,7 +51,7 @@ func (n *Node) FetchMeta() bool {
 		log.Println(fmt.Sprintf("ERR: Failed to read node metadata %s"), err)
 		return false
 	}
-	log.Println(fmt.Sprintf("%s" , body))
+	log.Println(fmt.Sprintf("%s", body))
 	return true
 }
 
