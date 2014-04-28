@@ -5,22 +5,23 @@ package main
 
 // Imports
 import (
-	"log"
-	"time"
-	"net"
 	"fmt"
-	"strings"
+	"log"
+	"net"
 	"strconv"
+	"strings"
+	"time"
 )
 
 // Node (entity in the Dispenso cluster)
 type Node struct {
 	Host string // Fully qualified hostname
-	Port int // Port on which Dispenso runs
+	Port int    // Port on which Dispenso runs
 }
 
 // Ping a node
 const PING_TIMEOUT = 30 * time.Second
+
 func (n *Node) Ping() bool {
 	conn, err := net.DialTimeout("tcp", fmt.Sprintf("%s:%d", n.Host, n.Port), PING_TIMEOUT)
 	if err != nil {
@@ -32,8 +33,8 @@ func (n *Node) Ping() bool {
 
 // Message (payload transmitted between nodes containing instructions)
 type Message struct {
-	Type MessageType // Type of message
-	Payload string // JSON payload
+	Type    MessageType // Type of message
+	Payload string      // JSON payload
 }
 
 // Message types, enum-like datastructure, use "MessageType" as wrapper
@@ -41,15 +42,16 @@ type MessageType struct {
 	code messageType
 }
 type messageType int
+
 const (
-	discoveryPing	messageType = iota+1 // Initial discovery ping
-	disocveryResponse // Discovery response
-	discoveryMeta // Metadata beyond initial discovery
-	configuration // Used to update configuration in the cluster
-	taskRequest // New task submission
-	taskApproval // Approve task
-	taskReject // Reject task
-	taskExecution // After being approved a task execution will be sent to the nodes
+	discoveryPing     messageType = iota + 1 // Initial discovery ping
+	disocveryResponse                        // Discovery response
+	discoveryMeta                            // Metadata beyond initial discovery
+	configuration                            // Used to update configuration in the cluster
+	taskRequest                              // New task submission
+	taskApproval                             // Approve task
+	taskReject                               // Reject task
+	taskExecution                            // After being approved a task execution will be sent to the nodes
 )
 
 // Discovery service
@@ -64,7 +66,7 @@ func NewDiscoveryService() *DiscoveryService {
 
 // Set seeds
 func (d *DiscoveryService) SetSeeds(seeds []string) error {
-	for _,seed := range seeds {
+	for _, seed := range seeds {
 		// Simple seed validation
 		split := strings.Split(seed, ":")
 		if len(split) > 2 {
@@ -72,7 +74,7 @@ func (d *DiscoveryService) SetSeeds(seeds []string) error {
 			continue
 		} else if len(split) == 1 {
 			// Default port
-			split[1] = fmt.Sprintf("%s" ,defaultPort)
+			split[1] = fmt.Sprintf("%s", defaultPort)
 		}
 		port, err := strconv.Atoi(split[1])
 		if err != nil {
@@ -90,14 +92,13 @@ func (d *DiscoveryService) SetSeeds(seeds []string) error {
 	return nil
 }
 
-
 // Run discovery service
 func (d *DiscoveryService) Start() {
 	go func() {
 		log.Println("Starting discovery")
-		
+
 		// Iterate nodes
-		for _,node := range d.Nodes {
+		for _, node := range d.Nodes {
 			node.Ping()
 		}
 

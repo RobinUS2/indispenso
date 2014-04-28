@@ -5,9 +5,9 @@ package main
 
 // Imports
 import (
-	"log"
 	"flag"
 	"fmt"
+	"log"
 	"strings"
 )
 
@@ -19,7 +19,7 @@ var seedNodes string
 var serverPort int
 
 // Signal channels
-var shutdown chan bool = make (chan bool)
+var shutdown chan bool = make(chan bool)
 
 // Set configuration from flags
 func init() {
