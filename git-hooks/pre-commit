@@ -1,0 +1,11 @@
+#!/bin/bash
+# @author Robin Verlangen
+# Run this hook before committing anything to the repository
+# Install from repository root: ln -s git-hooks/pre-commit .git/hooks/
+
+# Path
+REPO=$0/../../../
+
+# Auto format
+GO_BIN=`which go`
+$GO_BIN fmt $REPO
