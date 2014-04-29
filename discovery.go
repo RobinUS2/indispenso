@@ -52,6 +52,13 @@ func (n *Node) FetchMeta() bool {
 		return false
 	}
 	log.Println(fmt.Sprintf("%s", body))
+
+	// Meta received
+	n.mux.Lock()
+	n.metaReceived = true
+	log.Println(fmt.Sprintf("INFO: Detected %s", n.FullName()))
+	n.mux.Unlock()
+
 	return true
 }
 
@@ -149,22 +156,19 @@ func (d *DiscoveryService) Start() bool {
 		// Iterate nodes
 		ticker := time.NewTicker(time.Second * 1)
 		for {
-	       select {
-	        case <- ticker.C:
-	            // Discover nodes
-		        for _, node := range d.Nodes {
-					if node.Ping() {
-						log.Println(fmt.Sprintf("INFO: Detected %s", node.FullName()))
-					} else {
+			select {
+			case <-ticker.C:
+				// Discover nodes
+				for _, node := range d.Nodes {
+					if !node.Ping() {
 						log.Println(fmt.Sprintf("WARN: Failed to detect %s", node.FullName()))
 					}
 				}
-	        case <- shutdown:
-	            ticker.Stop()
-	            return
-	        }
-	    }
-			
+			case <-shutdown:
+				ticker.Stop()
+				return
+			}
+		}
 
 		// @todo Run every once in a while, and remove shutdown
 

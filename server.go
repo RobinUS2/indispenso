@@ -8,6 +8,8 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"time"
+	"encoding/json"
 )
 
 // Server
@@ -33,7 +35,20 @@ func (s *Server) Start() bool {
 
 // Discovery handler
 func discoveryHandler(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprintf(w, "Hi there, I love %s!", r.URL.Path[1:])
+	// Current time
+	var now time.Time = time.Now().UTC()
+
+	// Data
+	var data map[string]string = make(map[string]string)
+	data["time"] = fmt.Sprintf("%s", now)
+
+	// To JSON
+	b, err := json.Marshal(data)
+	if err == nil {
+		fmt.Fprint(w, fmt.Sprintf("%s", b))
+	} else {
+		fmt.Fprint(w, "Failed to format json")
+	}
 }
 
 // Task handler
