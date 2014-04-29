@@ -10,6 +10,7 @@ import (
 	"log"
 	"net/http"
 	"time"
+	"io/ioutil"
 )
 
 // Server
@@ -49,6 +50,14 @@ func discoveryHandler(w http.ResponseWriter, r *http.Request) {
 	} else {
 		fmt.Fprint(w, "Failed to format json")
 	}
+
+	// Log request body
+	body, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		log.Println(fmt.Sprintf("ERR: Failed to read request body %s"), err)
+		return
+	}
+	log.Println(fmt.Sprintf("%s", body))
 }
 
 // Task handler

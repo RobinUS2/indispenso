@@ -5,6 +5,7 @@ package main
 
 // Imports
 import (
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -14,14 +15,16 @@ import (
 	"strings"
 	"sync"
 	"time"
-	"encoding/json"
+	"bytes"
 )
 
 // Discovery constants
 const PING_TIMEOUT = 30 * time.Second
+const PING_INTERVAL = 1 * time.Second
 
 // Node (entity in the Dispenso cluster)
 type Node struct {
+	DiscoveryService *DiscoveryService // Discovery service reference
 	Host string // Fully qualified hostname
 	Port int    // Port on which Dispenso runs
 
@@ -69,6 +72,59 @@ func (n *Node) FetchMeta() bool {
 	log.Println(fmt.Sprintf("INFO: Detected %s", n.FullName()))
 	n.mux.Unlock()
 
+	// Exchange meta
+	n.ExchangeMeta()
+
+	return true
+}
+
+// Exchange node metadata
+func (n *Node) ExchangeMeta() bool {
+	// Client
+	httpclient := &http.Client{}
+
+	log.Println("INFO: Exchanging metadata")
+
+	// Metadata
+	var data map[string]string = make(map[string]string)
+	var nodeStrs []string = make([]string, len(n.DiscoveryService.Nodes))
+	for _, node := range n.DiscoveryService.Nodes {
+		nodeStrs = append(nodeStrs, fmt.Sprintf("%s:%d", node.Host, node.Port))
+	}
+	data["nodes"] = strings.Join(nodeStrs, ",")
+
+	// To JSON
+	b, err := json.Marshal(data)
+	if err != nil {
+		log.Println(fmt.Sprintf("ERR: Failed to format json"))
+		return false
+	}
+
+	// Execute request
+	req, reqErr := http.NewRequest("POST", n.FullUrl("discovery"), bytes.NewBufferString(fmt.Sprintf("%s", b)))
+	req.Header.Set("User-Agent", "FlxOne Real-Time Event Hook")
+	if reqErr != nil {
+		log.Println(fmt.Sprintf("ERR: Failed request: %s", reqErr))
+		return false
+	}
+
+	// Parse response
+	resp, respErr := httpclient.Do(req)
+	if respErr != nil {
+		log.Println(fmt.Sprintf("ERR: Failed request: %s", respErr))
+		return false
+	}
+	if resp.Body != nil {
+		defer resp.Body.Close()
+	}
+
+	// Read response
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		log.Println(fmt.Sprintf("ERR: Failed to read node metadata exchange response %s"), err)
+		return false
+	}
+	log.Println(fmt.Sprintf("%s", body))
 	return true
 }
 
@@ -150,6 +206,7 @@ func (d *DiscoveryService) SetSeeds(seeds []string) error {
 
 		// Add node
 		n := &Node{
+			DiscoveryService: d,
 			Host: split[0],
 			Port: port,
 		}
@@ -164,7 +221,7 @@ func (d *DiscoveryService) Start() bool {
 		log.Println("INFO: Starting discovery")
 
 		// Iterate nodes
-		ticker := time.NewTicker(time.Second * 1)
+		ticker := time.NewTicker(PING_INTERVAL)
 		for {
 			select {
 			case <-ticker.C:
