@@ -5,6 +5,7 @@ package main
 
 // Imports
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -15,7 +16,6 @@ import (
 	"strings"
 	"sync"
 	"time"
-	"bytes"
 )
 
 // Discovery constants
@@ -25,8 +25,8 @@ const PING_INTERVAL = 1 * time.Second
 // Node (entity in the Dispenso cluster)
 type Node struct {
 	DiscoveryService *DiscoveryService // Discovery service reference
-	Host string // Fully qualified hostname
-	Port int    // Port on which Dispenso runs
+	Host             string            // Fully qualified hostname
+	Port             int               // Port on which Dispenso runs
 
 	metaReceived bool         // Did we receive metadata?
 	mux          sync.RWMutex // Locking mechanism
@@ -207,8 +207,8 @@ func (d *DiscoveryService) SetSeeds(seeds []string) error {
 		// Add node
 		n := &Node{
 			DiscoveryService: d,
-			Host: split[0],
-			Port: port,
+			Host:             split[0],
+			Port:             port,
 		}
 		d.Nodes = append(d.Nodes, n)
 	}

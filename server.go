@@ -7,10 +7,10 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"time"
-	"io/ioutil"
 )
 
 // Server
@@ -57,7 +57,7 @@ func discoveryHandler(w http.ResponseWriter, r *http.Request) {
 		log.Println(fmt.Sprintf("ERR: Failed to read request body %s"), err)
 		return
 	}
-	log.Println(fmt.Sprintf("%s", body))
+	log.Println(fmt.Sprintf("REQ BODY %s", body))
 }
 
 // Task handler
