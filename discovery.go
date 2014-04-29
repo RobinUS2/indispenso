@@ -147,13 +147,24 @@ func (d *DiscoveryService) Start() bool {
 		log.Println("INFO: Starting discovery")
 
 		// Iterate nodes
-		for _, node := range d.Nodes {
-			if node.Ping() {
-				log.Println(fmt.Sprintf("INFO: Detected %s", node.FullName()))
-			} else {
-				log.Println(fmt.Sprintf("WARN: Failed to detect %s", node.FullName()))
-			}
-		}
+		ticker := time.NewTicker(time.Second * 1)
+		for {
+	       select {
+	        case <- ticker.C:
+	            // Discover nodes
+		        for _, node := range d.Nodes {
+					if node.Ping() {
+						log.Println(fmt.Sprintf("INFO: Detected %s", node.FullName()))
+					} else {
+						log.Println(fmt.Sprintf("WARN: Failed to detect %s", node.FullName()))
+					}
+				}
+	        case <- shutdown:
+	            ticker.Stop()
+	            return
+	        }
+	    }
+			
 
 		// @todo Run every once in a while, and remove shutdown
 
