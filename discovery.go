@@ -14,6 +14,7 @@ import (
 	"strings"
 	"sync"
 	"time"
+	"encoding/json"
 )
 
 // Discovery constants
@@ -51,7 +52,16 @@ func (n *Node) FetchMeta() bool {
 		log.Println(fmt.Sprintf("ERR: Failed to read node metadata %s"), err)
 		return false
 	}
-	log.Println(fmt.Sprintf("%s", body))
+
+	// Parse json
+	var f interface{}
+	err = json.Unmarshal(body, &f)
+	if err != nil {
+		log.Println(fmt.Sprintf("ERR: Failed to parse node metadata %s"), err)
+		return false
+	}
+	m := f.(map[string]interface{})
+	log.Println(fmt.Sprintf("DEBUG: %s", m["time"]))
 
 	// Meta received
 	n.mux.Lock()

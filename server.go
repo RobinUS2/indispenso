@@ -5,11 +5,11 @@ package main
 
 // Imports
 import (
+	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
 	"time"
-	"encoding/json"
 )
 
 // Server
