@@ -8,7 +8,6 @@ import (
 	"flag"
 	"fmt"
 	"log"
-	"strings"
 )
 
 // Constants
@@ -33,13 +32,6 @@ func init() {
 // Main function of dispenso
 func main() {
 	log.Println("INFO: Starting dispenso")
-
-	// Start discovery
-	var disco *DiscoveryService = NewDiscoveryService()
-	if len(strings.TrimSpace(seedNodes)) > 0 {
-		disco.SetSeeds(strings.Split(seedNodes, ","))
-	}
-	disco.Start()
 
 	// Start server
 	var server *Server = NewServer()
