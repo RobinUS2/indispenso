@@ -212,6 +212,7 @@ func (d *DiscoveryService) AddNode(n *Node) bool {
 
 // Set seeds
 func (d *DiscoveryService) SetSeeds(seeds []string) error {
+	// Add all seeds
 	for _, seed := range seeds {
 		// Simple seed validation
 		split := strings.Split(seed, ":")
@@ -231,10 +232,7 @@ func (d *DiscoveryService) SetSeeds(seeds []string) error {
 			}
 		}
 
-		// @todo Deduplicate if we already have this hostname/ipaddress
-
 		// Add node
-		// @todo Move to AddNode() func
 		n := NewNode(d, split[0], port, getPulicIp(split[0]))
 		d.AddNode(n)
 	}
@@ -254,6 +252,7 @@ func (d *DiscoveryService) Start() bool {
 				// Discover nodes
 				for _, node := range d.Nodes {
 					if !node.Ping() {
+						// @todo Keep track of errors and add exponential backoff
 						log.Println(fmt.Sprintf("WARN: Failed to detect %s", node.FullName()))
 					}
 				}
