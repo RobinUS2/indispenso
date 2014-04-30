@@ -197,7 +197,15 @@ func NewNode(d *DiscoveryService, host string, port int, addr string) *Node {
 
 // Add node
 func (d *DiscoveryService) AddNode(n *Node) bool {
-	// @todo Deduplicate
+	// Look for duplicates
+	for _, node := range n.DiscoveryService.Nodes {
+		if node.Host == n.Host && node.Port == n.Port {
+			// Match found
+			return false
+		}
+	}
+
+	// Append
 	d.Nodes = append(d.Nodes, n)
 	return true
 }
