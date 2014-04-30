@@ -4,9 +4,9 @@
 package main
 
 import (
-	"net"
-	"log"
 	"fmt"
+	"log"
+	"net"
 )
 
 func getPulicIp(hostname string) string {

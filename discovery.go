@@ -26,9 +26,10 @@ const PING_INTERVAL = 1 * time.Second
 type Node struct {
 	DiscoveryService *DiscoveryService // Discovery service reference
 	Host             string            // Fully qualified hostname
-	Addr			 string 			// IP address of this node
+	Addr             string            // IP address of this node
 	Port             int               // Port on which Dispenso runs
 
+	// @todo Send meta data every once in a while
 	metaReceived bool         // Did we receive metadata?
 	mux          sync.RWMutex // Locking mechanism
 }
@@ -205,12 +206,15 @@ func (d *DiscoveryService) SetSeeds(seeds []string) error {
 			}
 		}
 
+		// @todo Deduplicate if we already have this hostname/ipaddress
+
 		// Add node
+		// @todo Move to CreateNode() + AddNode() func
 		n := &Node{
 			DiscoveryService: d,
 			Host:             split[0],
 			Port:             port,
-			Addr:			  getPulicIp(split[0]),
+			Addr:             getPulicIp(split[0]),
 		}
 		d.Nodes = append(d.Nodes, n)
 	}
