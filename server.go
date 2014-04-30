@@ -52,12 +52,14 @@ func discoveryHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Log request body
-	body, err := ioutil.ReadAll(r.Body)
-	if err != nil {
-		log.Println(fmt.Sprintf("ERR: Failed to read request body %s"), err)
-		return
+	if len(r.Body) > 0 {
+		body, err := ioutil.ReadAll(r.Body)
+		if err != nil {
+			log.Println(fmt.Sprintf("ERR: Failed to read request body %s"), err)
+			return
+		}
+		log.Println(fmt.Sprintf("REQ BODY %s", body))
 	}
-	log.Println(fmt.Sprintf("REQ BODY %s", body))
 }
 
 // Task handler
