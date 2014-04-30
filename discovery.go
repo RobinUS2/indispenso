@@ -195,6 +195,13 @@ func NewNode(d *DiscoveryService, host string, port int, addr string) *Node {
 	}
 }
 
+// Add node
+func (d *DiscoveryService) AddNode(n *Node) bool {
+	// @todo Deduplicate
+	d.Nodes = append(d.Nodes, n)
+	return true
+}
+
 // Set seeds
 func (d *DiscoveryService) SetSeeds(seeds []string) error {
 	for _, seed := range seeds {
@@ -221,7 +228,7 @@ func (d *DiscoveryService) SetSeeds(seeds []string) error {
 		// Add node
 		// @todo Move to AddNode() func
 		n := NewNode(d, split[0], port, getPulicIp(split[0]))
-		d.Nodes = append(d.Nodes, n)
+		d.AddNode(n)
 	}
 	return nil
 }
