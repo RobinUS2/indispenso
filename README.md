@@ -28,7 +28,7 @@ This is where Dispenso comes in and allows people to take actions based upon con
 One can for example reboot a service on a server based on a pre-defined template.
 
 ## Implementation
-There are 3 key user roles within despenso:
+There are 3 key user roles within dispenso:
 
 | Name | Manage templates | Request job | Approve request |
 |------|------------------|-------------|-----------------|
