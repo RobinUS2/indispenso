@@ -185,6 +185,16 @@ func NewDiscoveryService() *DiscoveryService {
 	return &DiscoveryService{}
 }
 
+// Create node
+func NewNode(d *DiscoveryService, host string, port int, addr string) *Node {
+	return &Node{
+		DiscoveryService: d,
+		Host:             host,
+		Port:             port,
+		Addr:             addr,
+	}
+}
+
 // Set seeds
 func (d *DiscoveryService) SetSeeds(seeds []string) error {
 	for _, seed := range seeds {
@@ -209,13 +219,8 @@ func (d *DiscoveryService) SetSeeds(seeds []string) error {
 		// @todo Deduplicate if we already have this hostname/ipaddress
 
 		// Add node
-		// @todo Move to CreateNode() + AddNode() func
-		n := &Node{
-			DiscoveryService: d,
-			Host:             split[0],
-			Port:             port,
-			Addr:             getPulicIp(split[0]),
-		}
+		// @todo Move to AddNode() func
+		n := NewNode(d, split[0], port, getPulicIp(split[0]))
 		d.Nodes = append(d.Nodes, n)
 	}
 	return nil

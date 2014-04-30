@@ -45,5 +45,5 @@ func isIpv4Ip(ip string) bool {
 }
 
 func isLocalIp(ip string) bool {
-	return REGEX_LOCALHOST.MatchString(ip);
+	return REGEX_LOCALHOST.MatchString(ip)
 }
