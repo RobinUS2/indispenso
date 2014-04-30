@@ -10,7 +10,6 @@ import (
 	"log"
 	"os"
 	"strings"
-	"net"
 )
 
 // Constants
@@ -40,7 +39,7 @@ func init() {
 
 // Main function of dispenso
 func main() {
-	log.Println(fmt.Sprintf("INFO: Starting dispenso", hostname))
+	log.Println(fmt.Sprintf("INFO: Starting dispenso"))
 
 	// Hostname resolution?
 	if len(hostname) == 0 {
@@ -53,15 +52,7 @@ func main() {
 
 	// IP resolution
 	if len(ipAddr) == 0 {
-		addrs, err := net.LookupHost(hostname)
-		if err != nil {
-			log.Println(fmt.Sprintf("ERR: Failed to resolve ip address %s", err))
-		} else {
-			for _, a := range addrs {
-				//fmt.Println(a)
-				ipAddr = a
-			}
-		}
+		ipAddr = getPulicIp(hostname)
 	}
 
 	// Debug log startup

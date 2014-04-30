@@ -26,6 +26,7 @@ const PING_INTERVAL = 1 * time.Second
 type Node struct {
 	DiscoveryService *DiscoveryService // Discovery service reference
 	Host             string            // Fully qualified hostname
+	Addr			 string 			// IP address of this node
 	Port             int               // Port on which Dispenso runs
 
 	metaReceived bool         // Did we receive metadata?
@@ -69,7 +70,7 @@ func (n *Node) FetchMeta() bool {
 	// Meta received
 	n.mux.Lock()
 	n.metaReceived = true
-	log.Println(fmt.Sprintf("INFO: Detected %s", n.FullName()))
+	log.Println(fmt.Sprintf("INFO: Detected %s @ %s", n.FullName(), n.Addr))
 	n.mux.Unlock()
 
 	// Exchange meta
@@ -209,6 +210,7 @@ func (d *DiscoveryService) SetSeeds(seeds []string) error {
 			DiscoveryService: d,
 			Host:             split[0],
 			Port:             port,
+			Addr:			  getPulicIp(split[0]),
 		}
 		d.Nodes = append(d.Nodes, n)
 	}
