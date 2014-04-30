@@ -19,6 +19,8 @@ func getPulicIp(hostname string) string {
 		log.Println(fmt.Sprintf("ERR: Failed to resolve ip address %s", err))
 	} else {
 		for _, a := range addrs {
+			// @todo Skip ipv6 / local ipaddresses
+			// @todo Make behaviour configurable
 			if debug {
 				log.Println(fmt.Sprintf("DEBUG: Host %s resolves to %s", hostname, a))
 			}
