@@ -8,8 +8,9 @@ import (
 	"flag"
 	"fmt"
 	"log"
-	"strings"
 	"os"
+	"strings"
+	"net"
 )
 
 // Constants
@@ -20,6 +21,8 @@ var seedNodes string
 var serverPort int
 var storeState bool
 var hostname string
+var ipAddr string
+var debug bool
 
 // Signal channels
 var shutdown chan bool = make(chan bool)
@@ -30,16 +33,42 @@ func init() {
 	flag.IntVar(&serverPort, "port", defaultPort, fmt.Sprintf("Port to bind on (defaults to %d)", defaultPort))
 	flag.BoolVar(&storeState, "store-state", true, "Allow to store cluster state on this node (default=true)")
 	flag.StringVar(&hostname, "hostname", "", "Hostname (defaults to auto-resolve)")
+	flag.StringVar(&ipAddr, "ipaddr", "", "Ip address (defaults to auto-resoolve)")
+	flag.BoolVar(&debug, "debug", true, "Debug logging")
 	flag.Parse()
 }
 
 // Main function of dispenso
 func main() {
+	log.Println(fmt.Sprintf("INFO: Starting dispenso", hostname))
+
 	// Hostname resolution?
 	if len(hostname) == 0 {
-		hostname, _ = os.Hostname()
+		var err error
+		hostname, err = os.Hostname()
+		if err != nil {
+			log.Println(fmt.Sprintf("ERR: Failed to resolve hostname %s", err))
+		}
 	}
-	log.Println(fmt.Sprintf("INFO: Starting dispenso on %s", hostname))
+
+	// IP resolution
+	if len(ipAddr) == 0 {
+		addrs, err := net.LookupHost(hostname)
+		if err != nil {
+			log.Println(fmt.Sprintf("ERR: Failed to resolve ip address %s", err))
+		} else {
+			for _, a := range addrs {
+				//fmt.Println(a)
+				ipAddr = a
+			}
+		}
+	}
+
+	// Debug log startup
+	if debug {
+		log.Println(fmt.Sprintf("DEBUG: Hostname %s", hostname))
+		log.Println(fmt.Sprintf("DEBUG: IP address %s", ipAddr))
+	}
 
 	// Start discovery
 	var disco *DiscoveryService = NewDiscoveryService()

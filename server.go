@@ -57,7 +57,7 @@ func discoveryHandler(w http.ResponseWriter, r *http.Request) {
 		log.Println(fmt.Sprintf("ERR: Failed to read request body %s"), err)
 		return
 	}
-	if len(body) > 0 {
+	if debug && len(body) > 0 {
 		log.Println(fmt.Sprintf("REQ BODY %s", body))
 	}
 }
