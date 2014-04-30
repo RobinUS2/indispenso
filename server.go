@@ -57,8 +57,21 @@ func discoveryHandler(w http.ResponseWriter, r *http.Request) {
 		log.Println(fmt.Sprintf("ERR: Failed to read request body %s"), err)
 		return
 	}
-	if debug && len(body) > 0 {
-		log.Println(fmt.Sprintf("REQ BODY %s", body))
+	if len(body) > 0 {
+		if debug {
+			log.Println(fmt.Sprintf("REQ BODY %s", body))
+		}
+		
+		// Parse response
+		b = []byte(body)
+		var f interface{}
+		err := json.Unmarshal(b, &f)
+		if err != nil {
+			log.Println(fmt.Sprintf("ERR: Failed to parse request body json %s"), err)
+		} else {
+			bodyData := f.(map[string]interface{})
+			log.Println(fmt.Sprintf("%s", bodyData["nodes"]))
+		}
 	}
 }
 

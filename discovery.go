@@ -101,10 +101,13 @@ func (n *Node) ExchangeMeta() bool {
 		log.Println(fmt.Sprintf("ERR: Failed to format json"))
 		return false
 	}
+	if debug {
+		log.Println(fmt.Sprintf("DEBUG: Exchanging metadata json %s", b))
+	}
 
 	// Execute request
 	req, reqErr := http.NewRequest("POST", n.FullUrl("discovery"), bytes.NewBufferString(fmt.Sprintf("%s", b)))
-	req.Header.Set("User-Agent", "FlxOne Real-Time Event Hook")
+	req.Header.Set("User-Agent", "Dispenso")
 	if reqErr != nil {
 		log.Println(fmt.Sprintf("ERR: Failed request: %s", reqErr))
 		return false
@@ -127,6 +130,7 @@ func (n *Node) ExchangeMeta() bool {
 		return false
 	}
 	log.Println(fmt.Sprintf("%s", body))
+
 	return true
 }
 
@@ -222,6 +226,10 @@ func (d *DiscoveryService) SetSeeds(seeds []string) error {
 			continue
 		} else if len(split) == 1 {
 			// Default port
+			if split[0] == hostname {
+				// Localhost, use port defined
+				port = serverPort
+			}
 		} else {
 			// User port
 			var err error
