@@ -79,11 +79,9 @@ func main() {
 
 	// Start discovery
 	discoveryService = NewDiscoveryService()
-	if len(strings.TrimSpace(seedNodes)) > 0 {
-		seeds := strings.Split(seedNodes, ",")
-		seeds = append(seeds, hostname)
-		discoveryService.SetSeeds(seeds)
-	}
+	seeds := strings.Split(seedNodes, ",")
+	seeds = append(seeds, hostname)
+	discoveryService.SetSeeds(seeds)
 	discoveryService.Start()
 
 	// Start server
