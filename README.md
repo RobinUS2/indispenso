@@ -39,7 +39,7 @@ There are 3 key user roles within indispenso:
 ## Example use cases
 - Manage and issue commands across cluster of servers
 - Restart a service on production cluster of servers if two or more developers agree
-- Aprove a push or change to production servers by IT management
+- Approve a push or change to production servers by IT management
 - Allow for a limited, template based management of servers and code to non-technical people
 - Role based server management, eg. interns can only restart services, but cannot install new software
 - Mobile interface for common server cluster tasks
