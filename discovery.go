@@ -80,6 +80,15 @@ func (n *Node) FetchMeta() bool {
 	return true
 }
 
+// Get metadata basis
+func getEmptyMetaMsg(t string) map[string]string {
+	var data map[string]string = make(map[string]string)
+	data["ts"] = fmt.Sprintf("%d", time.Now().UnixNano())
+	data["type"] = t
+	data["sender"] = hostname
+	return data
+}
+
 // Notify leave
 func (n *Node) NotifyLeave() bool {
 	if debug {
@@ -87,9 +96,7 @@ func (n *Node) NotifyLeave() bool {
 	}
 
 	// Metadata
-	var data map[string]string = make(map[string]string)
-	data["type"] = "node_leave"
-	data["sender"] = hostname
+	var data map[string]string = getEmptyMetaMsg("node_leave")
 
 	// To JSON
 	b, err := json.Marshal(data)
