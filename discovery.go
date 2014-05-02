@@ -82,8 +82,29 @@ func (n *Node) FetchMeta() bool {
 
 // Notify leave
 func (n *Node) NotifyLeave() bool {
-	// @todo Implement
-	return false
+	if debug {
+		log.Println(fmt.Sprintf("DEBUG: Sending leave notification to %s", n.FullName()))
+	}
+
+	// Metadata
+	var data map[string]string = make(map[string]string)
+	data["type"] = "node_leave"
+	data["sender"] = hostname
+
+	// To JSON
+	b, err := json.Marshal(data)
+	if err != nil {
+		log.Println(fmt.Sprintf("ERR: Failed to format json"))
+		return false
+	}
+
+	// Send data
+	_, err = n.sendData("meta", b)
+	if  err != nil {
+		return false
+	}
+
+	return true
 }
 
 // Exchange node metadata
@@ -106,7 +127,10 @@ func (n *Node) ExchangeMeta() bool {
 	}
 
 	// Send data
-	n.sendData("discovery", b)
+	_, err = n.sendData("discovery", b)
+	if  err != nil {
+		return false
+	}
 
 	return true
 }
@@ -218,6 +242,11 @@ func (d *DiscoveryService) NewNode(host string, port int, addr string) *Node {
 
 // Add node
 func (d *DiscoveryService) AddNode(n *Node) bool {
+	// Ensure we have a host
+	if len(n.Host) == 0 {
+		return false
+	}
+
 	// Look for duplicates
 	for _, node := range n.DiscoveryService.Nodes {
 		if node.Host == n.Host && node.Port == n.Port {

@@ -4,11 +4,11 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"log"
 	"net"
 	"regexp"
-	"errors"
 )
 
 func getPulicIp(hostname string) string {
@@ -51,5 +51,5 @@ func isLocalIp(ip string) bool {
 
 func newErr(msg string) error {
 	log.Println(fmt.Sprintf("ERR: %s", msg))
-	return errors.New(msg);
+	return errors.New(msg)
 }
