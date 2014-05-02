@@ -86,6 +86,7 @@ func getEmptyMetaMsg(t string) map[string]string {
 	data["ts"] = fmt.Sprintf("%d", time.Now().UnixNano())
 	data["type"] = t
 	data["sender"] = hostname
+	data["sender_port"] = fmt.Sprintf("%d", serverPort)
 	return data
 }
 
@@ -231,7 +232,7 @@ const (
 type DiscoveryService struct {
 	Nodes []*Node // List of nodes
 
-	mux          sync.RWMutex // Locking mechanism
+	mux sync.RWMutex // Locking mechanism
 }
 
 // Create discovery service
@@ -259,7 +260,7 @@ func (d *DiscoveryService) AddNode(n *Node) bool {
 	// Look for duplicates
 	d.mux.RLock()
 	for _, node := range d.Nodes {
-		if node.Host == n.Host && node.Port == n.Port {
+		if (node.Host == n.Host && node.Port == n.Port) || (node.Addr == n.Addr && node.Port == n.Port) {
 			// Match found
 			d.mux.RUnlock()
 			return false
@@ -277,14 +278,12 @@ func (d *DiscoveryService) AddNode(n *Node) bool {
 // Remove node
 func (d *DiscoveryService) RemoveNode(n *Node) bool {
 	var i int = -1
-	d.mux.RLock()
 	for in, node := range d.Nodes {
 		if node == n {
 			i = in
 			break
 		}
 	}
-	d.mux.RUnlock()
 
 	// Found?
 	if i == -1 {
@@ -295,9 +294,9 @@ func (d *DiscoveryService) RemoveNode(n *Node) bool {
 	// Remove
 	d.mux.Lock()
 	d.Nodes[i] = d.Nodes[len(d.Nodes)-1]
-  	d.Nodes = d.Nodes[0:len(d.Nodes)-1]
-  	log.Println(fmt.Sprintf("ERROR: Removed host %s", n.FullName()))
-  	d.mux.Unlock()
+	d.Nodes = d.Nodes[0 : len(d.Nodes)-1]
+	log.Println(fmt.Sprintf("ERROR: Removed host %s", n.FullName()))
+	d.mux.Unlock()
 
 	return true
 }

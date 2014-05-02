@@ -135,6 +135,7 @@ func metaHandler(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 			metaSender := fmt.Sprintf("%s", bodyData["sender"])
+			metaSenderPort,_ := strconv.Atoi(fmt.Sprintf("%s", bodyData["sender_port"]))
 
 			// @todo Authenticate
 
@@ -143,8 +144,12 @@ func metaHandler(w http.ResponseWriter, r *http.Request) {
 				// Node leaving
 				if discoveryService != nil {
 					for _, n := range discoveryService.Nodes {
-						if n.Host == metaSender {
-							discoveryService.RemoveNode(n)
+						// Check proper host
+						if n.Host == metaSender && n.Port == metaSenderPort {
+							if discoveryService.RemoveNode(n) {
+								// Done
+								break
+							}
 						}
 					}
 				}

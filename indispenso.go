@@ -83,10 +83,16 @@ func main() {
 		log.Println(fmt.Sprintf("DEBUG: IP address %s", ipAddr))
 	}
 
-	// Start discovery
+	// Init discovery
 	discoveryService = NewDiscoveryService()
+
+	// Parse seeds
 	seeds := strings.Split(seedNodes, ",")
-	seeds = append(seeds, hostname)
+
+	// Add localhost as seed
+	seeds = append(seeds, fmt.Sprintf("%s:%d", hostname, serverPort))
+
+	// Start discovery
 	discoveryService.SetSeeds(seeds)
 	discoveryService.Start()
 
