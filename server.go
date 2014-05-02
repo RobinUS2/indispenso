@@ -284,6 +284,7 @@ func dataHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		m.timestamp = ts
+		datastore.PushMutation(m)
 
 		// Respond
 		fmt.Fprintf(w, "{\"ok\":true}")
@@ -324,6 +325,13 @@ func testHandler(w http.ResponseWriter, r *http.Request) {
 		mutation["v"] = params.Get("v")
 		resp, _ := discoveryService.Nodes[0].sendData("data", msgToJson(mutation))
 		fmt.Fprintf(w, resp)
+	} else if method == "data_get" {
+		// Get data for a key
+		// @example http://localhost:8011/test?method=data_get&k=my_key
+		e, _ := datastore.GetEntry(params.Get("k"))
+		if e != nil {
+			fmt.Fprintf(w, e.value)
+		}
 	} else {
 		// Not supported
 		w.WriteHeader(400)
