@@ -29,6 +29,7 @@ func (s *Server) Start() bool {
 	log.Println(fmt.Sprintf("INFO: Starting server on port %d", serverPort))
 	go func() {
 		http.HandleFunc("/discovery", discoveryHandler)
+		http.HandleFunc("/meta", metaHandler)
 		http.HandleFunc("/task", taskHandler)
 		http.HandleFunc("/config", configHandler)
 		http.ListenAndServe(fmt.Sprintf(":%d", serverPort), nil)
@@ -96,6 +97,21 @@ func discoveryHandler(w http.ResponseWriter, r *http.Request) {
 					}
 				}
 			}
+		}
+	}
+}
+
+// Meta handler
+func metaHandler(w http.ResponseWriter, r *http.Request) {
+	// Log request body
+	body, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		log.Println(fmt.Sprintf("ERR: Failed to read request body %s"), err)
+		return
+	}
+	if len(body) > 0 {
+		if debug {
+			log.Println(fmt.Sprintf("REQ BODY %s", body))
 		}
 	}
 }

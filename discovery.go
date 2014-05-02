@@ -100,7 +100,7 @@ func (n *Node) NotifyLeave() bool {
 
 	// Send data
 	_, err = n.sendData("meta", b)
-	if  err != nil {
+	if err != nil {
 		return false
 	}
 
@@ -128,7 +128,7 @@ func (n *Node) ExchangeMeta() bool {
 
 	// Send data
 	_, err = n.sendData("discovery", b)
-	if  err != nil {
+	if err != nil {
 		return false
 	}
 
