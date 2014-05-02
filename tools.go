@@ -6,10 +6,10 @@ package main
 import (
 	"errors"
 	"fmt"
+	"github.com/nu7hatch/gouuid" // UUIDs
 	"log"
 	"net"
 	"regexp"
-	"github.com/nu7hatch/gouuid" // UUIDs
 )
 
 func getPulicIp(hostname string) string {

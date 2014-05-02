@@ -98,6 +98,17 @@ func getEmptyMetaMsg(t string) map[string]string {
 	return data
 }
 
+// Message to json
+func msgToJson(data map[string]string) []byte {
+	// To JSON
+	b, err := json.Marshal(data)
+	if err != nil {
+		log.Println(fmt.Sprintf("ERR: Failed to format json"))
+		return []byte("{}")
+	}
+	return b
+}
+
 // Notify leave
 func (n *Node) NotifyLeave() bool {
 	if debug {
@@ -107,15 +118,9 @@ func (n *Node) NotifyLeave() bool {
 	// Metadata
 	var data map[string]string = getEmptyMetaMsg("node_leave")
 
-	// To JSON
-	b, err := json.Marshal(data)
-	if err != nil {
-		log.Println(fmt.Sprintf("ERR: Failed to format json"))
-		return false
-	}
-
 	// Send data
-	_, err = n.sendData("meta", b)
+	b := msgToJson(data)
+	_, err := n.sendData("meta", b)
 	if err != nil {
 		return false
 	}
