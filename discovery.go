@@ -58,7 +58,10 @@ func (n *Node) ResetMetaExchanged() bool {
 
 // Fetch node metadata
 func (n *Node) FetchMeta() bool {
-	bodyStr, err := n.sendData("discovery", make([]byte, 0))
+	// Fetch data
+	var data map[string]string = getEmptyMetaMsg("fetch_meta")
+	b := msgToJson(data)
+	bodyStr, err := n.sendData("discovery", b)
 	if err != nil {
 		log.Println(fmt.Sprintf("ERR: Failed to request node metadata %s"), err)
 		return false
@@ -132,8 +135,7 @@ func (n *Node) NotifyLeave() bool {
 func (n *Node) ExchangeMeta() bool {
 	log.Println("INFO: Exchanging metadata")
 
-	// Metadata
-	var data map[string]string = make(map[string]string)
+	// List nodes
 	var nodeStrs []string = make([]string, 0)
 	for _, node := range n.DiscoveryService.Nodes {
 		if node == nil || len(node.Host) == 0 {
@@ -141,17 +143,14 @@ func (n *Node) ExchangeMeta() bool {
 		}
 		nodeStrs = append(nodeStrs, fmt.Sprintf("%s:%d", node.Host, node.Port))
 	}
+	
+	// Assemble payload
+	var data map[string]string = getEmptyMetaMsg("fetch_meta")
 	data["nodes"] = strings.Join(nodeStrs, ",")
-
-	// To JSON
-	b, err := json.Marshal(data)
-	if err != nil {
-		log.Println(fmt.Sprintf("ERR: Failed to format json"))
-		return false
-	}
+	b := msgToJson(data)
 
 	// Send data
-	_, err = n.sendData("discovery", b)
+	_, err := n.sendData("discovery", b)
 	if err != nil {
 		return false
 	}
