@@ -1,5 +1,5 @@
 // @author Robin Verlangen
-// Main function of Dispenso ( https://github.com/RobinUS2/dispenso )
+// Main function of Indispenso ( https://github.com/RobinUS2/indispenso )
 
 package main
 
@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"os/signal"
 	"strings"
 )
 
@@ -44,7 +45,17 @@ func init() {
 
 // Main function of dispenso
 func main() {
-	log.Println(fmt.Sprintf("INFO: Starting dispenso"))
+	log.Println(fmt.Sprintf("INFO: Starting indispenso"))
+
+	// Interrupt handler
+	c := make(chan os.Signal, 1)
+	signal.Notify(c, os.Interrupt)
+	go func() {
+		for _ = range c {
+			log.Println(fmt.Sprintf("INFO: Shutting down indispenso"))
+			os.Exit(1)
+		}
+	}()
 
 	// Hostname resolution?
 	if len(hostname) == 0 {
