@@ -91,6 +91,7 @@ func (n *Node) FetchMeta() bool {
 func getEmptyMetaMsg(t string) map[string]string {
 	var data map[string]string = make(map[string]string)
 	data["ts"] = fmt.Sprintf("%d", time.Now().UnixNano())
+	data["msg_id"] = getUuid()
 	data["type"] = t
 	data["sender"] = hostname
 	data["sender_port"] = fmt.Sprintf("%d", serverPort)

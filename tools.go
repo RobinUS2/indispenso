@@ -9,6 +9,7 @@ import (
 	"log"
 	"net"
 	"regexp"
+	"github.com/nu7hatch/gouuid" // UUIDs
 )
 
 func getPulicIp(hostname string) string {
@@ -52,4 +53,13 @@ func isLocalIp(ip string) bool {
 func newErr(msg string) error {
 	log.Println(fmt.Sprintf("ERR: %s", msg))
 	return errors.New(msg)
+}
+
+func getUuid() string {
+	u4, err := uuid.NewV4()
+	if err != nil {
+		log.Println(fmt.Sprintf("ERR: Failed to generate UUID %s", err))
+		return ""
+	}
+	return fmt.Sprintf("%s", u4)
 }
