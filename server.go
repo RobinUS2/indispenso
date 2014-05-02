@@ -30,8 +30,6 @@ func (s *Server) Start() bool {
 	go func() {
 		http.HandleFunc("/discovery", discoveryHandler)
 		http.HandleFunc("/meta", metaHandler)
-		http.HandleFunc("/task", taskHandler)
-		http.HandleFunc("/config", configHandler)
 		http.ListenAndServe(fmt.Sprintf(":%d", serverPort), nil)
 	}()
 	return true
@@ -156,14 +154,4 @@ func metaHandler(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 	}
-}
-
-// Task handler
-func taskHandler(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprintf(w, "Hi there, I love %s!", r.URL.Path[1:])
-}
-
-// Config handler
-func configHandler(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprintf(w, "Hi there, I love %s!", r.URL.Path[1:])
 }
