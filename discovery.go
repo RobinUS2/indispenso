@@ -6,6 +6,9 @@ package main
 // Imports
 import (
 	"bytes"
+	"crypto/hmac"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -16,9 +19,6 @@ import (
 	"strings"
 	"sync"
 	"time"
-	"crypto/hmac"
-	"crypto/sha256"
-	"encoding/hex"
 )
 
 // Discovery constants

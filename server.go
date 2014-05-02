@@ -5,6 +5,9 @@ package main
 
 // Imports
 import (
+	"crypto/hmac"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -13,9 +16,6 @@ import (
 	"strconv"
 	"strings"
 	"time"
-	"crypto/hmac"
-	"crypto/sha256"
-	"encoding/hex"
 )
 
 // Server
@@ -75,7 +75,7 @@ func discoveryHandler(w http.ResponseWriter, r *http.Request) {
 		expectedSignature := mac.Sum(nil)
 		headerSigVal := r.Header.Get("X-Message-Digest")
 		headerSigValSplit := strings.Split(headerSigVal, "sha256=")
-		headerSigHexDec,errHex := hex.DecodeString(headerSigValSplit[1])
+		headerSigHexDec, errHex := hex.DecodeString(headerSigValSplit[1])
 		if errHex != nil {
 			log.Println(fmt.Sprintf("ERR: Failed to decode hex digest %s"), errHex)
 			return
@@ -145,9 +145,14 @@ func metaHandler(w http.ResponseWriter, r *http.Request) {
 		expectedSignature := mac.Sum(nil)
 		headerSigVal := r.Header.Get("X-Message-Digest")
 		headerSigValSplit := strings.Split(headerSigVal, "sha256=")
-		signature := []byte(headerSigValSplit[1])
+		headerSigHexDec, errHex := hex.DecodeString(headerSigValSplit[1])
+		if errHex != nil {
+			log.Println(fmt.Sprintf("ERR: Failed to decode hex digest %s"), errHex)
+			return
+		}
+		signature := []byte(headerSigHexDec)
 		if hmac.Equal(expectedSignature, signature) == false {
-			log.Println(fmt.Sprintf("ERR: Message digest invalid, dropping message"))
+			log.Println(fmt.Sprintf("ERR: Message digest header invalid, dropping message"))
 			log.Println(fmt.Sprintf("%b", expectedSignature))
 			log.Println(fmt.Sprintf("%b", signature))
 			return
