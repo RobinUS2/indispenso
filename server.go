@@ -54,6 +54,7 @@ func (s *Server) Start() bool {
 	go func() {
 		http.HandleFunc("/discovery", discoveryHandler)
 		http.HandleFunc("/meta", metaHandler)
+		http.HandleFunc("/data", dataHandler)
 		if testing {
 			http.HandleFunc("/test", testHandler)
 		}
@@ -197,7 +198,7 @@ func metaHandler(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			log.Println(fmt.Sprintf("ERR: Failed to parse request body json %s"), err)
 			return
-		} 
+		}
 
 		bodyData := f.(map[string]interface{})
 		// Basic validation of type
@@ -230,7 +231,7 @@ func metaHandler(w http.ResponseWriter, r *http.Request) {
 				}
 			}
 		}
-		
+
 	}
 }
 
@@ -240,6 +241,13 @@ func dataHandler(w http.ResponseWriter, r *http.Request) {
 	b, err := readRequest(w, r)
 	if err != nil {
 		// No log, is already written
+		return
+	}
+
+	// Datastore?
+	if datastore == nil {
+		log.Println(fmt.Sprintf("ERR: Datastore not yet started"))
+		w.WriteHeader(503)
 		return
 	}
 
@@ -265,6 +273,22 @@ func dataHandler(w http.ResponseWriter, r *http.Request) {
 			log.Println("ERR: Missing value")
 			return
 		}
+
+		// Submit mutation
+		m := datastore.CreateMutation()
+		m.key = fmt.Sprintf("%s", bodyData["k"])
+		m.value = fmt.Sprintf("%s", bodyData["v"])
+		ts, tsErr := strconv.ParseInt(fmt.Sprintf("%s", bodyData["ts"]), 10, 64)
+		if tsErr != nil {
+			log.Println("ERR: Invalid timestamp %s", tsErr)
+			return
+		}
+		m.timestamp = ts
+
+		// Respond
+		fmt.Fprintf(w, "{\"ok\":true}")
+	} else {
+		w.WriteHeader(400)
 	}
 }
 
@@ -275,8 +299,11 @@ func testHandler(w http.ResponseWriter, r *http.Request) {
 
 	// Methods
 	if method == "list_nodes" {
+		// List nodes
+		// @example http://localhost:8011/test?method=list_nodes
 		if discoveryService == nil {
 			log.Println(fmt.Sprintf("ERR: Discovery service not yet started"))
+			w.WriteHeader(503)
 			return
 		}
 		var data []string = make([]string, 0)
@@ -289,6 +316,14 @@ func testHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		fmt.Fprintf(w, fmt.Sprintf("%s", b))
+	} else if method == "data_mutate" {
+		// Mutate a key
+		// @example http://localhost:8011/test?method=data_mutate&k=my_key&v=my_value
+		mutation := getEmptyMetaMsg("data_mutation")
+		mutation["k"] = params.Get("k")
+		mutation["v"] = params.Get("v")
+		resp, _ := discoveryService.Nodes[0].sendData("data", msgToJson(mutation))
+		fmt.Fprintf(w, resp)
 	} else {
 		// Not supported
 		w.WriteHeader(400)
