@@ -230,6 +230,8 @@ const (
 // Discovery service
 type DiscoveryService struct {
 	Nodes []*Node // List of nodes
+
+	mux          sync.RWMutex // Locking mechanism
 }
 
 // Create discovery service
@@ -255,22 +257,49 @@ func (d *DiscoveryService) AddNode(n *Node) bool {
 	}
 
 	// Look for duplicates
-	for _, node := range n.DiscoveryService.Nodes {
+	d.mux.RLock()
+	for _, node := range d.Nodes {
 		if node.Host == n.Host && node.Port == n.Port {
 			// Match found
+			d.mux.RUnlock()
 			return false
 		}
 	}
+	d.mux.RUnlock()
 
 	// Append
+	d.mux.Lock()
 	d.Nodes = append(d.Nodes, n)
+	d.mux.Unlock()
 	return true
 }
 
 // Remove node
 func (d *DiscoveryService) RemoveNode(n *Node) bool {
-	// @todo Implement
-	return false
+	var i int = -1
+	d.mux.RLock()
+	for in, node := range d.Nodes {
+		if node == n {
+			i = in
+			break
+		}
+	}
+	d.mux.RUnlock()
+
+	// Found?
+	if i == -1 {
+		log.Println(fmt.Sprintf("ERROR: Failed to remove host %s", n.FullName()))
+		return false
+	}
+
+	// Remove
+	d.mux.Lock()
+	d.Nodes[i] = d.Nodes[len(d.Nodes)-1]
+  	d.Nodes = d.Nodes[0:len(d.Nodes)-1]
+  	log.Println(fmt.Sprintf("ERROR: Removed host %s", n.FullName()))
+  	d.mux.Unlock()
+
+	return true
 }
 
 // Set seeds

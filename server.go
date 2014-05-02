@@ -139,10 +139,10 @@ func metaHandler(w http.ResponseWriter, r *http.Request) {
 			// @todo Authenticate
 
 			// Execute action
-			if metaType == "node_leave"  {
+			if metaType == "node_leave" {
 				// Node leaving
 				if discoveryService != nil {
-					for _,n := range discoveryService.Nodes {
+					for _, n := range discoveryService.Nodes {
 						if n.Host == metaSender {
 							discoveryService.RemoveNode(n)
 						}
