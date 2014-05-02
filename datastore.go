@@ -5,11 +5,11 @@ package main
 
 // Imports
 import (
-	"sync"
-	"log"
-	"fmt"
-	"time"
 	"errors"
+	"fmt"
+	"log"
+	"sync"
+	"time"
 )
 
 // Constants
@@ -20,21 +20,21 @@ type Datastore struct {
 	folder          string                  // Persistent location
 	mutationChannel chan *DatastoreMutation // Channel that acts as buffer for mutations, guarantees order
 
-	memTable map[string] *MemEntry // Datastore in-memory values
-	memTableMux sync.RWMutex // Mutex for outer memtable (e.g. appending / reading)
+	memTable    map[string]*MemEntry // Datastore in-memory values
+	memTableMux sync.RWMutex         // Mutex for outer memtable (e.g. appending / reading)
 
-	memEntryMuxes map[int] *sync.Mutex // Mutex buckets for entries
+	memEntryMuxes map[int]*sync.Mutex // Mutex buckets for entries
 
 	mutatorStarted bool
-	globalMux sync.RWMutex // Global mutex for datastore struct values (thus NOT data mutations)
+	globalMux      sync.RWMutex // Global mutex for datastore struct values (thus NOT data mutations)
 }
 
 // Mem entries
 type MemEntry struct {
 	key       string // Data key
 	value     string // New value
-	modified int64  // Timestamp when last changed
-	muxBucket int // Bucket of where to find my lock
+	modified  int64  // Timestamp when last changed
+	muxBucket int    // Bucket of where to find my lock
 }
 
 // Mutation
@@ -49,8 +49,8 @@ func NewDatastore(persistentLocation string) *Datastore {
 	return &Datastore{
 		folder:          persistentLocation,
 		mutationChannel: make(chan *DatastoreMutation, 10000),
-		memTable: make(map[string] *MemEntry),
-		memEntryMuxes: make(map[int] *sync.Mutex),
+		memTable:        make(map[string]*MemEntry),
+		memEntryMuxes:   make(map[int]*sync.Mutex),
 	}
 }
 
@@ -96,23 +96,23 @@ func (s *Datastore) startMutator() bool {
 		for {
 			// Read mutation from channel
 			var m *DatastoreMutation
-			m = <- s.mutationChannel
+			m = <-s.mutationChannel
 			if trace {
 				log.Println(fmt.Sprintf("TRACE: Mutation '%s' = '%s'", m.key, m.value))
 			}
 
 			// Read current value
 			s.memTableMux.RLock()
-			v,_ := s.GetEntry(m.key)
+			v, _ := s.GetEntry(m.key)
 			s.memTableMux.RUnlock()
 
 			// Not set?
 			if v == nil {
 				s.memTableMux.Lock()
 				s.memTable[m.key] = &MemEntry{
-					key: m.key,
-					value: m.value,
-					modified: time.Now().UnixNano(),
+					key:       m.key,
+					value:     m.value,
+					modified:  time.Now().UnixNano(),
 					muxBucket: pos % MEM_ENTRY_MUX_BUCKETS,
 				}
 
@@ -127,6 +127,9 @@ func (s *Datastore) startMutator() bool {
 				// Is my update newer than the actual current value?
 				if m.timestamp < v.modified {
 					// Mutation is older than last update, skip
+					if debug {
+						log.Println(fmt.Sprintf("DEBUG: Dropping old update of key '%s'with timestamp %d", v.key, v.modified))
+					}
 					continue
 				}
 
@@ -161,7 +164,7 @@ func (s *Datastore) GetEntry(key string) (*MemEntry, error) {
 	if v == nil {
 		return nil, errors.New(fmt.Sprintf("Key %s not found in datastore", key))
 	}
-	return v, nil;
+	return v, nil
 }
 
 // Flush Datastore contents to persistent storage
