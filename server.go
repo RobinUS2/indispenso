@@ -16,6 +16,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"sync"
 )
 
 // Server
@@ -25,6 +26,26 @@ type Server struct {
 // Init server
 func NewServer() *Server {
 	return &Server{}
+}
+
+// Message id map (for replay protection)
+// @todo Improve as we do not have to keep everything in here forever, is memory leaking basically
+var msgLog map[string]bool = make (map[string]bool )
+var msgLogMux sync.RWMutex
+
+// Is this message seen before?
+func isMsgSeen(msgId string) bool {
+	msgLogMux.RLock()
+	defer msgLogMux.RUnlock()
+	return msgLog[msgId]
+}
+
+// Mark message as seen
+func markMsgSeen(msgId string) bool {
+	msgLogMux.Lock()
+	msgLog[msgId] = true
+	msgLogMux.Unlock()
+	return true
 }
 
 // Start server
@@ -78,15 +99,22 @@ func readRequest(w http.ResponseWriter, r *http.Request) ([]byte, error) {
 		return nil, newErr(fmt.Sprintf("Failed to parse request json, unable to validate message id: %s", err))
 	}
 	jsonData := f.(map[string]interface{})
-	if jsonData["msg_id"] == nil || len(fmt.Sprintf("%s", jsonData["msg_id"])) == 0 {
+	if jsonData["msg_id"] == nil {
 		return nil, newErr(fmt.Sprintf("Missing message id: %s", err))
 	}
-	// @todo Check whether we have seen this message id before, if so drop!
+
+	// Seen?
+	msgId := strings.TrimSpace(fmt.Sprintf("%s", jsonData["msg_id"]))
+	if len(msgId) == 0 {
+		return nil, newErr(fmt.Sprintf("Missing message id content: %s", err))
+	}
+	if isMsgSeen(msgId) {
+		return nil, newErr(fmt.Sprintf("Message id %s already seen, dropping to prevent replay attack", msgId))
+	}
+	markMsgSeen(msgId)
 
 	// OK :)
 	return b, nil
-	//}
-	//return nil, newErr("Empty request")
 }
 
 // Discovery handler
