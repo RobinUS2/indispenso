@@ -32,6 +32,7 @@ type Node struct {
 	// @todo Send meta data every once in a while
 	metaReceived bool         // Did we receive metadata?
 	mux          sync.RWMutex // Locking mechanism
+	lastSeen int64 // Time last seen
 }
 
 // Full name
@@ -200,6 +201,11 @@ func (n *Node) Ping() bool {
 	}
 	conn.Close()
 
+	// Last seen
+	n.mux.Lock()
+	n.lastSeen = time.Now().UnixNano()
+	n.mux.Unlock()
+
 	// Try to fetch metadata
 	n.mux.RLock()
 	if n.metaReceived == false {
@@ -303,7 +309,7 @@ func (d *DiscoveryService) RemoveNode(n *Node) bool {
 	d.mux.Lock()
 	d.Nodes[i] = d.Nodes[len(d.Nodes)-1]
 	d.Nodes = d.Nodes[0 : len(d.Nodes)-1]
-	log.Println(fmt.Sprintf("ERROR: Removed host %s", n.FullName()))
+	log.Println(fmt.Sprintf("INFO: Removed host %s", n.FullName()))
 	d.mux.Unlock()
 
 	return true
