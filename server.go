@@ -264,7 +264,7 @@ func testHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		var data []string = make([]string, 0)
-		for _,n := range discoveryService.Nodes {
+		for _, n := range discoveryService.Nodes {
 			data = append(data, n.FullName())
 		}
 		b, err := json.Marshal(data)

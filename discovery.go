@@ -23,7 +23,7 @@ import (
 
 // Discovery constants
 const PING_TIMEOUT = 30 * time.Second
-const PING_INTERVAL = 1 * time.Second
+const PING_INTERVAL = 10 * time.Second
 
 // Node (entity in the Dispenso cluster)
 type Node struct {
@@ -386,6 +386,18 @@ func (d *DiscoveryService) NotifyLeave() bool {
 	return true
 }
 
+// Ping nodes
+func (d *DiscoveryService) PingNodes() bool {
+	for _, node := range d.Nodes {
+		if !node.Ping() {
+			// @todo Keep track of errors and add exponential backoff
+			node.ResetMetaExchanged()
+			log.Println(fmt.Sprintf("WARN: Failed to detect %s", node.FullName()))
+		}
+	}
+	return true
+}
+
 // Run discovery service
 func (d *DiscoveryService) Start() bool {
 	go func() {
@@ -393,17 +405,12 @@ func (d *DiscoveryService) Start() bool {
 
 		// Iterate nodes
 		ticker := time.NewTicker(PING_INTERVAL)
+		d.PingNodes()
 		for {
 			select {
 			case <-ticker.C:
 				// Discover nodes
-				for _, node := range d.Nodes {
-					if !node.Ping() {
-						// @todo Keep track of errors and add exponential backoff
-						node.ResetMetaExchanged()
-						log.Println(fmt.Sprintf("WARN: Failed to detect %s", node.FullName()))
-					}
-				}
+				d.PingNodes()
 			case <-shutdown:
 				ticker.Stop()
 				return
