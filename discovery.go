@@ -247,6 +247,17 @@ func (d *DiscoveryService) SetSeeds(seeds []string) error {
 	return nil
 }
 
+// Notify cluster of new node
+func (d *DiscoveryService) NotifyJoin() bool {
+	for _, node := range d.Nodes {
+		if !node.ExchangeMeta() {
+			// @todo Keep track of errors and add exponential backoff
+			log.Println(fmt.Sprintf("WARN: Failed to exchange metadata %s", node.FullName()))
+		}
+	}
+	return true
+}
+
 // Run discovery service
 func (d *DiscoveryService) Start() bool {
 	go func() {

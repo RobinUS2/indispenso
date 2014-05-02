@@ -10,9 +10,9 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
-	"time"
-	"strings"
 	"strconv"
+	"strings"
+	"time"
 )
 
 // Server
@@ -76,7 +76,7 @@ func discoveryHandler(w http.ResponseWriter, r *http.Request) {
 			// Node discovery?
 			if bodyData["nodes"] != nil {
 				var nodes []string = strings.Split(fmt.Sprintf("%s", bodyData["nodes"]), ",")
-				for _,node := range nodes {
+				for _, node := range nodes {
 					// Skip empty
 					node = strings.TrimSpace(node)
 					if len(node) == 0 {
@@ -90,7 +90,10 @@ func discoveryHandler(w http.ResponseWriter, r *http.Request) {
 						continue
 					}
 					n := discoveryService.NewNode(nodeSplit[0], port, getPulicIp(nodeSplit[0]))
-					discoveryService.AddNode(n)
+					if discoveryService.AddNode(n) {
+						// Broadcast cluster join
+						discoveryService.NotifyJoin()
+					}
 				}
 			}
 		}
