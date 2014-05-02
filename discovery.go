@@ -32,7 +32,7 @@ type Node struct {
 	// @todo Send meta data every once in a while
 	metaReceived bool         // Did we receive metadata?
 	mux          sync.RWMutex // Locking mechanism
-	lastSeen int64 // Time last seen
+	lastSeen     int64        // Time last seen
 }
 
 // Full name
@@ -130,8 +130,11 @@ func (n *Node) ExchangeMeta() bool {
 
 	// Metadata
 	var data map[string]string = make(map[string]string)
-	var nodeStrs []string = make([]string, len(n.DiscoveryService.Nodes))
+	var nodeStrs []string = make([]string, 0)
 	for _, node := range n.DiscoveryService.Nodes {
+		if node == nil || len(node.Host) == 0 {
+			continue
+		}
 		nodeStrs = append(nodeStrs, fmt.Sprintf("%s:%d", node.Host, node.Port))
 	}
 	data["nodes"] = strings.Join(nodeStrs, ",")
