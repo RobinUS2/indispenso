@@ -46,33 +46,33 @@ func readRequest(w http.ResponseWriter, r *http.Request) ([]byte, error) {
 		return nil, newErr(fmt.Sprintf("Failed to read request body %s", err))
 	}
 	//if len(body) > 0 {
-		if debug && body != nil && len(body) > 0 {
-			log.Println(fmt.Sprintf("DEBUG: Request body %s", body))
-		}
+	if debug && body != nil && len(body) > 0 {
+		log.Println(fmt.Sprintf("DEBUG: Request body %s", body))
+	}
 
-		// To byte array
-		b := []byte(body)
+	// To byte array
+	b := []byte(body)
 
-		// Calculate & validate message digest
-		mac := hmac.New(sha256.New, secretKey)
-		mac.Write(b)
-		expectedSignature := mac.Sum(nil)
-		headerSigVal := r.Header.Get("X-Message-Digest")
-		headerSigValSplit := strings.Split(headerSigVal, "sha256=")
-		headerSigHexDec, errHex := hex.DecodeString(headerSigValSplit[1])
-		if errHex != nil {
-			return nil, newErr(fmt.Sprintf("Failed to decode hex digest %s", errHex))
-		}
-		signature := []byte(headerSigHexDec)
-		if hmac.Equal(expectedSignature, signature) == false {
-			log.Println(fmt.Sprintf("ERR: Message digest header invalid, dropping message"))
-			log.Println(fmt.Sprintf("%b", expectedSignature))
-			log.Println(fmt.Sprintf("%b", signature))
-			return nil, newErr("Message digest header invalid")
-		}
+	// Calculate & validate message digest
+	mac := hmac.New(sha256.New, secretKey)
+	mac.Write(b)
+	expectedSignature := mac.Sum(nil)
+	headerSigVal := r.Header.Get("X-Message-Digest")
+	headerSigValSplit := strings.Split(headerSigVal, "sha256=")
+	headerSigHexDec, errHex := hex.DecodeString(headerSigValSplit[1])
+	if errHex != nil {
+		return nil, newErr(fmt.Sprintf("Failed to decode hex digest %s", errHex))
+	}
+	signature := []byte(headerSigHexDec)
+	if hmac.Equal(expectedSignature, signature) == false {
+		log.Println(fmt.Sprintf("ERR: Message digest header invalid, dropping message"))
+		log.Println(fmt.Sprintf("%b", expectedSignature))
+		log.Println(fmt.Sprintf("%b", signature))
+		return nil, newErr("Message digest header invalid")
+	}
 
-		// OK :)
-		return b,nil
+	// OK :)
+	return b, nil
 	//}
 	//return nil, newErr("Empty request")
 }
@@ -139,19 +139,15 @@ func discoveryHandler(w http.ResponseWriter, r *http.Request) {
 
 // Meta handler
 func metaHandler(w http.ResponseWriter, r *http.Request) {
-	// Log request body
-	body, err := ioutil.ReadAll(r.Body)
+	// Read and validate request
+	b, err := readRequest(w, r)
 	if err != nil {
-		log.Println(fmt.Sprintf("ERR: Failed to read request body %s"), err)
+		// No log, is already written
 		return
 	}
-	if len(body) > 0 {
-		if debug {
-			log.Println(fmt.Sprintf("DEBUG: Request body %s", body))
-		}
 
-		// To byte array
-		b := []byte(body)
+	// Parse response
+	if len(b) > 0 {
 
 		// Calculate & validate message digest
 		mac := hmac.New(sha256.New, secretKey)
