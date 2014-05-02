@@ -15,8 +15,8 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
-	"time"
 	"sync"
+	"time"
 )
 
 // Server
@@ -30,7 +30,7 @@ func NewServer() *Server {
 
 // Message id map (for replay protection)
 // @todo Improve as we do not have to keep everything in here forever, is memory leaking basically
-var msgLog map[string]bool = make (map[string]bool )
+var msgLog map[string]bool = make(map[string]bool)
 var msgLogMux sync.RWMutex
 
 // Is this message seen before?
@@ -54,6 +54,9 @@ func (s *Server) Start() bool {
 	go func() {
 		http.HandleFunc("/discovery", discoveryHandler)
 		http.HandleFunc("/meta", metaHandler)
+		if testing {
+			http.HandleFunc("/test", testHandler)
+		}
 		http.ListenAndServe(fmt.Sprintf(":%d", serverPort), nil)
 	}()
 	return true
@@ -246,5 +249,32 @@ func metaHandler(w http.ResponseWriter, r *http.Request) {
 				}
 			}
 		}
+	}
+}
+
+// Test handler
+func testHandler(w http.ResponseWriter, r *http.Request) {
+	params := r.URL.Query()
+	method := params.Get("method")
+
+	// Methods
+	if method == "list_nodes" {
+		if discoveryService == nil {
+			log.Println(fmt.Sprintf("ERR: Discovery service not yet started"))
+			return
+		}
+		var data []string = make([]string, 0)
+		for _,n := range discoveryService.Nodes {
+			data = append(data, n.FullName())
+		}
+		b, err := json.Marshal(data)
+		if err != nil {
+			log.Println(fmt.Sprintf("ERR: Failed to format json"))
+			return
+		}
+		fmt.Fprintf(w, fmt.Sprintf("%s", b))
+	} else {
+		// Not supported
+		w.WriteHeader(400)
 	}
 }
