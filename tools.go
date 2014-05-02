@@ -29,7 +29,7 @@ func getPulicIp(hostname string) string {
 			if isLocalIp(ip) == true && noBindLocalhost == true {
 				continue
 			}
-			if debug {
+			if trace {
 				log.Println(fmt.Sprintf("DEBUG: Host %s resolves to %s", hostname, ip))
 			}
 			ipAddr = ip

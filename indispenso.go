@@ -23,8 +23,10 @@ var storeState bool
 var hostname string
 var ipAddr string
 var debug bool
+var trace bool
 var ipv6 bool
 var noBindLocalhost bool
+var secretKey []byte = []byte("my_super_secret_string") // @todo define / generate on startup
 var discoveryService *DiscoveryService
 
 // Signal channels
@@ -38,6 +40,7 @@ func init() {
 	flag.StringVar(&hostname, "hostname", "", "Hostname (defaults to auto-resolve)")
 	flag.StringVar(&ipAddr, "ipaddr", "", "Ip address (defaults to auto-resoolve)")
 	flag.BoolVar(&debug, "debug", true, "Debug logging")
+	flag.BoolVar(&trace, "trace", false, "Trace logging")
 	flag.BoolVar(&ipv6, "ipv6", false, "Enable ipv6")
 	flag.BoolVar(&noBindLocalhost, "no-bind-localhost", true, "Do not bind localhost")
 	flag.Parse()

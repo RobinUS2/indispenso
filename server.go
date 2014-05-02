@@ -13,6 +13,9 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"crypto/hmac"
+	"crypto/sha256"
+	"encoding/hex"
 )
 
 // Server
@@ -63,8 +66,29 @@ func discoveryHandler(w http.ResponseWriter, r *http.Request) {
 			log.Println(fmt.Sprintf("DEBUG: Request body %s", body))
 		}
 
+		// To byte array
+		b := []byte(body)
+
+		// Calculate & validate message digest
+		mac := hmac.New(sha256.New, secretKey)
+		mac.Write(b)
+		expectedSignature := mac.Sum(nil)
+		headerSigVal := r.Header.Get("X-Message-Digest")
+		headerSigValSplit := strings.Split(headerSigVal, "sha256=")
+		headerSigHexDec,errHex := hex.DecodeString(headerSigValSplit[1])
+		if errHex != nil {
+			log.Println(fmt.Sprintf("ERR: Failed to decode hex digest %s"), errHex)
+			return
+		}
+		signature := []byte(headerSigHexDec)
+		if hmac.Equal(expectedSignature, signature) == false {
+			log.Println(fmt.Sprintf("ERR: Message digest header invalid, dropping message"))
+			log.Println(fmt.Sprintf("%b", expectedSignature))
+			log.Println(fmt.Sprintf("%b", signature))
+			return
+		}
+
 		// Parse response
-		b = []byte(body)
 		var f interface{}
 		err := json.Unmarshal(b, &f)
 		if err != nil {
@@ -112,8 +136,24 @@ func metaHandler(w http.ResponseWriter, r *http.Request) {
 			log.Println(fmt.Sprintf("DEBUG: Request body %s", body))
 		}
 
-		// Parse response
+		// To byte array
 		b := []byte(body)
+
+		// Calculate & validate message digest
+		mac := hmac.New(sha256.New, secretKey)
+		mac.Write(b)
+		expectedSignature := mac.Sum(nil)
+		headerSigVal := r.Header.Get("X-Message-Digest")
+		headerSigValSplit := strings.Split(headerSigVal, "sha256=")
+		signature := []byte(headerSigValSplit[1])
+		if hmac.Equal(expectedSignature, signature) == false {
+			log.Println(fmt.Sprintf("ERR: Message digest invalid, dropping message"))
+			log.Println(fmt.Sprintf("%b", expectedSignature))
+			log.Println(fmt.Sprintf("%b", signature))
+			return
+		}
+
+		// Parse response
 		var f interface{}
 		err := json.Unmarshal(b, &f)
 		if err != nil {
@@ -134,8 +174,6 @@ func metaHandler(w http.ResponseWriter, r *http.Request) {
 			}
 			metaSender := fmt.Sprintf("%s", bodyData["sender"])
 			metaSenderPort, _ := strconv.Atoi(fmt.Sprintf("%s", bodyData["sender_port"]))
-
-			// @todo Authenticate
 
 			// Execute action
 			if metaType == "node_leave" {

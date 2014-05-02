@@ -16,6 +16,9 @@ import (
 	"strings"
 	"sync"
 	"time"
+	"crypto/hmac"
+	"crypto/sha256"
+	"encoding/hex"
 )
 
 // Discovery constants
@@ -165,9 +168,19 @@ func (n *Node) sendData(endpoint string, b []byte) (string, error) {
 	// Client
 	httpclient := &http.Client{}
 
+	// Calculate message digest
+	mac := hmac.New(sha256.New, secretKey)
+	mac.Write(b)
+	signature := mac.Sum(nil)
+
 	// Execute request
 	req, reqErr := http.NewRequest("POST", n.FullUrl(endpoint), bytes.NewBufferString(fmt.Sprintf("%s", b)))
 	req.Header.Set("User-Agent", "Dispenso")
+	headerSig := fmt.Sprintf("sha256=%s", hex.EncodeToString(signature))
+	req.Header.Set("X-Message-Digest", headerSig)
+	if trace {
+		log.Println(fmt.Sprintf("DEBUG: Message digest header: %s", headerSig))
+	}
 	if reqErr != nil {
 		return "", newErr(fmt.Sprintf("Failed request: %s", reqErr))
 	}
