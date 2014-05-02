@@ -62,7 +62,7 @@ func discoveryHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	if len(body) > 0 {
 		if debug {
-			log.Println(fmt.Sprintf("REQ BODY %s", body))
+			log.Println(fmt.Sprintf("DEBUG: Request body %s", body))
 		}
 
 		// Parse response
@@ -111,7 +111,44 @@ func metaHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	if len(body) > 0 {
 		if debug {
-			log.Println(fmt.Sprintf("REQ BODY %s", body))
+			log.Println(fmt.Sprintf("DEBUG: Request body %s", body))
+		}
+
+		// Parse response
+		b := []byte(body)
+		var f interface{}
+		err := json.Unmarshal(b, &f)
+		if err != nil {
+			log.Println(fmt.Sprintf("ERR: Failed to parse request body json %s"), err)
+		} else {
+			bodyData := f.(map[string]interface{})
+			// Basic validation of type
+			if bodyData["type"] == nil || len(fmt.Sprintf("%s", bodyData["type"])) == 0 {
+				log.Println(fmt.Sprintf("ERR: Missing type"))
+				return
+			}
+			metaType := fmt.Sprintf("%s", bodyData["type"])
+
+			// Basic send validation
+			if bodyData["sender"] == nil || len(fmt.Sprintf("%s", bodyData["sender"])) == 0 {
+				log.Println(fmt.Sprintf("ERR: Missing sender"))
+				return
+			}
+			metaSender := fmt.Sprintf("%s", bodyData["sender"])
+
+			// @todo Authenticate
+
+			// Execute action
+			if metaType == "node_leave"  {
+				// Node leaving
+				if discoveryService != nil {
+					for _,n := range discoveryService.Nodes {
+						if n.Host == metaSender {
+							discoveryService.RemoveNode(n)
+						}
+					}
+				}
+			}
 		}
 	}
 }

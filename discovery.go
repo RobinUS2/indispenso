@@ -267,6 +267,12 @@ func (d *DiscoveryService) AddNode(n *Node) bool {
 	return true
 }
 
+// Remove node
+func (d *DiscoveryService) RemoveNode(n *Node) bool {
+	// @todo Implement
+	return false
+}
+
 // Set seeds
 func (d *DiscoveryService) SetSeeds(seeds []string) error {
 	// Add all seeds
@@ -303,12 +309,10 @@ func (d *DiscoveryService) SetSeeds(seeds []string) error {
 // Notify cluster of new node
 func (d *DiscoveryService) NotifyJoin() bool {
 	for _, node := range d.Nodes {
-		go func() {
-			if !node.ExchangeMeta() {
-				// @todo Keep track of errors and add exponential backoff
-				log.Println(fmt.Sprintf("WARN: Failed to exchange metadata %s", node.FullName()))
-			}
-		}()
+		if !node.ExchangeMeta() {
+			// @todo Keep track of errors and add exponential backoff
+			log.Println(fmt.Sprintf("WARN: Failed to exchange metadata %s", node.FullName()))
+		}
 	}
 	return true
 }
@@ -316,12 +320,10 @@ func (d *DiscoveryService) NotifyJoin() bool {
 // Notify leave
 func (d *DiscoveryService) NotifyLeave() bool {
 	for _, node := range d.Nodes {
-		go func() {
-			if !node.NotifyLeave() {
-				// @todo Keep track of errors and add exponential backoff
-				log.Println(fmt.Sprintf("WARN: Failed to notify leave metadata %s", node.FullName()))
-			}
-		}()
+		if !node.NotifyLeave() {
+			// @todo Keep track of errors and add exponential backoff
+			log.Println(fmt.Sprintf("WARN: Failed to notify leave metadata %s", node.FullName()))
+		}
 	}
 	return true
 }
@@ -338,12 +340,10 @@ func (d *DiscoveryService) Start() bool {
 			case <-ticker.C:
 				// Discover nodes
 				for _, node := range d.Nodes {
-					go func() {
-						if !node.Ping() {
-							// @todo Keep track of errors and add exponential backoff
-							log.Println(fmt.Sprintf("WARN: Failed to detect %s", node.FullName()))
-						}
-					}()
+					if !node.Ping() {
+						// @todo Keep track of errors and add exponential backoff
+						log.Println(fmt.Sprintf("WARN: Failed to detect %s", node.FullName()))
+					}
 				}
 			case <-shutdown:
 				ticker.Stop()
