@@ -4,7 +4,7 @@ indispenso
 Distribute, manage, regulate, arrange. Simple &amp; secure management based on consensus.
 
 ## Building
-This project request Go 1.2 or later to compile. 
+This project requires Go 1.2 or later to compile. 
 
 	$ go get github.com/RobinUS2/indispenso
 	$ go test
