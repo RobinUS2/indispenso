@@ -32,6 +32,7 @@ var noBindLocalhost bool
 var secretKey []byte
 var secretStr string
 var persistentFolder string
+var instanceId string
 var discoveryService *DiscoveryService
 var datastore *Datastore
 
@@ -58,6 +59,12 @@ func init() {
 // Main function of dispenso
 func main() {
 	log.Println(fmt.Sprintf("INFO: Starting indispenso"))
+
+	// Instance id
+	instanceId = getUuid()
+	if debug {
+		log.Println(fmt.Sprintf("DEBUG: Instance id %s", instanceId))
+	}
 
 	// Warnings
 	if testing {

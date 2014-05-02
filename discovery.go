@@ -31,6 +31,7 @@ type Node struct {
 	Host             string            // Fully qualified hostname
 	Addr             string            // IP address of this node
 	Port             int               // Port on which Dispenso runs
+	InstanceId		string // Instance id (unique per startup)
 
 	// @todo Send meta data every once in a while
 	metaReceived bool         // Did we receive metadata?
@@ -230,6 +231,12 @@ func (n *Node) Ping() bool {
 		}()
 	}
 	n.mux.RUnlock()
+
+	// Store last ping in cluster
+	mutation := getEmptyMetaMsg("data_mutation")
+	mutation["k"] = fmt.Sprintf("ping~%s", n.FullName())
+	mutation["v"] = fmt.Sprintf("%d", n.lastSeen)
+	n.sendData("data", msgToJson(mutation))
 
 	// OK
 	return true

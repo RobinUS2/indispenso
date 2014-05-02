@@ -42,6 +42,28 @@ type DatastoreMutation struct {
 	key       string // Data key
 	value     string // New value
 	timestamp int64  // Timestamp when the change request it was issued
+	replicated bool // Is already replicated to all nodes?
+}
+
+// Replicate mutation
+func (m *DatastoreMutation) Replicate() bool {
+
+	// Send to all nodes
+	for _, node := range discoveryService.Nodes {
+		go func(node *Node) {
+			// Mutation
+			mutation := getEmptyMetaMsg("data_replication")
+			mutation["k"] = m.key
+			mutation["v"] = m.value
+			mutation["r"] = "1" // Replication request
+
+			// @todo Validate
+			node.sendData("data", msgToJson(mutation))
+			// @todo On failure, write to a hinted handoff writes file for replay on startup
+		}(node)
+	}
+
+	return true
 }
 
 // Create discovery service
@@ -73,6 +95,8 @@ func (s *Datastore) Open() bool {
 	for i := 0; i < MEM_ENTRY_MUX_BUCKETS; i++ {
 		s.memEntryMuxes[i] = &sync.Mutex{}
 	}
+
+	// Recover data from disk
 
 	// Start mutator
 	s.globalMux.Lock()
@@ -146,6 +170,11 @@ func (s *Datastore) startMutator() bool {
 				// Unlock bucket
 				s.memEntryMuxes[v.muxBucket].Unlock()
 			}
+
+			// Replication
+			if m.replicated == false {
+				m.Replicate()
+			}
 		}
 	}()
 
@@ -169,7 +198,7 @@ func (s *Datastore) GetEntry(key string) (*MemEntry, error) {
 
 // Flush Datastore contents to persistent storage
 func (s *Datastore) Flush() bool {
-	// @todo Implement
+	// @todo Implement store data on disk
 	if debug {
 		log.Println(fmt.Sprintf("DEBUG: Flushed datastore"))
 	}

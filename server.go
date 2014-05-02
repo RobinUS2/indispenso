@@ -274,6 +274,13 @@ func dataHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
+		// Already replicated?
+		var replicated bool = false
+		if bodyData["r"] != nil {
+			// This is a replication message from another node, do not replicate again
+			replicated = true
+		}
+
 		// Submit mutation
 		m := datastore.CreateMutation()
 		m.key = fmt.Sprintf("%s", bodyData["k"])
@@ -284,6 +291,7 @@ func dataHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		m.timestamp = ts
+		m.replicated = replicated
 		datastore.PushMutation(m)
 
 		// Respond
