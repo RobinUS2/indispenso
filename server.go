@@ -11,6 +11,8 @@ import (
 	"log"
 	"net/http"
 	"time"
+	"strings"
+	"strconv"
 )
 
 // Server
@@ -61,7 +63,7 @@ func discoveryHandler(w http.ResponseWriter, r *http.Request) {
 		if debug {
 			log.Println(fmt.Sprintf("REQ BODY %s", body))
 		}
-		
+
 		// Parse response
 		b = []byte(body)
 		var f interface{}
@@ -69,8 +71,28 @@ func discoveryHandler(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			log.Println(fmt.Sprintf("ERR: Failed to parse request body json %s"), err)
 		} else {
+			var port int
 			bodyData := f.(map[string]interface{})
-			log.Println(fmt.Sprintf("%s", bodyData["nodes"]))
+			// Node discovery?
+			if bodyData["nodes"] != nil {
+				var nodes []string = strings.Split(fmt.Sprintf("%s", bodyData["nodes"]), ",")
+				for _,node := range nodes {
+					// Skip empty
+					node = strings.TrimSpace(node)
+					if len(node) == 0 {
+						continue
+					}
+					nodeSplit := strings.Split(node, ":")
+					var err error
+					port, err = strconv.Atoi(nodeSplit[1])
+					if err != nil {
+						log.Println(fmt.Sprintf("ERROR: Discovered %s port format invalid", node))
+						continue
+					}
+					n := discoveryService.NewNode(nodeSplit[0], port, getPulicIp(nodeSplit[0]))
+					discoveryService.AddNode(n)
+				}
+			}
 		}
 	}
 }

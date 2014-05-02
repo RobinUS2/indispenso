@@ -190,7 +190,7 @@ func NewDiscoveryService() *DiscoveryService {
 }
 
 // Create node
-func NewNode(d *DiscoveryService, host string, port int, addr string) *Node {
+func (d *DiscoveryService) NewNode(host string, port int, addr string) *Node {
 	return &Node{
 		DiscoveryService: d,
 		Host:             host,
@@ -241,7 +241,7 @@ func (d *DiscoveryService) SetSeeds(seeds []string) error {
 		}
 
 		// Add node
-		n := NewNode(d, split[0], port, getPulicIp(split[0]))
+		n := d.NewNode(split[0], port, getPulicIp(split[0]))
 		d.AddNode(n)
 	}
 	return nil

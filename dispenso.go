@@ -24,6 +24,7 @@ var ipAddr string
 var debug bool
 var ipv6 bool
 var noBindLocalhost bool
+var discoveryService *DiscoveryService
 
 // Signal channels
 var shutdown chan bool = make(chan bool)
@@ -66,13 +67,13 @@ func main() {
 	}
 
 	// Start discovery
-	var disco *DiscoveryService = NewDiscoveryService()
+	discoveryService = NewDiscoveryService()
 	if len(strings.TrimSpace(seedNodes)) > 0 {
 		seeds := strings.Split(seedNodes, ",")
 		seeds = append(seeds, hostname)
-		disco.SetSeeds(seeds)
+		discoveryService.SetSeeds(seeds)
 	}
-	disco.Start()
+	discoveryService.Start()
 
 	// Start server
 	var server *Server = NewServer()
