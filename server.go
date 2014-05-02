@@ -191,63 +191,79 @@ func metaHandler(w http.ResponseWriter, r *http.Request) {
 
 	// Parse response
 	if len(b) > 0 {
-
-		// Calculate & validate message digest
-		mac := hmac.New(sha256.New, secretKey)
-		mac.Write(b)
-		expectedSignature := mac.Sum(nil)
-		headerSigVal := r.Header.Get("X-Message-Digest")
-		headerSigValSplit := strings.Split(headerSigVal, "sha256=")
-		headerSigHexDec, errHex := hex.DecodeString(headerSigValSplit[1])
-		if errHex != nil {
-			log.Println(fmt.Sprintf("ERR: Failed to decode hex digest %s"), errHex)
-			return
-		}
-		signature := []byte(headerSigHexDec)
-		if hmac.Equal(expectedSignature, signature) == false {
-			log.Println(fmt.Sprintf("ERR: Message digest header invalid, dropping message"))
-			log.Println(fmt.Sprintf("%b", expectedSignature))
-			log.Println(fmt.Sprintf("%b", signature))
-			return
-		}
-
 		// Parse response
 		var f interface{}
 		err := json.Unmarshal(b, &f)
 		if err != nil {
 			log.Println(fmt.Sprintf("ERR: Failed to parse request body json %s"), err)
-		} else {
-			bodyData := f.(map[string]interface{})
-			// Basic validation of type
-			if bodyData["type"] == nil || len(fmt.Sprintf("%s", bodyData["type"])) == 0 {
-				log.Println(fmt.Sprintf("ERR: Missing type"))
-				return
-			}
-			metaType := fmt.Sprintf("%s", bodyData["type"])
+			return
+		} 
 
-			// Basic send validation
-			if bodyData["sender"] == nil || len(fmt.Sprintf("%s", bodyData["sender"])) == 0 {
-				log.Println(fmt.Sprintf("ERR: Missing sender"))
-				return
-			}
-			metaSender := fmt.Sprintf("%s", bodyData["sender"])
-			metaSenderPort, _ := strconv.Atoi(fmt.Sprintf("%s", bodyData["sender_port"]))
+		bodyData := f.(map[string]interface{})
+		// Basic validation of type
+		if bodyData["type"] == nil || len(fmt.Sprintf("%s", bodyData["type"])) == 0 {
+			log.Println(fmt.Sprintf("ERR: Missing type"))
+			return
+		}
+		metaType := fmt.Sprintf("%s", bodyData["type"])
 
-			// Execute action
-			if metaType == "node_leave" {
-				// Node leaving
-				if discoveryService != nil {
-					for _, n := range discoveryService.Nodes {
-						// Check proper host
-						if n.Host == metaSender && n.Port == metaSenderPort {
-							if discoveryService.RemoveNode(n) {
-								// Done
-								break
-							}
+		// Basic send validation
+		if bodyData["sender"] == nil || len(fmt.Sprintf("%s", bodyData["sender"])) == 0 {
+			log.Println(fmt.Sprintf("ERR: Missing sender"))
+			return
+		}
+		metaSender := fmt.Sprintf("%s", bodyData["sender"])
+		metaSenderPort, _ := strconv.Atoi(fmt.Sprintf("%s", bodyData["sender_port"]))
+
+		// Execute action
+		if metaType == "node_leave" {
+			// Node leaving
+			if discoveryService != nil {
+				for _, n := range discoveryService.Nodes {
+					// Check proper host
+					if n.Host == metaSender && n.Port == metaSenderPort {
+						if discoveryService.RemoveNode(n) {
+							// Done
+							break
 						}
 					}
 				}
 			}
+		}
+		
+	}
+}
+
+// Data handler (storage of key values, with conflict resolution and eventual consistency)
+func dataHandler(w http.ResponseWriter, r *http.Request) {
+	// Read and validate request
+	b, err := readRequest(w, r)
+	if err != nil {
+		// No log, is already written
+		return
+	}
+
+	// Parse response
+	if len(b) > 0 {
+		// Parse response
+		var f interface{}
+		err := json.Unmarshal(b, &f)
+		if err != nil {
+			log.Println(fmt.Sprintf("ERR: Failed to parse request body json %s"), err)
+			return
+		}
+		bodyData := f.(map[string]interface{})
+
+		// Key?
+		if bodyData["k"] == nil {
+			log.Println("ERR: Missing key")
+			return
+		}
+
+		// Value
+		if bodyData["v"] == nil {
+			log.Println("ERR: Missing value")
+			return
 		}
 	}
 }

@@ -15,6 +15,7 @@ import (
 
 // Constants
 const defaultPort int = 8011
+const defaultStorage string = "data/"
 const MIN_SECRET_LEN int = 32
 
 // Configuration
@@ -30,7 +31,9 @@ var ipv6 bool
 var noBindLocalhost bool
 var secretKey []byte
 var secretStr string
+var persistentFolder string
 var discoveryService *DiscoveryService
+var datastore *Datastore
 
 // Signal channels
 var shutdown chan bool = make(chan bool)
@@ -46,6 +49,7 @@ func init() {
 	flag.BoolVar(&debug, "debug", true, "Debug logging")
 	flag.BoolVar(&trace, "trace", false, "Trace logging")
 	flag.BoolVar(&ipv6, "ipv6", false, "Enable ipv6")
+	flag.StringVar(&persistentFolder, "storage", defaultStorage, fmt.Sprintf("Location of persistent storage (defaults to %s", defaultStorage))
 	flag.BoolVar(&testing, "testing", false, "Enable test interfaces, do not use in production!")
 	flag.BoolVar(&noBindLocalhost, "no-bind-localhost", true, "Do not bind localhost")
 	flag.Parse()
@@ -74,10 +78,16 @@ func main() {
 		for _ = range c {
 			log.Println(fmt.Sprintf("INFO: Shutting down indispenso"))
 
+			// Flush datastore
+			datastore.Flush()
+
 			// Notify leave
 			if discoveryService != nil {
 				discoveryService.NotifyLeave()
 			}
+
+			// Close data store
+			datastore.Close()
 
 			os.Exit(1)
 		}
@@ -102,6 +112,10 @@ func main() {
 		log.Println(fmt.Sprintf("DEBUG: Hostname %s", hostname))
 		log.Println(fmt.Sprintf("DEBUG: IP address %s", ipAddr))
 	}
+
+	// Datastore
+	datastore = NewDatastore(persistentFolder)
+	datastore.Open()
 
 	// Init discovery
 	discoveryService = NewDiscoveryService()
