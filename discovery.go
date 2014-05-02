@@ -143,7 +143,7 @@ func (n *Node) ExchangeMeta() bool {
 		}
 		nodeStrs = append(nodeStrs, fmt.Sprintf("%s:%d", node.Host, node.Port))
 	}
-	
+
 	// Assemble payload
 	var data map[string]string = getEmptyMetaMsg("fetch_meta")
 	data["nodes"] = strings.Join(nodeStrs, ",")

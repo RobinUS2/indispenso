@@ -71,6 +71,18 @@ func readRequest(w http.ResponseWriter, r *http.Request) ([]byte, error) {
 		return nil, newErr("Message digest header invalid")
 	}
 
+	// Check if this message id has been used before (to prevent replay)
+	var f interface{}
+	err = json.Unmarshal(b, &f)
+	if err != nil {
+		return nil, newErr(fmt.Sprintf("Failed to parse request json, unable to validate message id: %s", err))
+	}
+	jsonData := f.(map[string]interface{})
+	if jsonData["msg_id"] == nil || len(fmt.Sprintf("%s", jsonData["msg_id"])) == 0 {
+		return nil, newErr(fmt.Sprintf("Missing message id: %s", err))
+	}
+	// @todo Check whether we have seen this message id before, if so drop!
+
 	// OK :)
 	return b, nil
 	//}
