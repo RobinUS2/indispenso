@@ -44,6 +44,14 @@ func (n *Node) FullUrl(service string) string {
 	return fmt.Sprintf("http://%s/%s", n.FullName(), service)
 }
 
+// Redo metadata exchange
+func (n *Node) ResetMetaExchanged() bool {
+	n.mux.Lock()
+	n.metaReceived = false
+	n.mux.Unlock()
+	return true
+}
+
 // Fetch node metadata
 func (n *Node) FetchMeta() bool {
 	resp, err := http.Get(n.FullUrl("discovery"))
@@ -370,6 +378,7 @@ func (d *DiscoveryService) Start() bool {
 				for _, node := range d.Nodes {
 					if !node.Ping() {
 						// @todo Keep track of errors and add exponential backoff
+						node.ResetMetaExchanged()
 						log.Println(fmt.Sprintf("WARN: Failed to detect %s", node.FullName()))
 					}
 				}

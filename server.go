@@ -135,7 +135,7 @@ func metaHandler(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 			metaSender := fmt.Sprintf("%s", bodyData["sender"])
-			metaSenderPort,_ := strconv.Atoi(fmt.Sprintf("%s", bodyData["sender_port"]))
+			metaSenderPort, _ := strconv.Atoi(fmt.Sprintf("%s", bodyData["sender_port"]))
 
 			// @todo Authenticate
 
