@@ -80,11 +80,14 @@ func (n *Node) FetchMeta() bool {
 	return true
 }
 
+// Notify leave
+func (n *Node) NotifyLeave() bool {
+	// @todo Implement
+	return false
+}
+
 // Exchange node metadata
 func (n *Node) ExchangeMeta() bool {
-	// Client
-	httpclient := &http.Client{}
-
 	log.Println("INFO: Exchanging metadata")
 
 	// Metadata
@@ -101,23 +104,34 @@ func (n *Node) ExchangeMeta() bool {
 		log.Println(fmt.Sprintf("ERR: Failed to format json"))
 		return false
 	}
+
+	// Send data
+	n.sendData("discovery", b)
+
+	return true
+}
+
+// Send data
+func (n *Node) sendData(endpoint string, b []byte) (string, error) {
+	// Debug post
 	if debug {
-		log.Println(fmt.Sprintf("DEBUG: Exchanging metadata json %s", b))
+		log.Println(fmt.Sprintf("DEBUG: Post data %s", b))
 	}
 
+	// Client
+	httpclient := &http.Client{}
+
 	// Execute request
-	req, reqErr := http.NewRequest("POST", n.FullUrl("discovery"), bytes.NewBufferString(fmt.Sprintf("%s", b)))
+	req, reqErr := http.NewRequest("POST", n.FullUrl(endpoint), bytes.NewBufferString(fmt.Sprintf("%s", b)))
 	req.Header.Set("User-Agent", "Dispenso")
 	if reqErr != nil {
-		log.Println(fmt.Sprintf("ERR: Failed request: %s", reqErr))
-		return false
+		return "", newErr(fmt.Sprintf("Failed request: %s", reqErr))
 	}
 
 	// Parse response
 	resp, respErr := httpclient.Do(req)
 	if respErr != nil {
-		log.Println(fmt.Sprintf("ERR: Failed request: %s", respErr))
-		return false
+		return "", newErr(fmt.Sprintf("Failed request: %s", respErr))
 	}
 	if resp.Body != nil {
 		defer resp.Body.Close()
@@ -126,12 +140,15 @@ func (n *Node) ExchangeMeta() bool {
 	// Read response
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		log.Println(fmt.Sprintf("ERR: Failed to read node metadata exchange response %s"), err)
-		return false
+		return "", newErr(fmt.Sprintf("Failed to read response: %s", err))
 	}
-	log.Println(fmt.Sprintf("%s", body))
+	respStr := fmt.Sprintf("%s", body)
 
-	return true
+	// Debug response
+	if debug {
+		log.Println(fmt.Sprintf("DEBUG: Response data %s", respStr))
+	}
+	return respStr, nil
 }
 
 // Ping a node
@@ -253,6 +270,17 @@ func (d *DiscoveryService) NotifyJoin() bool {
 		if !node.ExchangeMeta() {
 			// @todo Keep track of errors and add exponential backoff
 			log.Println(fmt.Sprintf("WARN: Failed to exchange metadata %s", node.FullName()))
+		}
+	}
+	return true
+}
+
+// Notify leave
+func (d *DiscoveryService) NotifyLeave() bool {
+	for _, node := range d.Nodes {
+		if !node.NotifyLeave() {
+			// @todo Keep track of errors and add exponential backoff
+			log.Println(fmt.Sprintf("WARN: Failed to notify leave metadata %s", node.FullName()))
 		}
 	}
 	return true

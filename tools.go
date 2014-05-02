@@ -8,6 +8,7 @@ import (
 	"log"
 	"net"
 	"regexp"
+	"errors"
 )
 
 func getPulicIp(hostname string) string {
@@ -46,4 +47,9 @@ func isIpv4Ip(ip string) bool {
 
 func isLocalIp(ip string) bool {
 	return REGEX_LOCALHOST.MatchString(ip)
+}
+
+func newErr(msg string) error {
+	log.Println(fmt.Sprintf("ERR: %s", msg))
+	return errors.New(msg);
 }

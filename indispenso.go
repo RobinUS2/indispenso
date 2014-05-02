@@ -53,6 +53,12 @@ func main() {
 	go func() {
 		for _ = range c {
 			log.Println(fmt.Sprintf("INFO: Shutting down indispenso"))
+
+			// Notify leave
+			if discoveryService != nil {
+				discoveryService.NotifyLeave()
+			}
+
 			os.Exit(1)
 		}
 	}()
