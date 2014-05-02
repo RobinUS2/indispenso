@@ -38,31 +38,15 @@ func (s *Server) Start() bool {
 	return true
 }
 
-// Discovery handler
-func discoveryHandler(w http.ResponseWriter, r *http.Request) {
-	// Current time
-	var now time.Time = time.Now().UTC()
-
-	// Data
-	var data map[string]string = make(map[string]string)
-	data["time"] = fmt.Sprintf("%s", now)
-
-	// To JSON
-	b, err := json.Marshal(data)
-	if err == nil {
-		fmt.Fprint(w, fmt.Sprintf("%s", b))
-	} else {
-		fmt.Fprint(w, "Failed to format json")
-	}
-
+// Validate request
+func readRequest(w http.ResponseWriter, r *http.Request) ([]byte, error) {
 	// Log request body
 	body, err := ioutil.ReadAll(r.Body)
 	if err != nil {
-		log.Println(fmt.Sprintf("ERR: Failed to read request body %s"), err)
-		return
+		return nil, newErr(fmt.Sprintf("Failed to read request body %s", err))
 	}
-	if len(body) > 0 {
-		if debug {
+	//if len(body) > 0 {
+		if debug && body != nil && len(body) > 0 {
 			log.Println(fmt.Sprintf("DEBUG: Request body %s", body))
 		}
 
@@ -77,20 +61,35 @@ func discoveryHandler(w http.ResponseWriter, r *http.Request) {
 		headerSigValSplit := strings.Split(headerSigVal, "sha256=")
 		headerSigHexDec, errHex := hex.DecodeString(headerSigValSplit[1])
 		if errHex != nil {
-			log.Println(fmt.Sprintf("ERR: Failed to decode hex digest %s"), errHex)
-			return
+			return nil, newErr(fmt.Sprintf("Failed to decode hex digest %s", errHex))
 		}
 		signature := []byte(headerSigHexDec)
 		if hmac.Equal(expectedSignature, signature) == false {
 			log.Println(fmt.Sprintf("ERR: Message digest header invalid, dropping message"))
 			log.Println(fmt.Sprintf("%b", expectedSignature))
 			log.Println(fmt.Sprintf("%b", signature))
-			return
+			return nil, newErr("Message digest header invalid")
 		}
 
-		// Parse response
+		// OK :)
+		return b,nil
+	//}
+	//return nil, newErr("Empty request")
+}
+
+// Discovery handler
+func discoveryHandler(w http.ResponseWriter, r *http.Request) {
+	// Read and validate request
+	b, err := readRequest(w, r)
+	if err != nil {
+		// No log, is already written
+		return
+	}
+
+	// Parse response
+	if len(b) > 0 {
 		var f interface{}
-		err := json.Unmarshal(b, &f)
+		err = json.Unmarshal(b, &f)
 		if err != nil {
 			log.Println(fmt.Sprintf("ERR: Failed to parse request body json %s"), err)
 		} else {
@@ -109,7 +108,7 @@ func discoveryHandler(w http.ResponseWriter, r *http.Request) {
 					var err error
 					port, err = strconv.Atoi(nodeSplit[1])
 					if err != nil {
-						log.Println(fmt.Sprintf("ERROR: Discovered %s port format invalid", node))
+						log.Println(fmt.Sprintf("ERR: Discovered %s port format invalid", node))
 						continue
 					}
 					n := discoveryService.NewNode(nodeSplit[0], port, getPulicIp(nodeSplit[0]))
@@ -120,6 +119,21 @@ func discoveryHandler(w http.ResponseWriter, r *http.Request) {
 				}
 			}
 		}
+	}
+
+	// Current time
+	var now time.Time = time.Now().UTC()
+
+	// Data
+	var data map[string]string = make(map[string]string)
+	data["time"] = fmt.Sprintf("%s", now)
+
+	// To JSON
+	b, err = json.Marshal(data)
+	if err == nil {
+		fmt.Fprint(w, fmt.Sprintf("%s", b))
+	} else {
+		fmt.Fprint(w, "Failed to format json")
 	}
 }
 

@@ -58,17 +58,12 @@ func (n *Node) ResetMetaExchanged() bool {
 
 // Fetch node metadata
 func (n *Node) FetchMeta() bool {
-	resp, err := http.Get(n.FullUrl("discovery"))
+	bodyStr, err := n.sendData("discovery", make([]byte, 0))
 	if err != nil {
-		log.Println(fmt.Sprintf("ERR: Failed to fetch node metadata %s"), err)
+		log.Println(fmt.Sprintf("ERR: Failed to request node metadata %s"), err)
 		return false
 	}
-	defer resp.Body.Close()
-	body, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		log.Println(fmt.Sprintf("ERR: Failed to read node metadata %s"), err)
-		return false
-	}
+	body := []byte(bodyStr)
 
 	// Parse json
 	var f interface{}
@@ -161,7 +156,7 @@ func (n *Node) ExchangeMeta() bool {
 // Send data
 func (n *Node) sendData(endpoint string, b []byte) (string, error) {
 	// Debug post
-	if debug {
+	if debug && b != nil && len(b) > 0 {
 		log.Println(fmt.Sprintf("DEBUG: Post data %s", b))
 	}
 
