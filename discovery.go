@@ -303,10 +303,12 @@ func (d *DiscoveryService) SetSeeds(seeds []string) error {
 // Notify cluster of new node
 func (d *DiscoveryService) NotifyJoin() bool {
 	for _, node := range d.Nodes {
-		if !node.ExchangeMeta() {
-			// @todo Keep track of errors and add exponential backoff
-			log.Println(fmt.Sprintf("WARN: Failed to exchange metadata %s", node.FullName()))
-		}
+		go func() {
+			if !node.ExchangeMeta() {
+				// @todo Keep track of errors and add exponential backoff
+				log.Println(fmt.Sprintf("WARN: Failed to exchange metadata %s", node.FullName()))
+			}
+		}()
 	}
 	return true
 }
@@ -314,10 +316,12 @@ func (d *DiscoveryService) NotifyJoin() bool {
 // Notify leave
 func (d *DiscoveryService) NotifyLeave() bool {
 	for _, node := range d.Nodes {
-		if !node.NotifyLeave() {
-			// @todo Keep track of errors and add exponential backoff
-			log.Println(fmt.Sprintf("WARN: Failed to notify leave metadata %s", node.FullName()))
-		}
+		go func() {
+			if !node.NotifyLeave() {
+				// @todo Keep track of errors and add exponential backoff
+				log.Println(fmt.Sprintf("WARN: Failed to notify leave metadata %s", node.FullName()))
+			}
+		}()
 	}
 	return true
 }
@@ -334,10 +338,12 @@ func (d *DiscoveryService) Start() bool {
 			case <-ticker.C:
 				// Discover nodes
 				for _, node := range d.Nodes {
-					if !node.Ping() {
-						// @todo Keep track of errors and add exponential backoff
-						log.Println(fmt.Sprintf("WARN: Failed to detect %s", node.FullName()))
-					}
+					go func() {
+						if !node.Ping() {
+							// @todo Keep track of errors and add exponential backoff
+							log.Println(fmt.Sprintf("WARN: Failed to detect %s", node.FullName()))
+						}
+					}()
 				}
 			case <-shutdown:
 				ticker.Stop()
