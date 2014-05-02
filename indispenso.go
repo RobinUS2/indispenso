@@ -15,6 +15,7 @@ import (
 
 // Constants
 const defaultPort int = 8011
+const MIN_SECRET_LEN int = 32
 
 // Configuration
 var seedNodes string
@@ -26,7 +27,8 @@ var debug bool
 var trace bool
 var ipv6 bool
 var noBindLocalhost bool
-var secretKey []byte = []byte("my_super_secret_string") // @todo define / generate on startup
+var secretKey []byte
+var secretStr string
 var discoveryService *DiscoveryService
 
 // Signal channels
@@ -39,6 +41,7 @@ func init() {
 	flag.BoolVar(&storeState, "store-state", true, "Allow to store cluster state on this node (default=true)")
 	flag.StringVar(&hostname, "hostname", "", "Hostname (defaults to auto-resolve)")
 	flag.StringVar(&ipAddr, "ipaddr", "", "Ip address (defaults to auto-resoolve)")
+	flag.StringVar(&secretStr, "secret", "", "Secret used to validate message integrity")
 	flag.BoolVar(&debug, "debug", true, "Debug logging")
 	flag.BoolVar(&trace, "trace", false, "Trace logging")
 	flag.BoolVar(&ipv6, "ipv6", false, "Enable ipv6")
@@ -49,6 +52,13 @@ func init() {
 // Main function of dispenso
 func main() {
 	log.Println(fmt.Sprintf("INFO: Starting indispenso"))
+
+	// Validate secret
+	secretStr = strings.TrimSpace(secretStr)
+	if len(secretStr) < MIN_SECRET_LEN {
+		log.Fatal(fmt.Sprintf("FATAL: Please provide a secret of at least %d characters", MIN_SECRET_LEN))
+	}
+	secretKey = []byte(secretStr)
 
 	// Interrupt handler
 	c := make(chan os.Signal, 1)
