@@ -27,9 +27,24 @@ func (a *ApiHandler) Mirror(data map[string]interface{}) map[string]interface{} 
 // Login
 func (a *ApiHandler) Auth(data map[string]interface{}) map[string]interface{} {
 	resp := a.initResp()
+
+	// Look for user
 	uh := NewUserHandler()
-	userData := uh.GetUser(fmt.Sprintf("%s", data["username"]))
-	resp["user"] = userData
+	user := uh.GetUser(fmt.Sprintf("%s", data["username"]))
+	if user == nil {
+		resp["error"] = "User not found"
+		return resp
+	}
+
+	// Validate password
+	suppliedPwdHash := HashPassword(fmt.Sprintf("%s", data["password"]), user.PasswordSalt)
+	if suppliedPwdHash != user.PasswordHash {
+		resp["error"] = "User not found"
+		return resp
+	}
+
+	// OK
+	resp["user"] = user
 	return resp
 }
 

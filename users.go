@@ -10,8 +10,8 @@ import (
 	"fmt"
 	"io"
 	"log"
-	"strings"
 	"math/rand"
+	"strings"
 )
 
 // Defaults
