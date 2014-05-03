@@ -148,6 +148,14 @@ func (m *DatastoreMutation) Replicate(async bool) bool {
 				return
 			}
 
+			// Skip nodes that are not connected
+			if node.connected == false {
+				if trace {
+					log.Println(fmt.Sprintf("DEBUG: Drop replication request to %s:%d as connection is lost", ipAddr, serverPort))
+				}
+				return
+			}
+
 			// Mutation
 			mutation := getEmptyMetaMsg("data_replication")
 			mutation["k"] = m.Key

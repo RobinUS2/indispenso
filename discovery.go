@@ -22,8 +22,10 @@ import (
 )
 
 // Discovery constants
-const PING_TIMEOUT = 30 * time.Second
-const PING_INTERVAL = 10 * time.Second
+const PING_TIMEOUT = 10 * time.Second // Timeout for a ping to a node
+const PING_INTERVAL = 30 * time.Second // Interval at which pings occur
+const DISCONNECT_TIMEOUT = 1 * time.Minute // Beyond this period a node will not be replicated / shown as warning, pings will continue
+const REMOVE_TIMEOUT = 30 * time.Minute // Beyond this period a node will be removed from the disveroy list
 
 // Node (entity in the Dispenso cluster)
 type Node struct {
@@ -36,7 +38,8 @@ type Node struct {
 	// @todo Send meta data every once in a while
 	metaReceived bool         // Did we receive metadata?
 	mux          sync.RWMutex // Locking mechanism
-	lastSeen     int64        // Time last seen
+	lastSeen     time.Time        // Time last seen
+	connected bool // Is this node connected to the cluster?
 }
 
 // Full name
@@ -54,6 +57,15 @@ func (n *Node) ResetMetaExchanged() bool {
 	n.mux.Lock()
 	n.metaReceived = false
 	n.mux.Unlock()
+	return true
+}
+
+// Disconnect node
+func (n *Node) Disconnect() bool {
+	n.mux.Lock()
+	n.connected = false
+	n.mux.Unlock()
+	log.Println(fmt.Sprintf("WARN: Disconnected %s"), n.FullName())
 	return true
 }
 
@@ -82,6 +94,7 @@ func (n *Node) FetchMeta() bool {
 	// Meta received
 	n.mux.Lock()
 	n.metaReceived = true
+	n.connected = true
 	log.Println(fmt.Sprintf("INFO: Detected %s @ %s", n.FullName(), n.Addr))
 	n.mux.Unlock()
 
@@ -222,7 +235,7 @@ func (n *Node) Ping() bool {
 
 	// Last seen
 	n.mux.Lock()
-	n.lastSeen = time.Now().UnixNano()
+	n.lastSeen = time.Now().UTC()
 	n.mux.Unlock()
 
 	// Try to fetch metadata
@@ -401,7 +414,16 @@ func (d *DiscoveryService) PingNodes() bool {
 		if !node.Ping() {
 			// @todo Keep track of errors and add exponential backoff
 			node.ResetMetaExchanged()
-			log.Println(fmt.Sprintf("WARN: Failed to detect %s", node.FullName()))
+			if time.Since(node.lastSeen) < DISCONNECT_TIMEOUT {
+				log.Println(fmt.Sprintf("WARN: Failed to detect %s", node.FullName()))
+			} else {
+				// Disconnect
+				node.mux.RLock()
+				if node.connected {
+					node.Disconnect()
+				}
+				node.mux.RUnlock()
+			}
 		}
 	}
 	return true

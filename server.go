@@ -55,6 +55,7 @@ func (s *Server) Start() bool {
 		http.HandleFunc("/discovery", discoveryHandler)
 		http.HandleFunc("/meta", metaHandler)
 		http.HandleFunc("/data", dataHandler)
+		http.HandleFunc("/app", appHandler)
 		if testing {
 			http.HandleFunc("/test", testHandler)
 		}
@@ -317,6 +318,11 @@ func dataHandler(w http.ResponseWriter, r *http.Request) {
 	} else {
 		w.WriteHeader(400)
 	}
+}
+
+// Web application handler
+func appHandler(w http.ResponseWriter, r *http.Request) {
+	fmt.Fprintf(w, appHtml)
 }
 
 // Test handler

@@ -11,12 +11,14 @@ import (
 	"os"
 	"os/signal"
 	"strings"
+	"io/ioutil"
 )
 
 // Constants
 const defaultPort int = 8011
 const defaultStorage string = "data/"
 const MIN_SECRET_LEN int = 32
+const APP_HTML_FILE string = "html/interface.html"
 
 // Configuration
 var seedNodes string
@@ -33,6 +35,7 @@ var secretKey []byte
 var secretStr string
 var persistentFolder string
 var instanceId string
+var appHtml string
 var discoveryService *DiscoveryService
 var datastore *Datastore
 
@@ -136,6 +139,13 @@ func main() {
 	// Start discovery
 	discoveryService.SetSeeds(seeds)
 	discoveryService.Start()
+
+	// Read application html
+	appHtmlBytes, appHtmlBytesErr := ioutil.ReadFile(APP_HTML_FILE)
+	if appHtmlBytesErr != nil {
+		log.Fatal("ERR: Failed to read application interface")
+	}
+	appHtml = string(appHtmlBytes)
 
 	// Start server
 	var server *Server = NewServer()
