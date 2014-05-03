@@ -276,7 +276,7 @@ func (s *Datastore) startFlusher() bool {
 		for {
 			select {
 			case <-ticker.C:
-				// Discover nodes
+				// Flush
 				s.Flush()
 			case <-shutdown:
 				ticker.Stop()

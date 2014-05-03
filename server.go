@@ -96,15 +96,31 @@ func readRequest(w http.ResponseWriter, r *http.Request) ([]byte, error) {
 		return nil, newErr("Message digest header invalid")
 	}
 
-	// Check if this message id has been used before (to prevent replay)
+	// Parse json
 	var f interface{}
 	err = json.Unmarshal(b, &f)
 	if err != nil {
-		return nil, newErr(fmt.Sprintf("Failed to parse request json, unable to validate message id: %s", err))
+		return nil, newErr(fmt.Sprintf("Failed to parse request json, unable to parse message content: %s", err))
 	}
 	jsonData := f.(map[string]interface{})
+
+	// Check timestamp for age
+	if jsonData["ts"] == nil {
+		return nil, newErr(fmt.Sprintf("Missing message timestamp"))
+	}
+	nowNano := time.Now().UnixNano()
+	minTs := nowNano - ( 3 * 1000000000 ) // Maximum of 3 seconds
+	msgTs, tsErr := strconv.ParseInt(fmt.Sprintf("%s", jsonData["ts"]), 10, 64)
+	if tsErr != nil {
+		return nil, newErr(fmt.Sprintf("ERR: Invalid message timestamp %s", tsErr))
+	}
+	if msgTs < minTs {
+		return nil, newErr(fmt.Sprintf("Message timestamp too old, dropping to prevent replay attack"))
+	}
+
+	// Check if this message id has been used before (to prevent replay)
 	if jsonData["msg_id"] == nil {
-		return nil, newErr(fmt.Sprintf("Missing message id: %s", err))
+		return nil, newErr(fmt.Sprintf("Missing message id"))
 	}
 
 	// Seen?
