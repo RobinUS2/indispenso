@@ -30,8 +30,8 @@ type Datastore struct {
 	walFile     *os.File // Write ahead log file pointer
 	walFilename string   // Name of the write ahead log file
 
-	dataFile *os.File // Data file pointer
-	dataFilename string // Name of the data file (persisted)
+	dataFile     *os.File // Data file pointer
+	dataFilename string   // Name of the data file (persisted)
 
 	mutatorStarted bool
 	globalMux      sync.RWMutex // Global mutex for datastore struct values (thus NOT data mutations)
@@ -211,7 +211,7 @@ func (s *Datastore) Open() bool {
 
 	// Open data file
 	var fErr error
-	s.dataFile, fErr = os.OpenFile(s.dataFilename, os.O_RDWR|os.O_APPEND|os.O_CREATE, 0666)
+	s.dataFile, fErr = os.OpenFile(s.dataFilename, os.O_RDWR|os.O_CREATE, 0666)
 	if fErr != nil {
 		log.Fatal(fmt.Sprintf("ERR: Failed to open data file: %s", fErr))
 	}
@@ -278,9 +278,10 @@ func (s *Datastore) Flush() bool {
 		return false
 	}
 
-	// To string
+	// Write to disk
 	jsonStr := string(b)
-	log.Println(jsonStr)
+	s.dataFile.WriteString(jsonStr)
+	s.dataFile.Sync()
 
 	// Sync write ahead log
 	s.walFile.Sync()
