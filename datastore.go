@@ -10,6 +10,8 @@ import (
 	"log"
 	"sync"
 	"time"
+	"encoding/json"
+	"os"
 )
 
 // Constants
@@ -25,24 +27,43 @@ type Datastore struct {
 
 	memEntryMuxes map[int]*sync.Mutex // Mutex buckets for entries
 
+	walFile *os.File // Write ahead log file pointer
+	walFilename string // Name of the write ahead log file
+
 	mutatorStarted bool
 	globalMux      sync.RWMutex // Global mutex for datastore struct values (thus NOT data mutations)
 }
 
 // Mem entries
 type MemEntry struct {
-	key       string // Data key
-	value     string // New value
-	modified  int64  // Timestamp when last changed
+	Key       string // Data key
+	Value     string // New value
+	Modified  int64  // Timestamp when last changed
 	muxBucket int    // Bucket of where to find my lock
 }
 
 // Mutation
 type DatastoreMutation struct {
-	key        string // Data key
-	value      string // New value
-	timestamp  int64  // Timestamp when the change request it was issued
-	replicated bool   // Is already replicated to all nodes?
+	Key        string // Data key
+	Value      string // New value
+	Timestamp  int64  // Timestamp when the change request it was issued
+	Replicated bool   // Is already replicated to all nodes?
+}
+
+// Perist to disk for recovery
+func (m *DatastoreMutation) PersistDisk(async bool) bool {
+	// To Json
+	b, err := json.Marshal(m)
+    if err != nil {
+        log.Println(fmt.Sprintf("ERR: Failed to convert datastore mutation to json %s", err))
+        return false
+    }
+
+	// To string
+	jsonStr := string(b)
+
+	// Write
+	return datastore.WriteMutation(jsonStr, async)
 }
 
 // Replicate mutation
@@ -61,8 +82,8 @@ func (m *DatastoreMutation) Replicate() bool {
 
 			// Mutation
 			mutation := getEmptyMetaMsg("data_replication")
-			mutation["k"] = m.key
-			mutation["v"] = m.value
+			mutation["k"] = m.Key
+			mutation["v"] = m.Value
 			mutation["r"] = "1" // Replication request
 
 			// @todo Validate
@@ -81,11 +102,13 @@ func NewDatastore(persistentLocation string) *Datastore {
 		mutationChannel: make(chan *DatastoreMutation, 10000),
 		memTable:        make(map[string]*MemEntry),
 		memEntryMuxes:   make(map[int]*sync.Mutex),
+		walFilename: fmt.Sprintf(".wal_%s_%d.log", hostname, serverPort),
 	}
 }
 
 // Push mutation into queue to be processed
 func (s *Datastore) PushMutation(m *DatastoreMutation) bool {
+	m.PersistDisk(false)
 	s.mutationChannel <- m
 	return true
 }
@@ -93,6 +116,16 @@ func (s *Datastore) PushMutation(m *DatastoreMutation) bool {
 // Create new mutation
 func (s *Datastore) CreateMutation() *DatastoreMutation {
 	return &DatastoreMutation{}
+}
+
+// Write mutation to disk
+func (s *Datastore) WriteMutation(json string, async bool) bool {
+	s.walFile.WriteString(json)
+	if async == false {
+		// Persist to disk immediately
+		s.walFile.Sync()
+	}
+	return true
 }
 
 // Open Datastore
@@ -105,6 +138,13 @@ func (s *Datastore) Open() bool {
 	}
 
 	// Recover data from disk
+
+	// Open write ahead log file
+	var fErr error
+	s.walFile, fErr = os.OpenFile(s.walFilename, os.O_RDWR|os.O_APPEND|os.O_CREATE, 0666)
+	if fErr != nil {
+		log.Fatal(fmt.Sprintf("ERR: Failed to open write ahead log: %s", fErr))
+	}
 
 	// Start mutator
 	s.globalMux.Lock()
@@ -130,21 +170,21 @@ func (s *Datastore) startMutator() bool {
 			var m *DatastoreMutation
 			m = <-s.mutationChannel
 			if trace {
-				log.Println(fmt.Sprintf("TRACE: Mutation '%s' = '%s'", m.key, m.value))
+				log.Println(fmt.Sprintf("TRACE: Mutation '%s' = '%s'", m.Key, m.Value))
 			}
 
 			// Read current value
 			s.memTableMux.RLock()
-			v, _ := s.GetEntry(m.key)
+			v, _ := s.GetEntry(m.Key)
 			s.memTableMux.RUnlock()
 
 			// Not set?
 			if v == nil {
 				s.memTableMux.Lock()
-				s.memTable[m.key] = &MemEntry{
-					key:       m.key,
-					value:     m.value,
-					modified:  time.Now().UnixNano(),
+				s.memTable[m.Key] = &MemEntry{
+					Key:       m.Key,
+					Value:     m.Value,
+					Modified:  time.Now().UnixNano(),
 					muxBucket: pos % MEM_ENTRY_MUX_BUCKETS,
 				}
 
@@ -152,15 +192,15 @@ func (s *Datastore) startMutator() bool {
 				pos++
 
 				if trace {
-					log.Println(fmt.Sprintf("TRACE: Create new entry in mux bucket %d", s.memTable[m.key].muxBucket))
+					log.Println(fmt.Sprintf("TRACE: Create new entry in mux bucket %d", s.memTable[m.Key].muxBucket))
 				}
 				s.memTableMux.Unlock()
 			} else {
 				// Is my update newer than the actual current value?
-				if m.timestamp < v.modified {
+				if m.Timestamp < v.Modified {
 					// Mutation is older than last update, skip
 					if debug {
-						log.Println(fmt.Sprintf("DEBUG: Dropping old update of key '%s'with timestamp %d", v.key, v.modified))
+						log.Println(fmt.Sprintf("DEBUG: Dropping old update of key '%s'with timestamp %d", v.Key, v.Modified))
 					}
 					continue
 				}
@@ -169,10 +209,10 @@ func (s *Datastore) startMutator() bool {
 				s.memEntryMuxes[v.muxBucket].Lock()
 
 				// Update value and timestamp
-				v.value = m.value
-				v.modified = time.Now().UnixNano()
+				v.Value = m.Value
+				v.Modified = time.Now().UnixNano()
 				if trace {
-					log.Println(fmt.Sprintf("TRACE: Update value to '%s' in mux bucket %d", v.value, v.muxBucket))
+					log.Println(fmt.Sprintf("TRACE: Update value to '%s' in mux bucket %d", v.Value, v.muxBucket))
 				}
 
 				// Unlock bucket
@@ -180,7 +220,7 @@ func (s *Datastore) startMutator() bool {
 			}
 
 			// Replication
-			if m.replicated == false {
+			if m.Replicated == false {
 				m.Replicate()
 			}
 		}

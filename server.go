@@ -281,17 +281,19 @@ func dataHandler(w http.ResponseWriter, r *http.Request) {
 			replicated = true
 		}
 
-		// Submit mutation
+		// Create mutation object
 		m := datastore.CreateMutation()
-		m.key = fmt.Sprintf("%s", bodyData["k"])
-		m.value = fmt.Sprintf("%s", bodyData["v"])
+		m.Key = fmt.Sprintf("%s", bodyData["k"])
+		m.Value = fmt.Sprintf("%s", bodyData["v"])
 		ts, tsErr := strconv.ParseInt(fmt.Sprintf("%s", bodyData["ts"]), 10, 64)
 		if tsErr != nil {
 			log.Println("ERR: Invalid timestamp %s", tsErr)
 			return
 		}
-		m.timestamp = ts
-		m.replicated = replicated
+		m.Timestamp = ts
+		m.Replicated = replicated
+
+		// Push mutation into datastore
 		datastore.PushMutation(m)
 
 		// Respond
@@ -338,7 +340,7 @@ func testHandler(w http.ResponseWriter, r *http.Request) {
 		// @example http://localhost:8011/test?method=data_get&k=my_key
 		e, _ := datastore.GetEntry(params.Get("k"))
 		if e != nil {
-			fmt.Fprintf(w, e.value)
+			fmt.Fprintf(w, e.Value)
 		}
 	} else {
 		// Not supported

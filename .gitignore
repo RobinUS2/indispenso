@@ -24,3 +24,6 @@ _testmain.go
 
 # Binary
 dispenso
+
+# Write ahead logs for testing
+.wal*
