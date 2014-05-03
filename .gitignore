@@ -23,7 +23,7 @@ _testmain.go
 *.test
 
 # Binary
-dispenso
+indispenso
 
 # Write ahead logs for testing
 .wal*

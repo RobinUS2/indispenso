@@ -5,13 +5,13 @@ package main
 
 // Imports
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"log"
+	"os"
 	"sync"
 	"time"
-	"encoding/json"
-	"os"
 )
 
 // Constants
@@ -27,8 +27,8 @@ type Datastore struct {
 
 	memEntryMuxes map[int]*sync.Mutex // Mutex buckets for entries
 
-	walFile *os.File // Write ahead log file pointer
-	walFilename string // Name of the write ahead log file
+	walFile     *os.File // Write ahead log file pointer
+	walFilename string   // Name of the write ahead log file
 
 	mutatorStarted bool
 	globalMux      sync.RWMutex // Global mutex for datastore struct values (thus NOT data mutations)
@@ -54,10 +54,10 @@ type DatastoreMutation struct {
 func (m *DatastoreMutation) PersistDisk(async bool) bool {
 	// To Json
 	b, err := json.Marshal(m)
-    if err != nil {
-        log.Println(fmt.Sprintf("ERR: Failed to convert datastore mutation to json %s", err))
-        return false
-    }
+	if err != nil {
+		log.Println(fmt.Sprintf("ERR: Failed to convert datastore mutation to json %s", err))
+		return false
+	}
 
 	// To string
 	jsonStr := string(b)
@@ -102,7 +102,7 @@ func NewDatastore(persistentLocation string) *Datastore {
 		mutationChannel: make(chan *DatastoreMutation, 10000),
 		memTable:        make(map[string]*MemEntry),
 		memEntryMuxes:   make(map[int]*sync.Mutex),
-		walFilename: fmt.Sprintf(".wal_%s_%d.log", hostname, serverPort),
+		walFilename:     fmt.Sprintf(".wal_%s_%d.log", hostname, serverPort),
 	}
 }
 
@@ -120,7 +120,7 @@ func (s *Datastore) CreateMutation() *DatastoreMutation {
 
 // Write mutation to disk
 func (s *Datastore) WriteMutation(json string, async bool) bool {
-	s.walFile.WriteString(json)
+	s.walFile.WriteString(fmt.Sprintf("%s\n", json))
 	if async == false {
 		// Persist to disk immediately
 		s.walFile.Sync()
@@ -247,6 +247,11 @@ func (s *Datastore) GetEntry(key string) (*MemEntry, error) {
 // Flush Datastore contents to persistent storage
 func (s *Datastore) Flush() bool {
 	// @todo Implement store data on disk
+
+	// Sync write ahead log
+	s.walFile.Sync()
+
+	// Debug
 	if debug {
 		log.Println(fmt.Sprintf("DEBUG: Flushed datastore"))
 	}
@@ -255,6 +260,12 @@ func (s *Datastore) Flush() bool {
 
 // Close Datastore
 func (s *Datastore) Close() bool {
+
+	// Close write ahead
+	if s.walFile != nil {
+		s.walFile.Close()
+	}
+
 	// @todo Implement
 	if debug {
 		log.Println(fmt.Sprintf("DEBUG: Closed datastore"))
