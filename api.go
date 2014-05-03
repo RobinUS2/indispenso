@@ -5,14 +5,13 @@ package main
 
 // Imports
 import (
-	"log"
-	"fmt"
 	"encoding/json"
+	"fmt"
+	"log"
 )
 
 // Api handler
 type ApiHandler struct {
-
 }
 
 // New api handler
