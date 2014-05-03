@@ -50,6 +50,67 @@ type DatastoreMutation struct {
 	Replicated bool   // Is already replicated to all nodes?
 }
 
+// Execute mutation
+func (m *DatastoreMutation) ExecuteMutation(s *Datastore, pos int) int {
+	if trace {
+		log.Println(fmt.Sprintf("TRACE: Mutation '%s' = '%s'", m.Key, m.Value))
+	}
+
+	// Read current value
+	s.memTableMux.RLock()
+	v, _ := s.GetEntry(m.Key)
+	s.memTableMux.RUnlock()
+
+	// Not set?
+	if v == nil {
+		s.memTableMux.Lock()
+		s.memTable[m.Key] = &MemEntry{
+			Key:       m.Key,
+			Value:     m.Value,
+			Modified:  time.Now().UnixNano(),
+			muxBucket: pos % MEM_ENTRY_MUX_BUCKETS,
+		}
+
+		// Increment pos for buckets
+		pos++
+
+		if trace {
+			log.Println(fmt.Sprintf("TRACE: Create new entry in mux bucket %d", s.memTable[m.Key].muxBucket))
+		}
+		s.memTableMux.Unlock()
+	} else {
+		// Is my update newer than the actual current value?
+		if m.Timestamp < v.Modified {
+			// Mutation is older than last update, skip
+			if debug {
+				log.Println(fmt.Sprintf("DEBUG: Dropping old update of key '%s'with timestamp %d", v.Key, v.Modified))
+			}
+			return pos
+		}
+
+		// Lock mux for this bucket
+		s.memEntryMuxes[v.muxBucket].Lock()
+
+		// Update value and timestamp
+		v.Value = m.Value
+		v.Modified = time.Now().UnixNano()
+		if trace {
+			log.Println(fmt.Sprintf("TRACE: Update value to '%s' in mux bucket %d", v.Value, v.muxBucket))
+		}
+
+		// Unlock bucket
+		s.memEntryMuxes[v.muxBucket].Unlock()
+	}
+
+	// Replication
+	if m.Replicated == false {
+		m.Replicate(false)
+	}
+
+	// Done
+	return pos
+}
+
 // Perist to disk for recovery
 func (m *DatastoreMutation) PersistDisk(async bool) bool {
 	// To Json
@@ -67,11 +128,11 @@ func (m *DatastoreMutation) PersistDisk(async bool) bool {
 }
 
 // Replicate mutation
-func (m *DatastoreMutation) Replicate() bool {
+func (m *DatastoreMutation) Replicate(async bool) bool {
 
 	// Send to all nodes
 	for _, node := range discoveryService.Nodes {
-		go func(node *Node) {
+		f := func(node *Node) {
 			// Skip ourselves in the replication process
 			if node.Addr == ipAddr && node.Port == serverPort {
 				if trace {
@@ -89,7 +150,14 @@ func (m *DatastoreMutation) Replicate() bool {
 			// @todo Validate
 			node.sendData("data", msgToJson(mutation))
 			// @todo On failure, write to a hinted handoff writes file for replay on startup
-		}(node)
+		}
+
+		// Execute
+		if async {
+			go f(node)
+		} else {
+			f(node)
+		}
 	}
 
 	return true
@@ -169,60 +237,7 @@ func (s *Datastore) startMutator() bool {
 			// Read mutation from channel
 			var m *DatastoreMutation
 			m = <-s.mutationChannel
-			if trace {
-				log.Println(fmt.Sprintf("TRACE: Mutation '%s' = '%s'", m.Key, m.Value))
-			}
-
-			// Read current value
-			s.memTableMux.RLock()
-			v, _ := s.GetEntry(m.Key)
-			s.memTableMux.RUnlock()
-
-			// Not set?
-			if v == nil {
-				s.memTableMux.Lock()
-				s.memTable[m.Key] = &MemEntry{
-					Key:       m.Key,
-					Value:     m.Value,
-					Modified:  time.Now().UnixNano(),
-					muxBucket: pos % MEM_ENTRY_MUX_BUCKETS,
-				}
-
-				// Increment pos for buckets
-				pos++
-
-				if trace {
-					log.Println(fmt.Sprintf("TRACE: Create new entry in mux bucket %d", s.memTable[m.Key].muxBucket))
-				}
-				s.memTableMux.Unlock()
-			} else {
-				// Is my update newer than the actual current value?
-				if m.Timestamp < v.Modified {
-					// Mutation is older than last update, skip
-					if debug {
-						log.Println(fmt.Sprintf("DEBUG: Dropping old update of key '%s'with timestamp %d", v.Key, v.Modified))
-					}
-					continue
-				}
-
-				// Lock mux for this bucket
-				s.memEntryMuxes[v.muxBucket].Lock()
-
-				// Update value and timestamp
-				v.Value = m.Value
-				v.Modified = time.Now().UnixNano()
-				if trace {
-					log.Println(fmt.Sprintf("TRACE: Update value to '%s' in mux bucket %d", v.Value, v.muxBucket))
-				}
-
-				// Unlock bucket
-				s.memEntryMuxes[v.muxBucket].Unlock()
-			}
-
-			// Replication
-			if m.Replicated == false {
-				m.Replicate()
-			}
+			pos = m.ExecuteMutation(s, pos)
 		}
 	}()
 
