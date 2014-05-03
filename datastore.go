@@ -12,6 +12,7 @@ import (
 	"os"
 	"sync"
 	"time"
+	"io/ioutil"
 )
 
 // Constants
@@ -221,6 +222,17 @@ func (s *Datastore) Open() bool {
 	}
 
 	// Recover data from disk
+	dataBytes, readErr := ioutil.ReadFile(s.dataFile.Name())
+	if readErr != nil {
+		log.Fatal(fmt.Sprintf("ERR: Failed to read data file: %s", fErr))
+	}
+	err := json.Unmarshal(dataBytes, &s.memTable)
+	if err != nil {
+		fmt.Println("error:", err)
+	}
+	if debug {
+		log.Println(fmt.Sprintf("DEBUG: Recovered %d datastore entries from disk", len(s.memTable)))
+	}
 
 	// Open write ahead log file
 	s.walFile, fErr = os.OpenFile(s.walFilename, os.O_RDWR|os.O_APPEND|os.O_CREATE, 0666)
