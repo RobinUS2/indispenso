@@ -134,7 +134,9 @@ func (n *Node) NotifyLeave() bool {
 
 // Exchange node metadata
 func (n *Node) ExchangeMeta() bool {
-	log.Println("INFO: Exchanging metadata")
+	if debug {
+		log.Println(fmt.Sprintf("DEBUG: Exchanging metadata with %s", n.FullName()))
+	}
 
 	// List nodes
 	var nodeStrs []string = make([]string, 0)
@@ -162,8 +164,8 @@ func (n *Node) ExchangeMeta() bool {
 // Send data
 func (n *Node) sendData(endpoint string, b []byte) (string, error) {
 	// Debug post
-	if debug && b != nil && len(b) > 0 {
-		log.Println(fmt.Sprintf("DEBUG: Post data %s", b))
+	if trace && b != nil && len(b) > 0 {
+		log.Println(fmt.Sprintf("TRACE: Post data %s", b))
 	}
 
 	// Client
@@ -203,8 +205,8 @@ func (n *Node) sendData(endpoint string, b []byte) (string, error) {
 	respStr := fmt.Sprintf("%s", body)
 
 	// Debug response
-	if debug {
-		log.Println(fmt.Sprintf("DEBUG: Response data %s", respStr))
+	if trace {
+		log.Println(fmt.Sprintf("TRACE: Response data %s", respStr))
 	}
 	return respStr, nil
 }

@@ -8,11 +8,11 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"os"
 	"sync"
 	"time"
-	"io/ioutil"
 )
 
 // Constants
@@ -90,7 +90,7 @@ func (m *DatastoreMutation) ExecuteMutation(s *Datastore, pos int) int {
 		if m.Timestamp < v.Modified {
 			// Mutation is older than last update, skip
 			if debug {
-				log.Println(fmt.Sprintf("DEBUG: Dropping old update of key '%s'with timestamp %d", v.Key, v.Modified))
+				log.Println(fmt.Sprintf("DEBUG: Dropping old update of key '%s' with timestamp %d", v.Key, v.Modified))
 			}
 			return pos
 		}
@@ -316,20 +316,23 @@ func (s *Datastore) GetEntry(key string) (*MemEntry, error) {
 	return v, nil
 }
 
-// Flush Datastore contents to persistent storage
-func (s *Datastore) Flush() bool {
+// Get mem table json
+func (s *Datastore) memTableToJson() string {
 	// To Json
 	s.globalMux.RLock()
 	b, err := json.Marshal(s.memTable)
 	s.globalMux.RUnlock()
 	if err != nil {
 		log.Println(fmt.Sprintf("ERR: Failed to convert datastore memtable to json %s", err))
-		return false
+		return ""
 	}
 
 	// To string
-	jsonStr := string(b)
+	return string(b)
+}
 
+// Flush Datastore contents to persistent storage
+func (s *Datastore) Flush() bool {
 	// Open tmp data file
 	var fErr error
 	var tmpFile *os.File
@@ -339,6 +342,7 @@ func (s *Datastore) Flush() bool {
 	}
 
 	// Write to disk
+	jsonStr := s.memTableToJson()
 	tmpFile.WriteString(jsonStr)
 	tmpFile.Sync()
 	defer tmpFile.Close()

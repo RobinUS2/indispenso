@@ -71,8 +71,8 @@ func readRequest(w http.ResponseWriter, r *http.Request) ([]byte, error) {
 		return nil, newErr(fmt.Sprintf("Failed to read request body %s", err))
 	}
 	//if len(body) > 0 {
-	if debug && body != nil && len(body) > 0 {
-		log.Println(fmt.Sprintf("DEBUG: Request body %s", body))
+	if trace && body != nil && len(body) > 0 {
+		log.Println(fmt.Sprintf("TRACE: Request body %s", body))
 	}
 
 	// To byte array
@@ -343,6 +343,7 @@ func testHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		fmt.Fprintf(w, fmt.Sprintf("%s", b))
+
 	} else if method == "data_mutate" {
 		// Mutate a key
 		// @example http://localhost:8011/test?method=data_mutate&k=my_key&v=my_value
@@ -351,9 +352,26 @@ func testHandler(w http.ResponseWriter, r *http.Request) {
 		mutation["v"] = params.Get("v")
 		resp, _ := discoveryService.Nodes[0].sendData("data", msgToJson(mutation))
 		fmt.Fprintf(w, resp)
+
+	} else if method == "list_data" {
+		// List all data in json format
+		// @example http://localhost:8011/test?method=list_data
+		if datastore == nil {
+			log.Println(fmt.Sprintf("ERR: Datastore not yet started"))
+			w.WriteHeader(503)
+			return
+		}
+		fmt.Fprintf(w, datastore.memTableToJson())
+
 	} else if method == "data_get" {
 		// Get data for a key
 		// @example http://localhost:8011/test?method=data_get&k=my_key
+		if datastore == nil {
+			log.Println(fmt.Sprintf("ERR: Datastore not yet started"))
+			w.WriteHeader(503)
+			return
+		}
+
 		e, _ := datastore.GetEntry(params.Get("k"))
 		if e != nil {
 			fmt.Fprintf(w, e.Value)
