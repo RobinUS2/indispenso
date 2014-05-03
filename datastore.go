@@ -30,7 +30,8 @@ type Datastore struct {
 	walFile     *os.File // Write ahead log file pointer
 	walFilename string   // Name of the write ahead log file
 
-	dataFilename	string // Name of the data file (persisted)
+	dataFile *os.File // Data file pointer
+	dataFilename string // Name of the data file (persisted)
 
 	mutatorStarted bool
 	globalMux      sync.RWMutex // Global mutex for datastore struct values (thus NOT data mutations)
@@ -173,7 +174,7 @@ func NewDatastore(persistentLocation string) *Datastore {
 		memTable:        make(map[string]*MemEntry),
 		memEntryMuxes:   make(map[int]*sync.Mutex),
 		walFilename:     fmt.Sprintf(".wal_%s_%d.log", hostname, serverPort),
-		dataFilename: fmt.Sprintf(".data_%s_%d.json", hostname, serverPort),
+		dataFilename:    fmt.Sprintf(".data_%s_%d.json", hostname, serverPort),
 	}
 }
 
@@ -208,10 +209,16 @@ func (s *Datastore) Open() bool {
 		s.memEntryMuxes[i] = &sync.Mutex{}
 	}
 
+	// Open data file
+	var fErr error
+	s.dataFile, fErr = os.OpenFile(s.dataFilename, os.O_RDWR|os.O_APPEND|os.O_CREATE, 0666)
+	if fErr != nil {
+		log.Fatal(fmt.Sprintf("ERR: Failed to open data file: %s", fErr))
+	}
+
 	// Recover data from disk
 
 	// Open write ahead log file
-	var fErr error
 	s.walFile, fErr = os.OpenFile(s.walFilename, os.O_RDWR|os.O_APPEND|os.O_CREATE, 0666)
 	if fErr != nil {
 		log.Fatal(fmt.Sprintf("ERR: Failed to open write ahead log: %s", fErr))
@@ -291,6 +298,11 @@ func (s *Datastore) Close() bool {
 	// Close write ahead
 	if s.walFile != nil {
 		s.walFile.Close()
+	}
+
+	// Close data file
+	if s.dataFile != nil {
+		s.dataFile.Close()
 	}
 
 	// @todo Implement

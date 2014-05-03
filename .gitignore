@@ -26,4 +26,7 @@ _testmain.go
 indispenso
 
 # Write ahead logs for testing
-.wal*
+.wal_*
+
+# Data files for testing
+.data_
