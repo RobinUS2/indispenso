@@ -31,9 +31,9 @@ type Datastore struct {
 	walFile     *os.File // Write ahead log file pointer
 	walFilename string   // Name of the write ahead log file
 
-	dataFile     *os.File // Data file pointer
-	dataFileLock sync.RWMutex  // Lock for data file
-	dataFilename string   // Name of the data file (persisted)
+	dataFile     *os.File     // Data file pointer
+	dataFileLock sync.RWMutex // Lock for data file
+	dataFilename string       // Name of the data file (persisted)
 
 	mutatorStarted bool         // Is the mutator started?
 	flusherStarted bool         // Is the disk flusher started?
@@ -315,12 +315,31 @@ func (s *Datastore) Flush() bool {
 		return false
 	}
 
-	// Write to disk
+	// To string
 	jsonStr := string(b)
+
+	// Open tmp data file
+	var fErr error
+	var tmpFile *os.File
+	tmpFile, fErr = os.OpenFile(fmt.Sprintf("%s.tmp", s.dataFilename), os.O_RDWR|os.O_CREATE, 0666)
+	if fErr != nil {
+		log.Fatal(fmt.Sprintf("ERR: Failed to open tmp data file: %s", fErr))
+	}
+
+	// Write to disk
+	tmpFile.WriteString(jsonStr)
+	tmpFile.Sync()
+	defer tmpFile.Close()
+
+	// Swap new file with old file
 	s.dataFileLock.Lock()
-	s.dataFile.WriteString(jsonStr)
-	s.dataFile.Sync()
+	renameErr := os.Rename(tmpFile.Name(), s.dataFile.Name())
 	s.dataFileLock.Unlock()
+
+	// Remove tmp file
+	if renameErr == nil {
+		os.Remove(tmpFile.Name())
+	}
 
 	// Sync write ahead log
 	s.walFile.Sync()
