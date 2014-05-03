@@ -17,6 +17,8 @@ This application is architected with minimal setup and maintenance in mind. All 
 
 	$ ./indispenso --seeds="indispenso-seed.my-company.com" --secret="my_secret_of_at_least_32_characters"
 
+In order to ensure consistency across nodes this sytem relies on the system clock. Make sure you install something like [_ntpd_](http://en.wikipedia.org/wiki/Ntpd) to keep your clocks in sync.
+
 ## Goals
 - Easy management of servers, applications and infrastructure
 - Secure access and granular permission control
