@@ -12,6 +12,11 @@ This project requires Go 1.2 or later to compile.
 
 If this completes without errors you have a indispenso binary.
 
+## Running
+This application is architected with minimal setup and maintenance in mind. All you need is one or multiple seed nodes, and a shared secret.
+
+	$ ./indispenso --seeds="indispenso-seed.my-company.com" --secret="my_secret_of_at_least_32_characters"
+
 ## Goals
 - Easy management of servers, applications and infrastructure
 - Secure access and granular permission control

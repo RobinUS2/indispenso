@@ -22,10 +22,10 @@ import (
 )
 
 // Discovery constants
-const PING_TIMEOUT = 10 * time.Second // Timeout for a ping to a node
-const PING_INTERVAL = 30 * time.Second // Interval at which pings occur
+const PING_TIMEOUT = 10 * time.Second      // Timeout for a ping to a node
+const PING_INTERVAL = 30 * time.Second     // Interval at which pings occur
 const DISCONNECT_TIMEOUT = 1 * time.Minute // Beyond this period a node will not be replicated / shown as warning, pings will continue
-const REMOVE_TIMEOUT = 30 * time.Minute // Beyond this period a node will be removed from the disveroy list
+const REMOVE_TIMEOUT = 30 * time.Minute    // Beyond this period a node will be removed from the disveroy list
 
 // Node (entity in the Dispenso cluster)
 type Node struct {
@@ -38,8 +38,8 @@ type Node struct {
 	// @todo Send meta data every once in a while
 	metaReceived bool         // Did we receive metadata?
 	mux          sync.RWMutex // Locking mechanism
-	lastSeen     time.Time        // Time last seen
-	connected bool // Is this node connected to the cluster?
+	lastSeen     time.Time    // Time last seen
+	connected    bool         // Is this node connected to the cluster?
 }
 
 // Full name

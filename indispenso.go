@@ -7,11 +7,11 @@ package main
 import (
 	"flag"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"os"
 	"os/signal"
 	"strings"
-	"io/ioutil"
 )
 
 // Constants
