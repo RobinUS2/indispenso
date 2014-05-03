@@ -56,6 +56,7 @@ func (s *Server) Start() bool {
 		http.HandleFunc("/meta", metaHandler)
 		http.HandleFunc("/data", dataHandler)
 		http.HandleFunc("/app", appHandler)
+		http.HandleFunc("/api", apiHandler)
 		http.Handle("/app/static/", http.StripPrefix("/app/static/", http.FileServer(http.Dir(APP_STATIC_PATH))))
 		if testing {
 			http.HandleFunc("/test", testHandler)
@@ -324,6 +325,52 @@ func dataHandler(w http.ResponseWriter, r *http.Request) {
 // Web application handler
 func appHandler(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, appHtml)
+}
+
+// API handler
+func apiHandler(w http.ResponseWriter, r *http.Request) {
+	params := r.URL.Query()
+	method := params.Get("method")
+	jsonStr := params.Get("json")
+
+	// Read body
+	if len(jsonStr) == 0 {
+		body, err := ioutil.ReadAll(r.Body)
+		if err != nil {
+			log.Println(fmt.Sprintf("ERR: Failed to read request body %s", err))
+		} else {
+			jsonStr = string(body)
+		}
+	}
+
+	// Json header
+	w.Header().Set("Content-Type", "application/json")
+
+	// Parse json
+	jsonData := api.parseJson(jsonStr)
+
+	// Handle methods
+	var respData map[string]interface{}
+	if testing && method == "mirror" {
+		// Test method
+		respData = api.Mirror(jsonData)
+	} else if method == "auth" {
+		// Authenticate user
+		respData = api.Auth(jsonData)
+	} else {
+		// Not supported
+		w.WriteHeader(400)
+	}
+
+	// To json
+	b, err := json.Marshal(respData)
+	if err != nil {
+		log.Println(fmt.Sprintf("ERR: Failed to format json %s", err))
+		return
+	}
+	resp := string(b)
+
+	fmt.Fprintf(w, resp)
 }
 
 // Test handler

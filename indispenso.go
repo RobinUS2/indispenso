@@ -39,6 +39,7 @@ var instanceId string
 var appHtml string
 var discoveryService *DiscoveryService
 var datastore *Datastore
+var api *ApiHandler
 
 // Signal channels
 var shutdown chan bool = make(chan bool)
@@ -147,6 +148,9 @@ func main() {
 		log.Fatal("ERR: Failed to read application interface")
 	}
 	appHtml = string(appHtmlBytes)
+
+	// Api handler
+	api = NewApiHandler()
 
 	// Start server
 	var server *Server = NewServer()
