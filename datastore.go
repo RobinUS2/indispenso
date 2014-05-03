@@ -204,7 +204,8 @@ func (s *Datastore) WriteMutation(json string, async bool) bool {
 
 // Open Datastore
 func (s *Datastore) Open() bool {
-	// @todo Test folder
+	// Folder init
+	os.MkdirAll(s.folder, 0777)
 
 	// Init muxes
 	for i := 0; i < MEM_ENTRY_MUX_BUCKETS; i++ {
