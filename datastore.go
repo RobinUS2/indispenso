@@ -34,8 +34,8 @@ type Datastore struct {
 	dataFile     *os.File // Data file pointer
 	dataFilename string   // Name of the data file (persisted)
 
-	mutatorStarted bool // Is the mutator started?
-	flusherStarted bool // Is the disk flusher started?
+	mutatorStarted bool         // Is the mutator started?
+	flusherStarted bool         // Is the disk flusher started?
 	globalMux      sync.RWMutex // Global mutex for datastore struct values (thus NOT data mutations)
 }
 
