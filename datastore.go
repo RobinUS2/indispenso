@@ -313,8 +313,8 @@ func (s *Datastore) startFlusher() bool {
 	return true
 }
 
-// Get entry
-func (s *Datastore) GetEntry(key string) (*MemEntry, error) {
+// Get local entry (read from memtable)
+func (s *Datastore) GetLocalEntry(key string) (*MemEntry, error) {
 	s.memTableMux.RLock()
 	v := s.memTable[key]
 	s.memTableMux.RUnlock()
@@ -322,6 +322,13 @@ func (s *Datastore) GetEntry(key string) (*MemEntry, error) {
 		return nil, errors.New(fmt.Sprintf("Key %s not found in datastore", key))
 	}
 	return v, nil
+}
+
+
+// Get entry (read from memtable + other nodes)
+func (s *Datastore) GetEntry(key string) (*MemEntry, error) {
+	// @todo Implement
+	return s.GetLocalEntry(key)
 }
 
 // Get mem table json
