@@ -11,6 +11,7 @@ import (
 	"io"
 	"log"
 	"strings"
+	"math/rand"
 )
 
 // Defaults
@@ -37,11 +38,9 @@ type User struct {
 // New user
 func NewUser(username string, password string, isAdmin bool, isRequester bool, isApprover bool) *User {
 	// Hash password
-	var salt string = "1234ab"
-	h := sha512.New()
-	io.WriteString(h, password)
-	io.WriteString(h, salt)
-	hash := fmt.Sprintf("%x", h.Sum(nil))
+	// @todo Dynamic salt
+	var salt string = HashPassword(fmt.Sprintf("%d", rand.Int63()), "")
+	hash := HashPassword(password, salt)
 
 	// Struct
 	return &User{
@@ -53,6 +52,15 @@ func NewUser(username string, password string, isAdmin bool, isRequester bool, i
 		IsRequester:  isRequester,
 		IsApprover:   isApprover,
 	}
+}
+
+// Hash password
+func HashPassword(pwd string, salt string) string {
+	h := sha512.New()
+	io.WriteString(h, pwd)
+	io.WriteString(h, salt)
+	hash := fmt.Sprintf("%x", h.Sum(nil))
+	return hash
 }
 
 // New user handler
