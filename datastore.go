@@ -39,10 +39,10 @@ type MemEntry struct {
 
 // Mutation
 type DatastoreMutation struct {
-	key       string // Data key
-	value     string // New value
-	timestamp int64  // Timestamp when the change request it was issued
-	replicated bool // Is already replicated to all nodes?
+	key        string // Data key
+	value      string // New value
+	timestamp  int64  // Timestamp when the change request it was issued
+	replicated bool   // Is already replicated to all nodes?
 }
 
 // Replicate mutation
@@ -51,6 +51,14 @@ func (m *DatastoreMutation) Replicate() bool {
 	// Send to all nodes
 	for _, node := range discoveryService.Nodes {
 		go func(node *Node) {
+			// Skip ourselves in the replication process
+			if node.Addr == ipAddr && node.Port == serverPort {
+				if trace {
+					log.Println(fmt.Sprintf("DEBUG: Drop local replication request to %s:%d", ipAddr, serverPort))
+				}
+				return
+			}
+
 			// Mutation
 			mutation := getEmptyMetaMsg("data_replication")
 			mutation["k"] = m.key
