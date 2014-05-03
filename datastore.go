@@ -30,6 +30,8 @@ type Datastore struct {
 	walFile     *os.File // Write ahead log file pointer
 	walFilename string   // Name of the write ahead log file
 
+	dataFilename	string // Name of the data file (persisted)
+
 	mutatorStarted bool
 	globalMux      sync.RWMutex // Global mutex for datastore struct values (thus NOT data mutations)
 }
@@ -39,7 +41,7 @@ type MemEntry struct {
 	Key       string // Data key
 	Value     string // New value
 	Modified  int64  // Timestamp when last changed
-	muxBucket int    // Bucket of where to find my lock
+	MuxBucket int    // Bucket of where to find my lock
 }
 
 // Mutation
@@ -68,14 +70,14 @@ func (m *DatastoreMutation) ExecuteMutation(s *Datastore, pos int) int {
 			Key:       m.Key,
 			Value:     m.Value,
 			Modified:  time.Now().UnixNano(),
-			muxBucket: pos % MEM_ENTRY_MUX_BUCKETS,
+			MuxBucket: pos % MEM_ENTRY_MUX_BUCKETS,
 		}
 
 		// Increment pos for buckets
 		pos++
 
 		if trace {
-			log.Println(fmt.Sprintf("TRACE: Create new entry in mux bucket %d", s.memTable[m.Key].muxBucket))
+			log.Println(fmt.Sprintf("TRACE: Create new entry in mux bucket %d", s.memTable[m.Key].MuxBucket))
 		}
 		s.memTableMux.Unlock()
 	} else {
@@ -89,17 +91,17 @@ func (m *DatastoreMutation) ExecuteMutation(s *Datastore, pos int) int {
 		}
 
 		// Lock mux for this bucket
-		s.memEntryMuxes[v.muxBucket].Lock()
+		s.memEntryMuxes[v.MuxBucket].Lock()
 
 		// Update value and timestamp
 		v.Value = m.Value
 		v.Modified = time.Now().UnixNano()
 		if trace {
-			log.Println(fmt.Sprintf("TRACE: Update value to '%s' in mux bucket %d", v.Value, v.muxBucket))
+			log.Println(fmt.Sprintf("TRACE: Update value to '%s' in mux bucket %d", v.Value, v.MuxBucket))
 		}
 
 		// Unlock bucket
-		s.memEntryMuxes[v.muxBucket].Unlock()
+		s.memEntryMuxes[v.MuxBucket].Unlock()
 	}
 
 	// Replication
@@ -171,6 +173,7 @@ func NewDatastore(persistentLocation string) *Datastore {
 		memTable:        make(map[string]*MemEntry),
 		memEntryMuxes:   make(map[int]*sync.Mutex),
 		walFilename:     fmt.Sprintf(".wal_%s_%d.log", hostname, serverPort),
+		dataFilename: fmt.Sprintf(".data_%s_%d.json", hostname, serverPort),
 	}
 }
 
@@ -261,7 +264,16 @@ func (s *Datastore) GetEntry(key string) (*MemEntry, error) {
 
 // Flush Datastore contents to persistent storage
 func (s *Datastore) Flush() bool {
-	// @todo Implement store data on disk
+	// To Json
+	b, err := json.Marshal(s.memTable)
+	if err != nil {
+		log.Println(fmt.Sprintf("ERR: Failed to convert datastore memtable to json %s", err))
+		return false
+	}
+
+	// To string
+	jsonStr := string(b)
+	log.Println(jsonStr)
 
 	// Sync write ahead log
 	s.walFile.Sync()
