@@ -32,6 +32,7 @@ type Datastore struct {
 	walFilename string   // Name of the write ahead log file
 
 	dataFile     *os.File // Data file pointer
+	dataFileLock sync.RWMutex  // Lock for data file
 	dataFilename string   // Name of the data file (persisted)
 
 	mutatorStarted bool         // Is the mutator started?
@@ -306,7 +307,9 @@ func (s *Datastore) GetEntry(key string) (*MemEntry, error) {
 // Flush Datastore contents to persistent storage
 func (s *Datastore) Flush() bool {
 	// To Json
+	s.globalMux.RLock()
 	b, err := json.Marshal(s.memTable)
+	s.globalMux.RUnlock()
 	if err != nil {
 		log.Println(fmt.Sprintf("ERR: Failed to convert datastore memtable to json %s", err))
 		return false
@@ -314,8 +317,10 @@ func (s *Datastore) Flush() bool {
 
 	// Write to disk
 	jsonStr := string(b)
+	s.dataFileLock.Lock()
 	s.dataFile.WriteString(jsonStr)
 	s.dataFile.Sync()
+	s.dataFileLock.Unlock()
 
 	// Sync write ahead log
 	s.walFile.Sync()

@@ -109,7 +109,7 @@ func readRequest(w http.ResponseWriter, r *http.Request) ([]byte, error) {
 		return nil, newErr(fmt.Sprintf("Missing message timestamp"))
 	}
 	nowNano := time.Now().UnixNano()
-	minTs := nowNano - ( 3 * 1000000000 ) // Maximum of 3 seconds
+	minTs := nowNano - (3 * 1000000000) // Maximum of 3 seconds
 	msgTs, tsErr := strconv.ParseInt(fmt.Sprintf("%s", jsonData["ts"]), 10, 64)
 	if tsErr != nil {
 		return nil, newErr(fmt.Sprintf("ERR: Invalid message timestamp %s", tsErr))
