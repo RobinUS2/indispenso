@@ -16,6 +16,7 @@ import (
 
 // Constants
 const MEM_ENTRY_MUX_BUCKETS int = 128
+const FLUSH_INTERVAL = 10 * time.Second
 
 // Datastore
 type Datastore struct {
@@ -33,7 +34,8 @@ type Datastore struct {
 	dataFile     *os.File // Data file pointer
 	dataFilename string   // Name of the data file (persisted)
 
-	mutatorStarted bool
+	mutatorStarted bool // Is the mutator started?
+	flusherStarted bool // Is the disk flusher started?
 	globalMux      sync.RWMutex // Global mutex for datastore struct values (thus NOT data mutations)
 }
 
@@ -173,8 +175,8 @@ func NewDatastore(persistentLocation string) *Datastore {
 		mutationChannel: make(chan *DatastoreMutation, 10000),
 		memTable:        make(map[string]*MemEntry),
 		memEntryMuxes:   make(map[int]*sync.Mutex),
-		walFilename:     fmt.Sprintf(".wal_%s_%d.log", hostname, serverPort),
-		dataFilename:    fmt.Sprintf(".data_%s_%d.json", hostname, serverPort),
+		walFilename:     fmt.Sprintf("%s.wal_%s_%d.log", persistentLocation, hostname, serverPort),
+		dataFilename:    fmt.Sprintf("%s.data_%s_%d.json", persistentLocation, hostname, serverPort),
 	}
 }
 
@@ -232,6 +234,14 @@ func (s *Datastore) Open() bool {
 	}
 	s.globalMux.Unlock()
 
+	// Start flusher
+	s.globalMux.Lock()
+	if s.flusherStarted == false {
+		s.startFlusher()
+		s.flusherStarted = true
+	}
+	s.globalMux.Unlock()
+
 	if debug {
 		log.Println(fmt.Sprintf("DEBUG: Opened datastore"))
 	}
@@ -253,6 +263,29 @@ func (s *Datastore) startMutator() bool {
 
 	if debug {
 		log.Println(fmt.Sprintf("DEBUG: Started datastore mutator"))
+	}
+
+	return true
+}
+
+// Start flusher
+func (s *Datastore) startFlusher() bool {
+	go func(s *Datastore) {
+		ticker := time.NewTicker(FLUSH_INTERVAL)
+		for {
+			select {
+			case <-ticker.C:
+				// Discover nodes
+				s.Flush()
+			case <-shutdown:
+				ticker.Stop()
+				return
+			}
+		}
+	}(s)
+
+	if debug {
+		log.Println(fmt.Sprintf("DEBUG: Started datastore flusher"))
 	}
 
 	return true
