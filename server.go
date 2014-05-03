@@ -56,6 +56,7 @@ func (s *Server) Start() bool {
 		http.HandleFunc("/meta", metaHandler)
 		http.HandleFunc("/data", dataHandler)
 		http.HandleFunc("/app", appHandler)
+		http.Handle("/app/static/", http.StripPrefix("/app/static/", http.FileServer(http.Dir(APP_STATIC_PATH))))
 		if testing {
 			http.HandleFunc("/test", testHandler)
 		}

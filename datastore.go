@@ -369,8 +369,8 @@ func (s *Datastore) Flush() bool {
 	s.walFile.Sync()
 
 	// Debug
-	if debug {
-		log.Println(fmt.Sprintf("DEBUG: Flushed datastore"))
+	if trace {
+		log.Println(fmt.Sprintf("TRACE: Flushed datastore"))
 	}
 	return false
 }

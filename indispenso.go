@@ -19,6 +19,7 @@ const defaultPort int = 8011
 const defaultStorage string = "data/"
 const MIN_SECRET_LEN int = 32
 const APP_HTML_FILE string = "html/interface.html"
+const APP_STATIC_PATH string = "html/static"
 
 // Configuration
 var seedNodes string
