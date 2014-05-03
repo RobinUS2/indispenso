@@ -313,6 +313,19 @@ func (s *Datastore) startFlusher() bool {
 	return true
 }
 
+// Put entry
+func (s *Datastore) PutEntry(key string, value string) bool {
+	mutation := getEmptyMetaMsg("data_mutation")
+	mutation["k"] = key
+	mutation["v"] = value
+	// @todo Use the best available node instead of the first one
+	_, err := discoveryService.Nodes[0].sendData("data", msgToJson(mutation))
+	if err == nil {
+		return true
+	}
+	return false
+}
+
 // Get local entry (read from memtable)
 func (s *Datastore) GetLocalEntry(key string) (*MemEntry, error) {
 	s.memTableMux.RLock()
@@ -323,7 +336,6 @@ func (s *Datastore) GetLocalEntry(key string) (*MemEntry, error) {
 	}
 	return v, nil
 }
-
 
 // Get entry (read from memtable + other nodes)
 func (s *Datastore) GetEntry(key string) (*MemEntry, error) {

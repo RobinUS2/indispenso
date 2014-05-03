@@ -5,12 +5,12 @@ package main
 
 // Imports
 import (
-	"fmt"
-	"log"
-	"encoding/json"
-	"strings"
-	"io"
 	"crypto/sha512"
+	"encoding/json"
+	"fmt"
+	"io"
+	"log"
+	"strings"
 )
 
 // Defaults
@@ -25,13 +25,13 @@ type UserHandler struct {
 
 // User
 type User struct {
-	Id string // Uuid string
-	Username string
+	Id           string // Uuid string
+	Username     string
 	PasswordHash string // Sha 512 hash concat(pwd, salt)
 	PasswordSalt string
-	IsAdmin bool // Permission: system management
-	IsRequester bool // Permission: request task execution
-	IsApprover bool// Permission: approve task execution
+	IsAdmin      bool // Permission: system management
+	IsRequester  bool // Permission: request task execution
+	IsApprover   bool // Permission: approve task execution
 }
 
 // New user
@@ -45,13 +45,13 @@ func NewUser(username string, password string, isAdmin bool, isRequester bool, i
 
 	// Struct
 	return &User{
-		Id: getUuid(),
-		Username: username,
+		Id:           getUuid(),
+		Username:     username,
 		PasswordHash: hash,
 		PasswordSalt: salt,
-		IsAdmin: isAdmin,
-		IsRequester: isRequester,
-		IsApprover: isApprover,
+		IsAdmin:      isAdmin,
+		IsRequester:  isRequester,
+		IsApprover:   isApprover,
 	}
 }
 
@@ -72,8 +72,8 @@ func (u *UserHandler) CreateUser(username string, password string, isAdmin bool,
 		return nil, newErr(fmt.Sprintf("Please provide a password of at least %d characters", MIN_PWD_LEN))
 	}
 
-	// Existing user
-	existing := u.GetUser(username)
+	// Existing user, do NOT use GetUser, this causes recursive StackOverflow
+	existing := u.GetUserData(username)
 	if existing != nil {
 		return nil, newErr(fmt.Sprintf("Username '%s' already taken", username))
 	}
@@ -81,7 +81,13 @@ func (u *UserHandler) CreateUser(username string, password string, isAdmin bool,
 	// Create struct
 	user := NewUser(username, password, isAdmin, isRequester, isApprover)
 
-	// @todo Save in cluster (not async)
+	// Save in cluster (not async)
+	k := fmt.Sprintf("user~%s", user.Username)
+	b, err := json.Marshal(user)
+	if err != nil {
+		return nil, newErr(fmt.Sprintf("ERR: Failed to convert user struct to json %s", err))
+	}
+	datastore.PutEntry(k, string(b))
 
 	// Done
 	return user, nil
