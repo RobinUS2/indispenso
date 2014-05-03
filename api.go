@@ -26,7 +26,16 @@ func (a *ApiHandler) Mirror(data map[string]interface{}) map[string]interface{} 
 
 // Login
 func (a *ApiHandler) Auth(data map[string]interface{}) map[string]interface{} {
-	return data
+	resp := a.initResp()
+	uh := NewUserHandler()
+	userData := uh.GetUser(fmt.Sprintf("%s", data["username"]))
+	resp["user"] = userData
+	return resp
+}
+
+// Init response
+func (a *ApiHandler) initResp() map[string]interface{} {
+	return make(map[string]interface{})
 }
 
 // Parse json
