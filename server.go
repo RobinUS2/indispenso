@@ -58,7 +58,7 @@ func (s *Server) Start() bool {
 		http.HandleFunc("/app", appHandler)
 		http.HandleFunc("/api", apiHandler)
 		http.Handle("/app/static/", http.StripPrefix("/app/static/", http.FileServer(http.Dir(APP_STATIC_PATH))))
-		if testing {
+		if testMode {
 			http.HandleFunc("/test", testHandler)
 		}
 		http.ListenAndServe(fmt.Sprintf(":%d", serverPort), nil)
@@ -351,7 +351,7 @@ func apiHandler(w http.ResponseWriter, r *http.Request) {
 
 	// Handle methods
 	var respData map[string]interface{}
-	if testing && method == "mirror" {
+	if testMode && method == "mirror" {
 		// Test method
 		respData = api.Mirror(jsonData)
 	} else if method == "auth" {

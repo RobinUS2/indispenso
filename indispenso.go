@@ -29,7 +29,7 @@ var hostname string
 var ipAddr string
 var debug bool
 var trace bool
-var testing bool
+var testMode bool
 var ipv6 bool
 var noBindLocalhost bool
 var secretKey []byte
@@ -56,7 +56,7 @@ func init() {
 	flag.BoolVar(&trace, "trace", false, "Trace logging")
 	flag.BoolVar(&ipv6, "ipv6", false, "Enable ipv6")
 	flag.StringVar(&persistentFolder, "storage", defaultStorage, fmt.Sprintf("Location of persistent storage (defaults to %s", defaultStorage))
-	flag.BoolVar(&testing, "testing", false, "Enable test interfaces, do not use in production!")
+	flag.BoolVar(&testMode, "testing", false, "Enable test interfaces, do not use in production!")
 	flag.BoolVar(&noBindLocalhost, "no-bind-localhost", true, "Do not bind localhost")
 	flag.Parse()
 }
@@ -72,7 +72,7 @@ func main() {
 	}
 
 	// Warnings
-	if testing {
+	if testMode {
 		log.Println(fmt.Sprintf("WARNING!! Do not use testing mode in production or when exposed to web!"))
 	}
 
