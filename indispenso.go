@@ -136,7 +136,7 @@ func main() {
 	seeds := strings.Split(seedNodes, ",")
 
 	// Add localhost as seed
-	seeds = append(seeds, fmt.Sprintf("%s:%d", hostname, serverPort))
+	seeds = append(seeds, fmt.Sprintf("%s:%d", ipAddr, serverPort))
 
 	// Start discovery
 	discoveryService.SetSeeds(seeds)
