@@ -24,6 +24,7 @@ _testmain.go
 
 # Binary
 indispenso
+indispenso.exe
 
 # Write ahead logs for testing
 data/.wal_*
