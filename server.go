@@ -352,6 +352,16 @@ func apiHandler(w http.ResponseWriter, r *http.Request) {
 	// Parse json
 	jsonData := api.parseJson(jsonStr)
 
+	// Authenticate user
+	if method != "auth" {
+		if api.checkSession(jsonData) == false {
+			// Not authenticated
+			log.Println(fmt.Sprintf("WARN: User not authenticateds"))
+			w.WriteHeader(401)
+			return
+		}
+	}
+
 	// Handle methods
 	var respData map[string]interface{}
 	if testMode && method == "mirror" {

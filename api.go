@@ -25,6 +25,23 @@ func NewApiHandler() *ApiHandler {
 	}
 }
 
+// Check session
+func (a *ApiHandler) checkSession(data map[string]interface{}) bool {
+	token := fmt.Sprintf("%s", data["token"])
+	if len(token) == 0 {
+		return false
+	}
+
+	// Check
+	_, found := a.sessionCache.Get(token)
+	if found == false {
+		return false
+	}
+
+	// All greens
+	return true
+}
+
 // Get API session token
 func (a *ApiHandler) newSessionToken(user *User) string {
 	var token string = HashPassword(fmt.Sprintf("%d", rand.Int63()), fmt.Sprintf("%d", time.Now().UnixNano()))
