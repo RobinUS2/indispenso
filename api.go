@@ -8,15 +8,28 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"time"
+	"math/rand"
+	"github.com/pmylund/go-cache"
 )
 
 // Api handler
 type ApiHandler struct {
+	sessionCache *cache.Cache
 }
 
 // New api handler
 func NewApiHandler() *ApiHandler {
-	return &ApiHandler{}
+	return &ApiHandler{
+		sessionCache: cache.New(60*time.Minute, 30*time.Second),
+	}
+}
+
+// Get API session token
+func (a *ApiHandler) newSessionToken(user *User) string {
+	var token string = HashPassword(fmt.Sprintf("%d", rand.Int63()), fmt.Sprintf("%d", time.Now().UnixNano()))
+	a.sessionCache.Set(token, user.Id, 0)
+	return token
 }
 
 // Mirror
@@ -45,6 +58,7 @@ func (a *ApiHandler) Auth(data map[string]interface{}) map[string]interface{} {
 
 	// OK
 	resp["user"] = user
+	resp["token"] = a.newSessionToken(user)
 	return resp
 }
 

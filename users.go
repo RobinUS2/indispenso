@@ -37,8 +37,7 @@ type User struct {
 
 // New user
 func NewUser(username string, password string, isAdmin bool, isRequester bool, isApprover bool) *User {
-	// Hash password
-	// @todo Dynamic salt
+	// Hash password with random salt
 	var salt string = HashPassword(fmt.Sprintf("%d", rand.Int63()), "")
 	hash := HashPassword(password, salt)
 
