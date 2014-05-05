@@ -1,4 +1,4 @@
-indispenso
+indispenso [![Build Status](https://travis-ci.org/RobinUS2/indispenso.svg?branch=master)](https://travis-ci.org/RobinUS2/indispenso)
 ========
 
 Distribute, manage, regulate, arrange. Simple &amp; secure management based on consensus.
