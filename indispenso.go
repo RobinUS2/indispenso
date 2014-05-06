@@ -129,7 +129,7 @@ func main() {
 	datastore = NewDatastore(persistentFolder)
 	datastore.Open()
 
-	// Init discovery
+	// Create discovery
 	discoveryService = NewDiscoveryService()
 
 	// Parse seeds
@@ -141,6 +141,11 @@ func main() {
 	// Start discovery
 	discoveryService.SetSeeds(seeds)
 	discoveryService.Start()
+
+	// Repair database on startup (async)
+	go func() {
+		datastore.Repair(discoveryService)
+	}()
 
 	// Read application html
 	appHtmlBytes, appHtmlBytesErr := ioutil.ReadFile(APP_HTML_FILE)

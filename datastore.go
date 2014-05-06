@@ -223,6 +223,67 @@ func (s *Datastore) openFileHandle() bool {
 	return true
 }
 
+// Repair Datastore
+func (s *Datastore) Repair(d *DiscoveryService) bool {
+	if debug {
+		log.Println("DEBUG: Repairing datastore")
+	}
+	// Retry a few times
+	for i := 0; i < 15; i++ {
+		// Wait for discovery
+		timer := time.NewTimer(time.Second * 2)
+	    <- timer.C
+
+	    // Iterate seeds to find a healthy one
+		seeds := d.GetLiveSeedNodes()
+		for _, node := range seeds {
+			// Request datastore contents of other node
+			datastoreJson, err := node.sendData("data-repair", msgToJson(getEmptyMetaMsg("data-repair")))
+			if err != nil {
+				log.Println(fmt.Sprintf("ERR: Failed to repair data %s", err))
+				continue
+			}
+
+			// Decode json
+			repairTable := make(map[string]*MemEntry)
+			err = json.Unmarshal([]byte(datastoreJson), &repairTable)
+			if err != nil {
+				log.Println(fmt.Sprintf("ERR: Failed to decode repair data file: %s", err))
+			}
+			if debug {
+				log.Println(fmt.Sprintf("DEBUG: Reparing %d datastore entries from %s", len(repairTable), node.FullName()))
+			}
+
+			// Iterate changes
+			s.memTableMux.Lock()
+			for _, entry := range repairTable {
+				// Existing?
+				if s.memTable[entry.Key] == nil {
+					// No, add
+					s.memTable[entry.Key] = entry
+					if trace {
+						log.Println(fmt.Sprintf("TRACE: Reparing data with key %s (add)", entry.Key))
+					}
+				} else {
+					// Yes, check timestamps
+					if s.memTable[entry.Key].Modified < entry.Modified {
+						// This one is newer, overwrite
+						s.memTable[entry.Key] = entry
+						if trace {
+							log.Println(fmt.Sprintf("TRACE: Reparing data with key %s (update)", entry.Key))
+						}
+					}
+				}
+			}
+			s.memTableMux.Unlock()
+			
+			return true
+		}
+	}
+	log.Println("INFO: No seed nodes to repair datastore")
+	return false
+}
+
 // Open Datastore
 func (s *Datastore) Open() bool {
 	// Folder init
@@ -245,7 +306,7 @@ func (s *Datastore) Open() bool {
 	}
 	err := json.Unmarshal(dataBytes, &s.memTable)
 	if err != nil {
-		fmt.Println("error:", err)
+		log.Fatal(fmt.Sprintf("ERR: Failed to decode data file: %s", err))
 	}
 	if debug {
 		log.Println(fmt.Sprintf("DEBUG: Recovered %d datastore entries from disk", len(s.memTable)))

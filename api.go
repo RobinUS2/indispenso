@@ -7,10 +7,10 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"log"
-	"time"
-	"math/rand"
 	"github.com/pmylund/go-cache"
+	"log"
+	"math/rand"
+	"time"
 )
 
 // Api handler

@@ -34,6 +34,7 @@ type Node struct {
 	Addr             string            // IP address of this node
 	Port             int               // Port on which Dispenso runs
 	InstanceId       string            // Instance id (unique per startup)
+	IsSeed bool // Is this node a seed?
 
 	// @todo Send meta data every once in a while
 	metaReceived bool         // Did we receive metadata?
@@ -302,6 +303,32 @@ func (d *DiscoveryService) NewNode(host string, port int, addr string) *Node {
 	}
 }
 
+// Get seed nodes
+func (d *DiscoveryService) GetLiveSeedNodes() []*Node {
+	var list []*Node = make([]*Node, 0)
+	// Iterate
+	for _, node := range d.Nodes {
+		// Skip ourselves in the replication process
+		if node.Addr == ipAddr && node.Port == serverPort {
+			if trace {
+				log.Println(fmt.Sprintf("DEBUG: Ignore local seed %s:%d", ipAddr, serverPort))
+			}
+			continue
+		}
+
+		// Skip nodes that are not connected
+		if node.connected == false {
+			if trace {
+				log.Println(fmt.Sprintf("DEBUG: Ignore local seed %s:%d as connection is lost", ipAddr, serverPort))
+			}
+			continue
+		}
+
+		list = append(list, node)
+	}
+	return list
+}
+
 // Add node
 func (d *DiscoveryService) AddNode(n *Node) bool {
 	// Ensure we have a host
@@ -381,6 +408,7 @@ func (d *DiscoveryService) SetSeeds(seeds []string) error {
 
 		// Add node
 		n := d.NewNode(split[0], port, getPulicIp(split[0]))
+		n.IsSeed = true
 		d.AddNode(n)
 	}
 	return nil

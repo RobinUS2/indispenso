@@ -55,6 +55,7 @@ func (s *Server) Start() bool {
 		http.HandleFunc("/discovery", discoveryHandler)
 		http.HandleFunc("/meta", metaHandler)
 		http.HandleFunc("/data", dataHandler)
+		http.HandleFunc("/data-repair", dataRepairHandler)
 		http.HandleFunc("/app", appHandler)
 		http.HandleFunc("/api", apiHandler)
 		http.Handle("/app/static/", http.StripPrefix("/app/static/", http.FileServer(http.Dir(APP_STATIC_PATH))))
@@ -255,6 +256,26 @@ func metaHandler(w http.ResponseWriter, r *http.Request) {
 		}
 
 	}
+}
+
+// Data repair handler
+func dataRepairHandler(w http.ResponseWriter, r *http.Request) {
+	// Read and validate request
+	_, err := readRequest(w, r)
+	if err != nil {
+		// No log, is already written
+		return
+	}
+
+	// Datastore?
+	if datastore == nil {
+		log.Println(fmt.Sprintf("ERR: Datastore not yet started"))
+		w.WriteHeader(503)
+		return
+	}
+
+	// Output datastore memtable as JSON
+	fmt.Fprintf(w, datastore.memTableToJson())
 }
 
 // Data handler (storage of key values, with conflict resolution and eventual consistency)
