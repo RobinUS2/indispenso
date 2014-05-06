@@ -87,6 +87,9 @@ func readRequest(w http.ResponseWriter, r *http.Request) ([]byte, error) {
 	expectedSignature := mac.Sum(nil)
 	headerSigVal := r.Header.Get("X-Message-Digest")
 	headerSigValSplit := strings.Split(headerSigVal, "sha256=")
+	if len(headerSigValSplit) != 2 {
+		return nil, newErr(fmt.Sprintf("Failed to read message digest header"))
+	}
 	headerSigHexDec, errHex := hex.DecodeString(headerSigValSplit[1])
 	if errHex != nil {
 		return nil, newErr(fmt.Sprintf("Failed to decode hex digest %s", errHex))
@@ -348,6 +351,16 @@ func apiHandler(w http.ResponseWriter, r *http.Request) {
 
 	// Parse json
 	jsonData := api.parseJson(jsonStr)
+
+	// Authenticate user
+	if method != "auth" {
+		if api.checkSession(jsonData) == false {
+			// Not authenticated
+			log.Println(fmt.Sprintf("WARN: User not authenticateds"))
+			w.WriteHeader(401)
+			return
+		}
+	}
 
 	// Handle methods
 	var respData map[string]interface{}

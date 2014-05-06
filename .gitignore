@@ -31,3 +31,6 @@ data/.wal_*
 
 # Data files for testing
 data/.data_*
+
+# OSX bullshit
+.DS_Store

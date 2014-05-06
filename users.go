@@ -37,8 +37,7 @@ type User struct {
 
 // New user
 func NewUser(username string, password string, isAdmin bool, isRequester bool, isApprover bool) *User {
-	// Hash password
-	// @todo Dynamic salt
+	// Hash password with random salt
 	var salt string = HashPassword(fmt.Sprintf("%d", rand.Int63()), "")
 	hash := HashPassword(password, salt)
 
@@ -98,7 +97,9 @@ func (u *UserHandler) CreateUser(username string, password string, isAdmin bool,
 	if datastore == nil {
 		return nil, newErr(fmt.Sprintf("ERR: Datastore not available"))
 	}
-	datastore.PutEntry(k, string(b))
+	if datastore.PutEntry(k, string(b)) {
+		log.Println(fmt.Sprintf("INFO: Created user %s", user.Username))
+	}
 
 	// Done
 	return user, nil
@@ -110,6 +111,7 @@ func (u *UserHandler) GetUser(username string) *User {
 	entry := u.GetUserData(username)
 	if entry == nil {
 		if username == DEFAULT_ADMIN_USR {
+			log.Println("INFO: Creating default admin user")
 			newAdmin, newAdminErr := u.CreateUser(DEFAULT_ADMIN_USR, DEFUALT_ADMIN_PWD, true, true, true)
 			if newAdminErr == nil {
 				return newAdmin

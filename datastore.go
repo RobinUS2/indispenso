@@ -214,13 +214,13 @@ func (s *Datastore) WriteMutation(json string, async bool) bool {
 
 // Open file handle
 func (s *Datastore) openFileHandle() bool {
-    var fErr error
-    s.dataFile, fErr = os.OpenFile(s.dataFilename, os.O_RDWR|os.O_CREATE, 0666)
-    if fErr != nil {
-            log.Fatal(fmt.Sprintf("ERR: Failed to open data file: %s", fErr))
-            return false
-    }
-    return true
+	var fErr error
+	s.dataFile, fErr = os.OpenFile(s.dataFilename, os.O_RDWR|os.O_CREATE, 0666)
+	if fErr != nil {
+		log.Fatal(fmt.Sprintf("ERR: Failed to open data file: %s", fErr))
+		return false
+	}
+	return true
 }
 
 // Open Datastore
@@ -234,9 +234,9 @@ func (s *Datastore) Open() bool {
 	}
 
 	// Open data file
-        s.dataFileLock.Lock()
+	s.dataFileLock.Lock()
 	s.openFileHandle()
-        s.dataFileLock.Unlock()
+	s.dataFileLock.Unlock()
 
 	// Recover data from disk
 	dataBytes, readErr := ioutil.ReadFile(s.dataFile.Name())
@@ -252,7 +252,7 @@ func (s *Datastore) Open() bool {
 	}
 
 	// Open write ahead log file
-        var fErr error
+	var fErr error
 	s.walFile, fErr = os.OpenFile(s.walFilename, os.O_RDWR|os.O_APPEND|os.O_CREATE, 0666)
 	if fErr != nil {
 		log.Fatal(fmt.Sprintf("ERR: Failed to open write ahead log: %s", fErr))
@@ -386,26 +386,26 @@ func (s *Datastore) Flush() bool {
 
 	// Swap new file with old file
 	s.dataFileLock.Lock()
-        closeErr := s.dataFile.Close()
-        if closeErr != nil {
-            log.Println(fmt.Sprintf("ERR: Failed to close data file: %s", closeErr))
-            return false
-        }
-        removeErr := os.Remove(s.dataFile.Name())
-        if removeErr != nil {
-            log.Println(fmt.Sprintf("ERR: Failed to remove old data file: %s", removeErr))
-            return false
-        }
+	closeErr := s.dataFile.Close()
+	if closeErr != nil {
+		log.Println(fmt.Sprintf("ERR: Failed to close data file: %s", closeErr))
+		return false
+	}
+	removeErr := os.Remove(s.dataFile.Name())
+	if removeErr != nil {
+		log.Println(fmt.Sprintf("ERR: Failed to remove old data file: %s", removeErr))
+		return false
+	}
 	renameErr := os.Rename(tmpFile.Name(), s.dataFile.Name())
-        s.openFileHandle()
+	s.openFileHandle()
 	s.dataFileLock.Unlock()
 
 	// Remove tmp file
 	if renameErr == nil {
 		os.Remove(tmpFile.Name())
 	} else {
-            log.Println(fmt.Sprintf("ERR: Failed to swap tmp data file to data file: %s", renameErr))
-        }
+		log.Println(fmt.Sprintf("ERR: Failed to swap tmp data file to data file: %s", renameErr))
+	}
 
 	// Sync write ahead log
 	s.walFile.Sync()
