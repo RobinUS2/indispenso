@@ -95,9 +95,9 @@ func (u *UserHandler) CreateUser(username string, password string, isAdmin bool,
 	if err != nil {
 		return nil, newErr(fmt.Sprintf("ERR: Failed to convert user struct to json %s", err))
 	}
-        if datastore == nil {
-            return nil, newErr(fmt.Sprintf("ERR: Datastore not available"))
-        }
+	if datastore == nil {
+		return nil, newErr(fmt.Sprintf("ERR: Datastore not available"))
+	}
 	datastore.PutEntry(k, string(b))
 
 	// Done
@@ -132,10 +132,10 @@ func (u *UserHandler) GetUser(username string) *User {
 
 // Get user data
 func (u *UserHandler) GetUserData(username string) *MemEntry {
-        if datastore == nil {
-            log.Println(fmt.Sprintf("ERR: Datastore not available"))
-            return nil
-        }
+	if datastore == nil {
+		log.Println(fmt.Sprintf("ERR: Datastore not available"))
+		return nil
+	}
 	k := fmt.Sprintf("user~%s", username)
 	e, _ := datastore.GetEntry(k)
 	return e
