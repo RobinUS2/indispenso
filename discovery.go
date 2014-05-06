@@ -34,7 +34,7 @@ type Node struct {
 	Addr             string            // IP address of this node
 	Port             int               // Port on which Dispenso runs
 	InstanceId       string            // Instance id (unique per startup)
-	IsSeed bool // Is this node a seed?
+	IsSeed           bool              // Is this node a seed?
 
 	// @todo Send meta data every once in a while
 	metaReceived bool         // Did we receive metadata?

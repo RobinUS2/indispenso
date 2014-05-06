@@ -232,9 +232,9 @@ func (s *Datastore) Repair(d *DiscoveryService) bool {
 	for i := 0; i < 15; i++ {
 		// Wait for discovery
 		timer := time.NewTimer(time.Second * 2)
-	    <- timer.C
+		<-timer.C
 
-	    // Iterate seeds to find a healthy one
+		// Iterate seeds to find a healthy one
 		seeds := d.GetLiveSeedNodes()
 		for _, node := range seeds {
 			// Request datastore contents of other node
@@ -251,10 +251,11 @@ func (s *Datastore) Repair(d *DiscoveryService) bool {
 				log.Println(fmt.Sprintf("ERR: Failed to decode repair data file: %s", err))
 			}
 			if debug {
-				log.Println(fmt.Sprintf("DEBUG: Reparing %d datastore entries from %s", len(repairTable), node.FullName()))
+				log.Println(fmt.Sprintf("DEBUG: Repairing %d datastore entries from %s", len(repairTable), node.FullName()))
 			}
 
 			// Iterate changes
+			var mutationCounter int
 			s.memTableMux.Lock()
 			for _, entry := range repairTable {
 				// Existing?
@@ -262,21 +263,23 @@ func (s *Datastore) Repair(d *DiscoveryService) bool {
 					// No, add
 					s.memTable[entry.Key] = entry
 					if trace {
-						log.Println(fmt.Sprintf("TRACE: Reparing data with key %s (add)", entry.Key))
+						log.Println(fmt.Sprintf("TRACE: Repairing data with key %s (add)", entry.Key))
 					}
+					mutationCounter++
 				} else {
 					// Yes, check timestamps
 					if s.memTable[entry.Key].Modified < entry.Modified {
 						// This one is newer, overwrite
 						s.memTable[entry.Key] = entry
 						if trace {
-							log.Println(fmt.Sprintf("TRACE: Reparing data with key %s (update)", entry.Key))
+							log.Println(fmt.Sprintf("TRACE: Repairing data with key %s (update)", entry.Key))
 						}
+						mutationCounter++
 					}
 				}
 			}
 			s.memTableMux.Unlock()
-			
+			log.Println("INFO: Finished datastore repair with %d mutations", mutationCounter)
 			return true
 		}
 	}
