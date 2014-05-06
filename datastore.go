@@ -279,7 +279,7 @@ func (s *Datastore) Repair(d *DiscoveryService) bool {
 				}
 			}
 			s.memTableMux.Unlock()
-			log.Println("INFO: Finished datastore repair with %d mutations", mutationCounter)
+			log.Println(fmt.Sprintf("INFO: Finished datastore repair with %d mutations", mutationCounter))
 			return true
 		}
 	}
