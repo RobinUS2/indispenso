@@ -43,7 +43,7 @@ type Node struct {
 	connected    bool         // Is this node connected to the cluster?
 }
 
-// Full name
+// Full name, used internally not for display
 func (n *Node) FullName() string {
 	return fmt.Sprintf("%s:%d", n.Host, n.Port)
 }
@@ -90,11 +90,11 @@ func (n *Node) FetchMeta() bool {
 		return false
 	}
 	m := f.(map[string]interface{})
-	log.Println(fmt.Sprintf("DEBUG: %s", m["time"]))
 
 	// Meta received
 	n.mux.Lock()
 	n.metaReceived = true
+	n.InstanceId = fmt.Sprintf("%s", m["instance_id"])
 	n.connected = true
 	log.Println(fmt.Sprintf("INFO: Detected %s @ %s", n.FullName(), n.Addr))
 	n.mux.Unlock()

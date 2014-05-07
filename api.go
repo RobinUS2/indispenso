@@ -94,7 +94,7 @@ func (a *ApiHandler) CustomCommand(data map[string]interface{}) map[string]inter
 
 	// @todo Implement validation
 	task := NewTask()
-	task.Targets = nodes
+	task.targets = nodes
 	task.Commands = append(task.Commands, fmt.Sprintf("%s", data["command"]))
 	taskId := task.Execute()
 	resp["task_id"] = taskId

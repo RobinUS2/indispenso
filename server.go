@@ -194,6 +194,7 @@ func discoveryHandler(w http.ResponseWriter, r *http.Request) {
 	// Data
 	var data map[string]string = make(map[string]string)
 	data["time"] = fmt.Sprintf("%s", now)
+	data["instance_id"] = instanceId
 
 	// To JSON
 	b, err = json.Marshal(data)
@@ -482,6 +483,16 @@ func testHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		fmt.Fprintf(w, datastore.memTableToJson())
+
+	} else if method == "truncate_data" {
+		// Delete all data
+		// @example http://localhost:8011/test?method=truncate_data
+		if datastore == nil {
+			log.Println(fmt.Sprintf("ERR: Datastore not yet started"))
+			w.WriteHeader(503)
+			return
+		}
+		datastore.Truncate()
 
 	} else if method == "data_get" {
 		// Get data for a key

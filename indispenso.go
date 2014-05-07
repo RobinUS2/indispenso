@@ -154,6 +154,9 @@ func main() {
 	var server *Server = NewServer()
 	server.Start()
 
+	// Notify cluster that we are here!
+	discoveryService.NotifyJoin()
+
 	// Wait for shutdown
 	<-shutdown
 }

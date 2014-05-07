@@ -461,11 +461,34 @@ func (s *Datastore) startFlusher() bool {
 	return true
 }
 
+// Append entry
+func (s *Datastore) AppendEntry(key string, value string) bool {
+	mutation := getEmptyMetaMsg("data_mutation")
+	mutation["k"] = key
+	mutation["v"] = value
+	mutation["m"] = "2" // Append mode
+	return s.sendMutation(mutation)
+}
+
 // Put entry
 func (s *Datastore) PutEntry(key string, value string) bool {
 	mutation := getEmptyMetaMsg("data_mutation")
 	mutation["k"] = key
 	mutation["v"] = value
+	return s.sendMutation(mutation)
+}
+
+// Delete entry
+func (s *Datastore) DeleteEntry(key string, value string) bool {
+	mutation := getEmptyMetaMsg("data_mutation")
+	mutation["k"] = key
+	mutation["v"] = ""
+	mutation["m"] = "3" // Delete mode
+	return s.sendMutation(mutation)
+}
+
+// Send mutation
+func (s *Datastore) sendMutation(mutation map[string]string) bool {
 	// @todo Use the best available node instead of the first one
 	_, err := discoveryService.Nodes[0].sendData("data", msgToJson(mutation))
 	if err == nil {
@@ -552,6 +575,17 @@ func (s *Datastore) Flush() bool {
 	if trace {
 		log.Println(fmt.Sprintf("TRACE: Flushed datastore"))
 	}
+	return true
+}
+
+// Truncate datastore (delete all)
+func (s *Datastore) Truncate() bool {
+	log.Println("WARN: Truncating datastore")
+	s.memTableMux.Lock()
+	s.memTable = make(map[string]*MemEntry, 0)
+	s.memTableMux.Unlock()
+	s.Flush()
+	log.Println("WARN: Truncated datastore")
 	return true
 }
 
