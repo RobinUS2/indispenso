@@ -11,6 +11,7 @@ import (
 	"log"
 	"math/rand"
 	"time"
+	"strings"
 )
 
 // Api handler
@@ -76,9 +77,24 @@ func (a *ApiHandler) Mirror(data map[string]interface{}) map[string]interface{} 
 // Execute command
 func (a *ApiHandler) CustomCommand(data map[string]interface{}) map[string]interface{} {
 	resp := a.initResp()
+
+	// Locate targets
+	targetStr := fmt.Sprintf("%s", data["target"])
+	targets := strings.Split(targetStr, ",")
+	nodes := make([]*Node, 0)
+	for _, target := range targets {
+		node := discoveryService.FindNode(target)
+		if node == nil {
+			// Not found
+			resp["error"] = fmt.Sprintf("Target '%s' not found", target)
+			return resp
+		}
+		nodes = append(nodes, node)
+	}
+
 	// @todo Implement validation
 	task := NewTask()
-	task.Targets = append(task.Targets, fmt.Sprintf("%s", data["target"]))
+	task.Targets = nodes
 	task.Commands = append(task.Commands, fmt.Sprintf("%s", data["command"]))
 	taskId := task.Execute()
 	resp["task_id"] = taskId
