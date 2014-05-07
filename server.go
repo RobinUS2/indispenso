@@ -406,6 +406,9 @@ func apiHandler(w http.ResponseWriter, r *http.Request) {
 	var user *User = nil
 	if method != "auth" {
 		sessionToken, isString := session.Values["session_token"].(string)
+		if isString {
+			jsonData["session_token"] = sessionToken
+		}
 		if api.checkSession(jsonData) == false && (isString == false || api.checkSessionString(sessionToken) == false) {
 			// Not authenticated
 			log.Println(fmt.Sprintf("WARN: User not authenticated"))
