@@ -1,24 +1,30 @@
-// Javascript API helper
-function jsApi(method, data, callback, errCallback) {
-	$.ajax('/api?method=' + encodeURIComponent(method), {
-	    'data': JSON.stringify(data), //{action:'x',params:['a','b','c']}
-	    'type': 'POST',
-	    'contentType': 'application/json',
-	    'error': function(xhr, status, err) {
-	    	if (errCallback != null && typeof errCallback === 'function') {
-	    		errCallback(xhr, status, err);
-	    	}
-	    }
-	}).done(function( data ) {
-		callback(data);
-	});
-}
+/** App object */
+var app = {
+	/** API helper */
+	api : function (method, data, callback, errCallback) {
+		$.ajax('/api?method=' + encodeURIComponent(method), {
+		    'data': JSON.stringify(data), //{action:'x',params:['a','b','c']}
+		    'type': 'POST',
+		    'contentType': 'application/json',
+		    'error': function(xhr, status, err) {
+		    	if (errCallback != null && typeof errCallback === 'function') {
+		    		errCallback(xhr, status, err);
+		    	}
+		    }
+		}).done(function( data ) {
+			callback(data);
+		});
+	},
+	/** Show a screen */
+	showScreen : function (id) {
+		$('div.content-pane').removeClass('content-visible');
+		$('div.content-pane[data-id="' + id + '"]').addClass('content-visible');
+		return true;
+	}
+};
 
 /** Show panel */
-function showPanel(id) {
-	$('div.content-pane[data-id="' + id + '"]').addClass('content-visible');
-	return true;
-}
+
 
 // Example handshake
 // jsApi('mirror', {a:1}, function(x){console.log(x);});
@@ -28,10 +34,10 @@ function showPanel(id) {
 /** Login */
 $(document).ready(function() {
 	/** Are we logged in? */
-	jsApi('mirror', {a:1}, function(x){
+	app.api('mirror', {a:1}, function(x) {
 		/** Yes */
 	}, function() {
 		/** No */
-		showPanel('login');
+		app.showScreen('login');
 	});
 });

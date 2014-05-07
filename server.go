@@ -392,7 +392,7 @@ func apiHandler(w http.ResponseWriter, r *http.Request) {
 	if method != "auth" {
 		if api.checkSession(jsonData) == false {
 			// Not authenticated
-			log.Println(fmt.Sprintf("WARN: User not authenticateds"))
+			log.Println(fmt.Sprintf("WARN: User not authenticated"))
 			w.WriteHeader(401)
 			return
 		}
