@@ -11,9 +11,9 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
+	"strconv"
 	"sync"
 	"time"
-	"strconv"
 )
 
 // Constants
@@ -129,7 +129,7 @@ func (m *DatastoreMutation) ExecuteMutation(s *Datastore, pos int) int {
 			// Delete
 			v.Value = ""
 			v.IsDeleted = true
-		} else if (m.MutationMode == 4) {
+		} else if m.MutationMode == 4 {
 			// Increment
 			curVal := int64(0)
 			if len(v.Value) > 0 {
