@@ -27,7 +27,7 @@ func NewApiHandler() *ApiHandler {
 
 // Check session
 func (a *ApiHandler) checkSession(data map[string]interface{}) bool {
-	token := fmt.Sprintf("%s", data["token"])
+	token := fmt.Sprintf("%s", data["session_token"])
 	if len(token) == 0 {
 		return false
 	}
@@ -73,9 +73,24 @@ func (a *ApiHandler) Auth(data map[string]interface{}) map[string]interface{} {
 		return resp
 	}
 
+	// Validate two factor
+	var token string = ""
+	if data["token"] != nil {
+		tmp := fmt.Sprintf("%s", data["token"])
+		if len(tmp) > 0 {
+			token = tmp
+		}
+	}
+	if user.IsValidTwoFactor(token) == false {
+		resp["error"] = "User not found"
+		return resp
+	}
+
 	// OK
+	user.PasswordHash = ""
+	user.PasswordSalt = ""
 	resp["user"] = user
-	resp["token"] = a.newSessionToken(user)
+	resp["session_token"] = a.newSessionToken(user)
 	return resp
 }
 

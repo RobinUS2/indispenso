@@ -12,6 +12,7 @@ import (
 	"log"
 	"math/rand"
 	"strings"
+	"github.com/dgryski/dgoogauth"
 )
 
 // Defaults
@@ -33,6 +34,41 @@ type User struct {
 	IsAdmin      bool // Permission: system management
 	IsRequester  bool // Permission: request task execution
 	IsApprover   bool // Permission: approve task execution
+	TwoFactorSeed string
+}
+
+// Display name
+func (u *User) DisplayName() string {
+	return u.Username
+}
+
+// Check two-factor
+func (u *User) IsValidTwoFactor (token string) bool {
+	// Do we have two factor enabled?
+	if len(u.TwoFactorSeed) == 0 {
+		// No, OK pass
+		log.Println(fmt.Sprintf("WARN: User %s login without two-factor enabled", u.DisplayName()))
+		return true
+	}
+
+	// Configure token
+	var cotp *dgoogauth.OTPConfig = &dgoogauth.OTPConfig{
+		Secret: u.TwoFactorSeed,
+		WindowSize: 3,
+	}
+
+	// Validate token
+	authRes, authErr := cotp.Authenticate(token)
+	if authErr != nil || authRes == false {
+		log.Println(fmt.Sprintf("WARN: User %s failed two-factor challenge, invalid token", u.DisplayName()))
+		return false
+	} else {
+		// OK
+		return true
+	}
+
+	// By default error
+	return false
 }
 
 // New user
