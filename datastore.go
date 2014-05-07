@@ -47,6 +47,7 @@ type MemEntry struct {
 	Value     string // New value
 	Modified  int64  // Timestamp when last changed
 	MuxBucket int    // Bucket of where to find my lock
+	IsDeleted bool // Is this entry deleted?
 }
 
 // Mutation
@@ -279,6 +280,9 @@ func (s *Datastore) Repair(d *DiscoveryService) bool {
 				}
 			}
 			s.memTableMux.Unlock()
+			if mutationCounter > 0 {
+				s.Flush()
+			}
 			log.Println(fmt.Sprintf("INFO: Finished datastore repair with %d mutations", mutationCounter))
 			return true
 		}
