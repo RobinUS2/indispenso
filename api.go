@@ -10,8 +10,8 @@ import (
 	"github.com/pmylund/go-cache"
 	"log"
 	"math/rand"
-	"time"
 	"strings"
+	"time"
 )
 
 // Api handler
