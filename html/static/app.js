@@ -1,6 +1,5 @@
 /** App object */
 var app = {
-	sessionToken: localStorage.getItem('session_token'),
 	userData: null,
 	/** Default error callback for API issues */
 	defaultErrCallback : function(xhr, status, err) {
@@ -16,7 +15,6 @@ var app = {
     	if (errCallback == null || typeof errCallback !== 'function') {
     		errCallback = app.defaultErrCallback;
     	}
-    	data['session_token'] = app.sessionToken;
 		$.ajax('/api?method=' + encodeURIComponent(method), {
 		    'data': JSON.stringify(data), //{action:'x',params:['a','b','c']}
 		    'type': 'POST',
@@ -72,8 +70,6 @@ $(document).ready(function() {
 		app.showScreen('login');
 		$('form#login').submit(function() {
 			app.api('auth', app.jsonSerialize(this), function(data) {
-				app.sessionToken = data.session_token;
-				localStorage.setItem('session_token', app.sessionToken);
 				app.userData = data.user;
 				console.log(app.userData);
 				app.showScreen('home');

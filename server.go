@@ -10,6 +10,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"github.com/gorilla/sessions"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -32,6 +33,9 @@ func NewServer() *Server {
 // @todo Improve as we do not have to keep everything in here forever, is memory leaking basically
 var msgLog map[string]bool = make(map[string]bool)
 var msgLogMux sync.RWMutex
+
+// Cookie session store
+var store = sessions.NewCookieStore([]byte("hndvsvnhgihn1rseil8xghveiu"))
 
 // Is this message seen before?
 func isMsgSeen(msgId string) bool {
@@ -394,9 +398,12 @@ func apiHandler(w http.ResponseWriter, r *http.Request) {
 	// Parse json
 	jsonData := api.parseJson(jsonStr)
 
+	// setup session store
+	session, _ := store.Get(r, "auth-session")
+
 	// Authenticate user
 	if method != "auth" {
-		if api.checkSession(jsonData) == false {
+		if api.checkSession(jsonData) == false && api.checkSessionString(session.Values["session_token"].(string)) == false {
 			// Not authenticated
 			log.Println(fmt.Sprintf("WARN: User not authenticated"))
 			w.WriteHeader(401)
@@ -412,6 +419,19 @@ func apiHandler(w http.ResponseWriter, r *http.Request) {
 	} else if method == "auth" {
 		// Authenticate user
 		respData = api.Auth(jsonData)
+		if respData["session_token"] != nil {
+			// We are authenticated
+			// Save to session cookie so we can read it on next request
+
+			session.Values["session_token"] = respData["session_token"]
+			// Set default expiration
+			session.Options = &sessions.Options{
+				Path:   "/",
+				MaxAge: 1800, // 30 minutes
+			}
+			// Save it.
+			session.Save(r, w)
+		}
 	} else {
 		// Not supported
 		w.WriteHeader(400)
