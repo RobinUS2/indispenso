@@ -13,11 +13,13 @@ import (
 	"os"
 	"sync"
 	"time"
+	"strconv"
 )
 
 // Constants
 const MEM_ENTRY_MUX_BUCKETS int = 128
 const FLUSH_INTERVAL = 10 * time.Second
+const DEFAULT_INCREMENT = 1
 
 // Datastore
 type Datastore struct {
@@ -56,7 +58,7 @@ type DatastoreMutation struct {
 	Value        string // New value
 	Timestamp    int64  // Timestamp when the change request it was issued
 	Replicated   bool   // Is already replicated to all nodes?
-	MutationMode int    // Mutation type (1 = overwrite, 2 = append, 3 = delete)
+	MutationMode int    // Mutation type (1 = overwrite, 2 = append, 3 = delete, 4 = increment)
 }
 
 // Execute mutation
@@ -78,6 +80,11 @@ func (m *DatastoreMutation) ExecuteMutation(s *Datastore, pos int) int {
 				log.Println(fmt.Sprintf("DEBUG: Dropping delete of non-existent key '%s'", m.Key))
 			}
 			return pos
+		}
+
+		// Default value for counters
+		if m.MutationMode == 4 {
+			m.Value = fmt.Sprintf("%d", DEFAULT_INCREMENT)
 		}
 
 		// Add if this is not a delete request
@@ -122,6 +129,32 @@ func (m *DatastoreMutation) ExecuteMutation(s *Datastore, pos int) int {
 			// Delete
 			v.Value = ""
 			v.IsDeleted = true
+		} else if (m.MutationMode == 4) {
+			// Increment
+			curVal := int64(0)
+			if len(v.Value) > 0 {
+				// Try to convert to integer
+				newVal, convErr := strconv.ParseInt(v.Value, 10, 64)
+				if convErr == nil {
+					// Good increment value found
+					curVal = newVal
+				}
+			}
+			// Get increment value
+			if len(m.Value) == 0 {
+				m.Value = fmt.Sprintf("%d", DEFAULT_INCREMENT)
+			}
+			incVal, incConvErr := strconv.ParseInt(m.Value, 10, 64)
+			if incConvErr != nil {
+				// Bad increment value found, use default
+				incVal = int64(DEFAULT_INCREMENT)
+			}
+			totVal := curVal + incVal
+			v.Value = fmt.Sprintf("%d", totVal)
+			if trace {
+				log.Println(fmt.Sprintf("TRACE: Incrementing key '%s' from %d with %d to %d", v.Key, curVal, incVal, totVal))
+			}
+			v.IsDeleted = false
 		} else {
 			log.Println(fmt.Sprintf("ERR: Dropping unknown mutation message with mode %d", m.MutationMode))
 			return pos
@@ -137,7 +170,7 @@ func (m *DatastoreMutation) ExecuteMutation(s *Datastore, pos int) int {
 
 	// Replication
 	if m.Replicated == false {
-		m.Replicate(false)
+		m.Replicate(false, v.Value)
 	}
 
 	// Done
@@ -161,7 +194,7 @@ func (m *DatastoreMutation) PersistDisk(async bool) bool {
 }
 
 // Replicate mutation
-func (m *DatastoreMutation) Replicate(async bool) bool {
+func (m *DatastoreMutation) Replicate(async bool, postMutationValue string) bool {
 
 	// Send to all nodes
 	for _, node := range discoveryService.Nodes {
@@ -185,7 +218,7 @@ func (m *DatastoreMutation) Replicate(async bool) bool {
 			// Mutation
 			mutation := getEmptyMetaMsg("data_replication")
 			mutation["k"] = m.Key
-			mutation["v"] = m.Value
+			mutation["v"] = postMutationValue
 			mutation["r"] = "1" // Replication request
 
 			// @todo Validate
