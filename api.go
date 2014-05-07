@@ -76,7 +76,12 @@ func (a *ApiHandler) Mirror(data map[string]interface{}) map[string]interface{} 
 // Execute command
 func (a *ApiHandler) CustomCommand(data map[string]interface{}) map[string]interface{} {
 	resp := a.initResp()
-	// @todo Implement
+	// @todo Implement validation
+	task := NewTask()
+	task.Targets = append(task.Targets, fmt.Sprintf("%s", data["target"]))
+	task.Commands = append(task.Commands, fmt.Sprintf("%s", data["command"]))
+	taskId := task.Execute()
+	resp["task_id"] = taskId
 	return resp
 }
 
