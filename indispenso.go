@@ -38,6 +38,7 @@ var instanceId string
 var appHtml string
 var discoveryService *DiscoveryService
 var datastore *Datastore
+var taskDiscoverer *TaskDiscoverer
 var api *ApiHandler
 
 // Signal channels
@@ -156,6 +157,10 @@ func main() {
 
 	// Notify cluster that we are here!
 	discoveryService.NotifyJoin()
+
+	// Discover tasks
+	taskDiscoverer = NewTaskDiscoverer()
+	taskDiscoverer.Start()
 
 	// Wait for shutdown
 	<-shutdown

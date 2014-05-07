@@ -378,6 +378,11 @@ func (d *DiscoveryService) FindNode(input string) *Node {
 
 	// Iterate nodes
 	for _, node := range d.Nodes {
+		// Check instance id match
+		if node.InstanceId == input {
+			return node
+		}
+
 		// Check hostname/ip
 		if node.Addr != inputSplit[0] && node.Host != inputSplit[0] {
 			continue

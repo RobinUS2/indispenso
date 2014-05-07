@@ -8,6 +8,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"time"
+	"strings"
+	"github.com/pmylund/go-cache"
 )
 
 // Task struct
@@ -15,6 +18,118 @@ type Task struct {
 	Id       string   // Unique task id
 	targets  []*Node  // List of target nodes
 	Commands []string // List of commands to execute in that order
+}
+
+// Local task (on a specific node)
+type LocalTask struct {
+	Id       string   // Unique task id
+	Commands []string // List of commands to execute in that order
+}
+
+// Task discoverer
+type TaskDiscoverer struct {
+	executionQueue chan *LocalTask // Queue of tasks to be executed
+	executionCache *cache.Cache // Cache of executed task ids
+}
+
+// New task discoverer
+func NewTaskDiscoverer() *TaskDiscoverer {
+	return &TaskDiscoverer{
+		executionQueue: make(chan *LocalTask, 1000),
+		executionCache: cache.New(60*time.Minute, 30*time.Second),
+	}
+}
+
+// Run local task
+func (lt *LocalTask) Run() bool {
+	// @todo Actual running
+	for _, cmd := range lt.Commands {
+		log.Println(fmt.Sprintf("RUN %s", cmd))
+	}
+	return false
+}
+
+// Discover new tasks from queue
+func (td *TaskDiscoverer) Discover() bool {
+	// Datastore ready?
+	if datastore == nil {
+		if debug {
+			log.Println("DEBUG: Datastore not ready, failed task discovery")
+		}
+		return false
+	}
+
+	// Read list of tasks
+	k := fmt.Sprintf("%s~task_ids", instanceId)
+	entry, err := datastore.GetEntry(k)
+	if err != nil {
+		log.Println(fmt.Sprintf("ERROR: Failed to discover tasks: %s", err))
+		return false
+	}
+	if entry == nil {
+		// No entry, nothing to do, but that's fine
+		return true
+	}
+
+	// List of task ids
+	taskIds := strings.Split(entry.Value, ",")
+	for _, taskId := range taskIds {
+		// Skip empty ones
+		if len(taskId) == 0 {
+			continue
+		}
+		// Skip improted ones
+		_, found := td.executionCache.Get(taskId)
+		if found {
+			continue
+		}
+
+		// Get task meta
+		taskData, _ := datastore.GetEntry(fmt.Sprintf("task~%s", taskId))
+		if taskData == nil {
+			continue
+		}
+
+		// Decode
+		lt := ReadLocalTask(taskData.Value)
+		if lt == nil {
+			continue
+		}
+		// Add to queue + flag as imported
+		td.executionCache.Set(lt.Id, "1", 0)
+		td.executionQueue <- lt
+	}
+
+	// Done
+	return true
+}
+
+// Start task discoverer
+func (td *TaskDiscoverer) Start() bool {
+	// Discovery
+	go func(td *TaskDiscoverer) {
+		ticker := time.NewTicker(1 * time.Second)
+		for {
+			select {
+			case <-ticker.C:
+				// Discover tasks
+				td.Discover()
+			case <-shutdown:
+				ticker.Stop()
+				return
+			}
+		}
+	}(td)
+
+	// Execution
+	go func(td *TaskDiscoverer) {
+		for {
+			var lt *LocalTask
+			lt = <- td.executionQueue
+			lt.Run()
+		}
+	}(td)
+	return true
 }
 
 // Write to datastore
@@ -60,6 +175,17 @@ func (t *Task) Execute() string {
 		}
 	}
 	return t.Id
+}
+
+// Local task
+func ReadLocalTask(str string) *LocalTask {
+	var lt *LocalTask = &LocalTask{}
+	err := json.Unmarshal([]byte(str), &lt)
+	if err != nil {
+		log.Println(fmt.Sprintf("ERROR: Failed to decode local task json %s", err))
+		return nil
+	}
+	return lt
 }
 
 // New task

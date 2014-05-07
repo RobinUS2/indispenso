@@ -503,7 +503,11 @@ func (s *Datastore) GetLocalEntry(key string) (*MemEntry, error) {
 	v := s.memTable[key]
 	s.memTableMux.RUnlock()
 	if v == nil || v.IsDeleted == true {
-		return nil, errors.New(fmt.Sprintf("Key %s not found in datastore", key))
+		if trace {
+			return nil, errors.New(fmt.Sprintf("Key %s not found in datastore", key))
+		} else {
+			return nil, nil
+		}
 	}
 	return v, nil
 }
