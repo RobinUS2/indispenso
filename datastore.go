@@ -334,16 +334,24 @@ func (s *Datastore) Open() bool {
 	s.dataFileLock.Unlock()
 
 	// Recover data from disk
-	dataBytes, readErr := ioutil.ReadFile(s.dataFile.Name())
-	if readErr != nil {
-		log.Fatal(fmt.Sprintf("ERR: Failed to read data file: %s", readErr))
+	var dataFileExists bool = true
+	if _, err := os.Stat(s.dataFile.Name()); os.IsNotExist(err) {
+		dataFileExists = false
 	}
-	err := json.Unmarshal(dataBytes, &s.memTable)
-	if err != nil {
-		log.Fatal(fmt.Sprintf("ERR: Failed to decode data file: %s", err))
-	}
-	if debug {
-		log.Println(fmt.Sprintf("DEBUG: Recovered %d datastore entries from disk", len(s.memTable)))
+	if dataFileExists {
+		dataBytes, readErr := ioutil.ReadFile(s.dataFile.Name())
+		if readErr != nil {
+			log.Fatal(fmt.Sprintf("ERR: Failed to read data file: %s", readErr))
+		}
+		if len(dataBytes) > 0 {
+			err := json.Unmarshal(dataBytes, &s.memTable)
+			if err != nil {
+				log.Fatal(fmt.Sprintf("ERR: Failed to decode data file: %s", err))
+			}
+			if debug {
+				log.Println(fmt.Sprintf("DEBUG: Recovered %d datastore entries from disk", len(s.memTable)))
+			}
+		}
 	}
 
 	// Open write ahead log file
