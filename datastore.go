@@ -102,6 +102,7 @@ func (m *DatastoreMutation) ExecuteMutation(s *Datastore, pos int) int {
 		if trace {
 			log.Println(fmt.Sprintf("TRACE: Create new entry in mux bucket %d", s.memTable[m.Key].MuxBucket))
 		}
+		v = s.memTable[m.Key]
 		s.memTableMux.Unlock()
 	} else {
 		// Is my update newer than the actual current value?

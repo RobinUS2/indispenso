@@ -7,7 +7,6 @@ package main
 import (
 	"flag"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"os"
 	"os/signal"
@@ -146,13 +145,6 @@ func main() {
 	go func() {
 		datastore.Repair(discoveryService)
 	}()
-
-	// Read application html
-	appHtmlBytes, appHtmlBytesErr := ioutil.ReadFile(APP_HTML_FILE)
-	if appHtmlBytesErr != nil {
-		log.Fatal("ERR: Failed to read application interface")
-	}
-	appHtml = string(appHtmlBytes)
 
 	// Api handler
 	api = NewApiHandler()

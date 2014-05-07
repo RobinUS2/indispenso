@@ -363,6 +363,12 @@ func dataHandler(w http.ResponseWriter, r *http.Request) {
 
 // Web application handler
 func appHandler(w http.ResponseWriter, r *http.Request) {
+	// Read application html
+	appHtmlBytes, appHtmlBytesErr := ioutil.ReadFile(APP_HTML_FILE)
+	if appHtmlBytesErr != nil {
+		log.Fatal("ERR: Failed to read application interface")
+	}
+	appHtml = string(appHtmlBytes)
 	fmt.Fprintf(w, appHtml)
 }
 
