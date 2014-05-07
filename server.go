@@ -404,7 +404,8 @@ func apiHandler(w http.ResponseWriter, r *http.Request) {
 	// Authenticate user
 	var user *User = nil
 	if method != "auth" {
-		if api.checkSession(jsonData) == false && api.checkSessionString(session.Values["session_token"].(string)) == false {
+		sessionToken, isString := session.Values["session_token"].(string)
+		if api.checkSession(jsonData) == false && (isString == false || api.checkSessionString(sessionToken) == false) {
 			// Not authenticated
 			log.Println(fmt.Sprintf("WARN: User not authenticated"))
 			w.WriteHeader(401)
@@ -424,7 +425,6 @@ func apiHandler(w http.ResponseWriter, r *http.Request) {
 		if respData["session_token"] != nil {
 			// We are authenticated
 			// Save to session cookie so we can read it on next request
-
 			session.Values["session_token"] = respData["session_token"]
 			// Set default expiration
 			session.Options = &sessions.Options{
