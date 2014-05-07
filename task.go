@@ -5,9 +5,9 @@ package main
 
 // Imports
 import (
+	"encoding/json"
 	"fmt"
 	"log"
-	"encoding/json"
 )
 
 // Task struct

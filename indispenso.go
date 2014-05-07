@@ -65,7 +65,7 @@ func main() {
 	log.Println(fmt.Sprintf("INFO: Starting indispenso"))
 
 	// Instance id
-	instanceId = getUuid()
+	instanceId = fetchInstanceId()
 	if debug {
 		log.Println(fmt.Sprintf("DEBUG: Instance id %s", instanceId))
 	}

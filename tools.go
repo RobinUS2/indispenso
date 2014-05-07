@@ -10,6 +10,7 @@ import (
 	"log"
 	"net"
 	"regexp"
+	"io/ioutil"
 )
 
 func getPulicIp(hostname string) string {
@@ -62,4 +63,22 @@ func getUuid() string {
 		return ""
 	}
 	return fmt.Sprintf("%s", u4)
+}
+
+func fetchInstanceId() string {
+	file := fmt.Sprintf("%s/.instance_%d", persistentFolder, serverPort)
+	bytes, err := ioutil.ReadFile(file)
+	if err != nil || len(bytes) == 0 {
+		log.Println("INFO: Generating instance id")
+		uuid := getUuid()
+		// Write to disk
+		err := ioutil.WriteFile(file, []byte(uuid), 0644)
+		if err != nil {
+			log.Println(fmt.Sprintf("ERROR: Failed to write instance id to disk %s", err))
+		} else {
+			log.Println("INFO: Persisted instance id to disk")
+		}
+		return uuid
+	}
+	return string(bytes)
 }
