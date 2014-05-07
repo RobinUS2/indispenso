@@ -330,11 +330,26 @@ func dataHandler(w http.ResponseWriter, r *http.Request) {
 		m.Value = fmt.Sprintf("%s", bodyData["v"])
 		ts, tsErr := strconv.ParseInt(fmt.Sprintf("%s", bodyData["ts"]), 10, 64)
 		if tsErr != nil {
-			log.Println("ERR: Invalid timestamp %s", tsErr)
+			log.Println(fmt.Sprintf("ERR: Invalid timestamp %s", tsErr))
 			return
 		}
 		m.Timestamp = ts
 		m.Replicated = replicated
+
+		// Mutation mode
+		if bodyData["m"] != nil {
+			modeStr := fmt.Sprintf("%s", bodyData["m"])
+			if len(modeStr) > 0 {
+				mode, modeErr := strconv.ParseInt(modeStr, 10, 0)
+				if modeErr != nil {
+					log.Println(fmt.Sprintf("ERR: Invalid mutation mode %s", modeErr))
+					return
+				}
+				if mode > 0 {
+					m.MutationMode = int(mode)
+				}
+			}
+		}
 
 		// Push mutation into datastore
 		datastore.PushMutation(m)
@@ -438,6 +453,7 @@ func testHandler(w http.ResponseWriter, r *http.Request) {
 		mutation := getEmptyMetaMsg("data_mutation")
 		mutation["k"] = params.Get("k")
 		mutation["v"] = params.Get("v")
+		mutation["m"] = params.Get("m")
 		resp, _ := discoveryService.Nodes[0].sendData("data", msgToJson(mutation))
 		fmt.Fprintf(w, resp)
 

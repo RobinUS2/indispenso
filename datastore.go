@@ -52,11 +52,11 @@ type MemEntry struct {
 
 // Mutation
 type DatastoreMutation struct {
-	Key        string // Data key
-	Value      string // New value
-	Timestamp  int64  // Timestamp when the change request it was issued
-	Replicated bool   // Is already replicated to all nodes?
-	MutationMode int // Mutation type (1 = overwrite, 2 = append, 3 = delete)
+	Key          string // Data key
+	Value        string // New value
+	Timestamp    int64  // Timestamp when the change request it was issued
+	Replicated   bool   // Is already replicated to all nodes?
+	MutationMode int    // Mutation type (1 = overwrite, 2 = append, 3 = delete)
 }
 
 // Execute mutation
@@ -72,6 +72,15 @@ func (m *DatastoreMutation) ExecuteMutation(s *Datastore, pos int) int {
 
 	// Not set?
 	if v == nil {
+		// Skip if this is a delete request
+		if m.MutationMode == 3 {
+			if debug {
+				log.Println(fmt.Sprintf("DEBUG: Dropping delete of non-existent key '%s'", m.Key))
+			}
+			return pos
+		}
+
+		// Add if this is not a delete request
 		s.memTableMux.Lock()
 		s.memTable[m.Key] = &MemEntry{
 			Key:       m.Key,
@@ -104,9 +113,11 @@ func (m *DatastoreMutation) ExecuteMutation(s *Datastore, pos int) int {
 		if m.MutationMode == 1 {
 			// Overwrite
 			v.Value = m.Value
+			v.IsDeleted = false
 		} else if m.MutationMode == 2 {
 			// Append
 			v.Value = fmt.Sprintf("%s%s", v.Value, m.Value)
+			v.IsDeleted = false
 		} else if m.MutationMode == 3 {
 			// Delete
 			v.Value = ""
