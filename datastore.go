@@ -47,7 +47,7 @@ type MemEntry struct {
 	Value     string // New value
 	Modified  int64  // Timestamp when last changed
 	MuxBucket int    // Bucket of where to find my lock
-	IsDeleted bool // Is this entry deleted?
+	IsDeleted bool   // Is this entry deleted?
 }
 
 // Mutation
@@ -56,6 +56,7 @@ type DatastoreMutation struct {
 	Value      string // New value
 	Timestamp  int64  // Timestamp when the change request it was issued
 	Replicated bool   // Is already replicated to all nodes?
+	MutationMode int // Mutation type (1 = overwrite, 2 = append, 3 = delete)
 }
 
 // Execute mutation
@@ -100,7 +101,20 @@ func (m *DatastoreMutation) ExecuteMutation(s *Datastore, pos int) int {
 		s.memEntryMuxes[v.MuxBucket].Lock()
 
 		// Update value and timestamp
-		v.Value = m.Value
+		if m.MutationMode == 1 {
+			// Overwrite
+			v.Value = m.Value
+		} else if m.MutationMode == 2 {
+			// Append
+			v.Value = fmt.Sprintf("%s%s", v.Value, m.Value)
+		} else if m.MutationMode == 3 {
+			// Delete
+			v.Value = ""
+			v.IsDeleted = true
+		} else {
+			log.Println(fmt.Sprintf("ERR: Dropping unknown mutation message with mode %d", m.MutationMode))
+			return pos
+		}
 		v.Modified = time.Now().UnixNano()
 		if trace {
 			log.Println(fmt.Sprintf("TRACE: Update value to '%s' in mux bucket %d", v.Value, v.MuxBucket))
@@ -200,7 +214,9 @@ func (s *Datastore) PushMutation(m *DatastoreMutation) bool {
 
 // Create new mutation
 func (s *Datastore) CreateMutation() *DatastoreMutation {
-	return &DatastoreMutation{}
+	return &DatastoreMutation{
+		MutationMode: 1, // By default overwrite
+	}
 }
 
 // Write mutation to disk
@@ -409,7 +425,7 @@ func (s *Datastore) GetLocalEntry(key string) (*MemEntry, error) {
 	s.memTableMux.RLock()
 	v := s.memTable[key]
 	s.memTableMux.RUnlock()
-	if v == nil {
+	if v == nil || v.IsDeleted == true {
 		return nil, errors.New(fmt.Sprintf("Key %s not found in datastore", key))
 	}
 	return v, nil
