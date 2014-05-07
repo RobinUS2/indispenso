@@ -26,9 +26,8 @@ func NewApiHandler() *ApiHandler {
 	}
 }
 
-// Check session
-func (a *ApiHandler) checkSession(data map[string]interface{}) bool {
-	token := fmt.Sprintf("%s", data["session_token"])
+// Check session string
+func (a *ApiHandler) checkSessionString(token string) bool {
 	if len(token) == 0 {
 		return false
 	}
@@ -41,6 +40,16 @@ func (a *ApiHandler) checkSession(data map[string]interface{}) bool {
 
 	// All greens
 	return true
+}
+
+// Check session
+func (a *ApiHandler) checkSession(data map[string]interface{}) bool {
+	if str, ok := data["session_token"].(string); ok {
+		return a.checkSessionString(str)
+	} else {
+		// session token is not a string
+		return false
+	}
 }
 
 // Get user from session data
