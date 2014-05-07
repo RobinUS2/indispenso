@@ -50,6 +50,30 @@ var app = {
 			data[name] = val;
 		});
 		return data;
+	},
+	/** Init handlers for screens */
+	init : {
+		login : function() {
+			app.showScreen('login');
+			$('form#login').submit(function() {
+				app.api('auth', app.jsonSerialize(this), function(data) {
+					app.sessionToken = data.session_token;
+					localStorage.setItem('session_token', app.sessionToken);
+					app.userData = data.user;
+					app.init.home();
+				});
+				return false;
+			});
+		},
+		home : function() {
+			app.showScreen('home');
+			$('form#custom_task').submit(function() {
+				app.api('custom_command', app.jsonSerialize(this), function(data) {
+					console.log(data);
+				});
+				return false;
+			});
+		}
 	}
 };
 
@@ -66,19 +90,9 @@ $(document).ready(function() {
 	/** Are we logged in? */
 	app.api('mirror', {a:1}, function(x) {
 		/** Yes */
-		app.showScreen('home');
+		app.init.home();
 	}, function() {
 		/** No */
-		app.showScreen('login');
-		$('form#login').submit(function() {
-			app.api('auth', app.jsonSerialize(this), function(data) {
-				app.sessionToken = data.session_token;
-				localStorage.setItem('session_token', app.sessionToken);
-				app.userData = data.user;
-				console.log(app.userData);
-				app.showScreen('home');
-			});
-			return false;
-		});
+		app.init.login();
 	});
 });
