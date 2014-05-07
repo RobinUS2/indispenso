@@ -7,10 +7,10 @@ import (
 	"errors"
 	"fmt"
 	"github.com/nu7hatch/gouuid" // UUIDs
+	"io/ioutil"
 	"log"
 	"net"
 	"regexp"
-	"io/ioutil"
 )
 
 func getPulicIp(hostname string) string {

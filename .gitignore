@@ -32,5 +32,8 @@ data/.wal_*
 # Data files for testing
 data/.data_*
 
+# Instance ids for testing
+data/.instance_*
+
 # OSX bullshit
 .DS_Store
