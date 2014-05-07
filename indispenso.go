@@ -143,6 +143,7 @@ func main() {
 
 	// Repair database on startup (async)
 	go func() {
+		// Repair database
 		datastore.Repair(discoveryService)
 	}()
 

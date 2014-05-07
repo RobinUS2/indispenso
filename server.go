@@ -402,6 +402,7 @@ func apiHandler(w http.ResponseWriter, r *http.Request) {
 	session, _ := store.Get(r, "auth-session")
 
 	// Authenticate user
+	var user *User = nil
 	if method != "auth" {
 		if api.checkSession(jsonData) == false && api.checkSessionString(session.Values["session_token"].(string)) == false {
 			// Not authenticated
@@ -409,6 +410,7 @@ func apiHandler(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(401)
 			return
 		}
+		user = api.getUser(jsonData)
 	}
 
 	// Handle methods
@@ -432,6 +434,14 @@ func apiHandler(w http.ResponseWriter, r *http.Request) {
 			// Save it.
 			session.Save(r, w)
 		}
+	} else if method == "custom_command" {
+		// Custom command
+		if user.IsAdmin == false {
+			log.Println(fmt.Sprintf("WARN: Admins only"))
+			w.WriteHeader(403)
+			return
+		}
+		respData = api.CustomCommand(jsonData)
 	} else {
 		// Not supported
 		w.WriteHeader(400)

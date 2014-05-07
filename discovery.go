@@ -354,6 +354,46 @@ func (d *DiscoveryService) AddNode(n *Node) bool {
 	return true
 }
 
+// Find node (based on human input)
+func (d *DiscoveryService) FindNode(input string) *Node {
+	// Validate non-empty
+	input = strings.TrimSpace(input)
+	if len(input) == 0 {
+		return nil
+	}
+
+	// Split input on colon (are we looking for a specific port maybe?)
+	inputSplit := strings.Split(input, ":")
+	var port int = defaultPort
+	if len(inputSplit) == 2 {
+		var err error
+		port, err = strconv.Atoi(inputSplit[1])
+		if err != nil {
+			port = defaultPort
+		}
+	}
+	if debug {
+		log.Println(fmt.Sprintf("DEBUG: Finding node with ip/host %s on port %d", inputSplit[0], port))
+	}
+
+	// Iterate nodes
+	for _, node := range d.Nodes {
+		// Check hostname/ip
+		if node.Addr != inputSplit[0] && node.Host != inputSplit[0] {
+			continue
+		}
+		// Check port
+		if node.Port != port {
+			continue
+		}
+		// Found match
+		return node
+	}
+
+	// @todo
+	return nil
+}
+
 // Remove node
 func (d *DiscoveryService) RemoveNode(n *Node) bool {
 	var i int = -1

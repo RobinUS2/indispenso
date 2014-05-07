@@ -10,12 +10,13 @@ import (
 	"github.com/pmylund/go-cache"
 	"log"
 	"math/rand"
+	"strings"
 	"time"
 )
 
 // Api handler
 type ApiHandler struct {
-	sessionCache *cache.Cache
+	sessionCache *cache.Cache // @todo Re-populate on startup from data in datastore
 }
 
 // New api handler
@@ -51,16 +52,62 @@ func (a *ApiHandler) checkSession(data map[string]interface{}) bool {
 	}
 }
 
+// Get user from session data
+func (a *ApiHandler) getUser(data map[string]interface{}) *User {
+	token := fmt.Sprintf("%s", data["session_token"])
+	if len(token) == 0 {
+		return nil
+	}
+
+	// Check
+	username, found := a.sessionCache.Get(token)
+	if found == false {
+		return nil
+	}
+
+	// Return user
+	uh := NewUserHandler()
+	user := uh.GetUser(fmt.Sprintf("%s", username))
+	return user
+}
+
 // Get API session token
 func (a *ApiHandler) newSessionToken(user *User) string {
 	var token string = HashPassword(fmt.Sprintf("%d", rand.Int63()), fmt.Sprintf("%d", time.Now().UnixNano()))
-	a.sessionCache.Set(token, user.Id, 0)
+	a.sessionCache.Set(token, user.Username, 0)
 	return token
 }
 
 // Mirror
 func (a *ApiHandler) Mirror(data map[string]interface{}) map[string]interface{} {
 	return data
+}
+
+// Execute command
+func (a *ApiHandler) CustomCommand(data map[string]interface{}) map[string]interface{} {
+	resp := a.initResp()
+
+	// Locate targets
+	targetStr := fmt.Sprintf("%s", data["target"])
+	targets := strings.Split(targetStr, ",")
+	nodes := make([]*Node, 0)
+	for _, target := range targets {
+		node := discoveryService.FindNode(target)
+		if node == nil {
+			// Not found
+			resp["error"] = fmt.Sprintf("Target '%s' not found", target)
+			return resp
+		}
+		nodes = append(nodes, node)
+	}
+
+	// @todo Implement validation
+	task := NewTask()
+	task.Targets = nodes
+	task.Commands = append(task.Commands, fmt.Sprintf("%s", data["command"]))
+	taskId := task.Execute()
+	resp["task_id"] = taskId
+	return resp
 }
 
 // Login
