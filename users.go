@@ -8,11 +8,11 @@ import (
 	"crypto/sha512"
 	"encoding/json"
 	"fmt"
+	"github.com/dgryski/dgoogauth"
 	"io"
 	"log"
 	"math/rand"
 	"strings"
-	"github.com/dgryski/dgoogauth"
 )
 
 // Defaults
@@ -27,13 +27,13 @@ type UserHandler struct {
 
 // User
 type User struct {
-	Id           string // Uuid string
-	Username     string
-	PasswordHash string // Sha 512 hash concat(pwd, salt)
-	PasswordSalt string
-	IsAdmin      bool // Permission: system management
-	IsRequester  bool // Permission: request task execution
-	IsApprover   bool // Permission: approve task execution
+	Id            string // Uuid string
+	Username      string
+	PasswordHash  string // Sha 512 hash concat(pwd, salt)
+	PasswordSalt  string
+	IsAdmin       bool // Permission: system management
+	IsRequester   bool // Permission: request task execution
+	IsApprover    bool // Permission: approve task execution
 	TwoFactorSeed string
 }
 
@@ -43,7 +43,7 @@ func (u *User) DisplayName() string {
 }
 
 // Check two-factor
-func (u *User) IsValidTwoFactor (token string) bool {
+func (u *User) IsValidTwoFactor(token string) bool {
 	// Do we have two factor enabled?
 	if len(u.TwoFactorSeed) == 0 {
 		// No, OK pass
@@ -53,7 +53,7 @@ func (u *User) IsValidTwoFactor (token string) bool {
 
 	// Configure token
 	var cotp *dgoogauth.OTPConfig = &dgoogauth.OTPConfig{
-		Secret: u.TwoFactorSeed,
+		Secret:     u.TwoFactorSeed,
 		WindowSize: 3,
 	}
 

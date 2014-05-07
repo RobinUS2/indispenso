@@ -1,6 +1,6 @@
 /** App object */
 var app = {
-	sessionToken: '',
+	sessionToken: localStorage.getItem('session_token'),
 	userData: null,
 	/** Default error callback for API issues */
 	defaultErrCallback : function(xhr, status, err) {
@@ -73,6 +73,7 @@ $(document).ready(function() {
 		$('form#login').submit(function() {
 			app.api('auth', app.jsonSerialize(this), function(data) {
 				app.sessionToken = data.session_token;
+				localStorage.setItem('session_token', app.sessionToken);
 				app.userData = data.user;
 				console.log(app.userData);
 				app.showScreen('home');
