@@ -49,7 +49,8 @@ type MemEntry struct {
 	Value     string // New value
 	Modified  int64  // Timestamp when last changed
 	MuxBucket int    // Bucket of where to find my lock
-	IsDeleted bool   // Is this entry deleted?
+	IsDeleted bool   // Is this entry deleted? @todo Compact (permantenly remove deleted items)
+	// @todo Support TTL
 }
 
 // Mutation

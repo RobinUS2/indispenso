@@ -15,7 +15,7 @@ import (
 
 // Api handler
 type ApiHandler struct {
-	sessionCache *cache.Cache
+	sessionCache *cache.Cache // @todo Re-populate on startup from data in datastore
 }
 
 // New api handler
