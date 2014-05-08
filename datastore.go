@@ -179,9 +179,9 @@ func (m *DatastoreMutation) ExecuteMutation(s *Datastore, pos int) int {
 	}
 
 	// Update change counter
-	postFlushMutationMux.Lock()
+	s.postFlushMutationMux.Lock()
 	s.postFlushMutationCount++
-	postFlushMutationMux.Unlock()
+	s.postFlushMutationMux.Unlock()
 
 	// Done
 	return pos
@@ -454,9 +454,9 @@ func (s *Datastore) startFlusher() bool {
 			select {
 			case <-ticker.C:
 				// Flush if we have any changes
-				postFlushMutationMux.RLock()
+				s.postFlushMutationMux.RLock()
 				changes := s.postFlushMutationCount
-				postFlushMutationMux.RUnlock()
+				s.postFlushMutationMux.RUnlock()
 				if changes > 0 {
 					s.Flush()
 				}
@@ -589,9 +589,9 @@ func (s *Datastore) Flush() bool {
 	s.walFile.Sync()
 
 	// Reset count
-	postFlushMutationMux.Lock()
+	s.postFlushMutationMux.Lock()
 	s.postFlushMutationCount = 0
-	postFlushMutationMux.Unlock()
+	s.postFlushMutationMux.Unlock()
 
 	// Debug
 	if trace {
