@@ -18,6 +18,7 @@ import (
 	"strings"
 	"sync"
 	"time"
+	"mime"
 )
 
 // Server
@@ -62,6 +63,8 @@ func (s *Server) Start() bool {
 		http.HandleFunc("/data-repair", dataRepairHandler)
 		http.HandleFunc("/app", appHandler)
 		http.HandleFunc("/api", apiHandler)
+		mime.AddExtensionType(".css", "text/css")
+		mime.AddExtensionType(".js", "application/javascript")
 		http.Handle("/app/static/", http.StripPrefix("/app/static/", http.FileServer(http.Dir(APP_STATIC_PATH))))
 		if testMode {
 			http.HandleFunc("/test", testHandler)
