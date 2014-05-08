@@ -41,6 +41,9 @@ type Datastore struct {
 	mutatorStarted bool         // Is the mutator started?
 	flusherStarted bool         // Is the disk flusher started?
 	globalMux      sync.RWMutex // Global mutex for datastore struct values (thus NOT data mutations)
+
+	postFlushMutationCount int64 // Amount of changes since last flush
+	postFlushMutationMux sync.RWMutex // Lock count
 }
 
 // Mem entries
@@ -174,6 +177,11 @@ func (m *DatastoreMutation) ExecuteMutation(s *Datastore, pos int) int {
 	if m.Replicated == false {
 		m.Replicate(false, v.Value)
 	}
+
+	// Update change counter
+	postFlushMutationMux.Lock()
+	s.postFlushMutationCount++
+	postFlushMutationMux.Unlock()
 
 	// Done
 	return pos
@@ -445,8 +453,13 @@ func (s *Datastore) startFlusher() bool {
 		for {
 			select {
 			case <-ticker.C:
-				// Flush
-				s.Flush()
+				// Flush if we have any changes
+				postFlushMutationMux.RLock()
+				changes := s.postFlushMutationCount
+				postFlushMutationMux.RUnlock()
+				if changes > 0 {
+					s.Flush()
+				}
 			case <-shutdown:
 				ticker.Stop()
 				return
@@ -574,6 +587,11 @@ func (s *Datastore) Flush() bool {
 
 	// Sync write ahead log
 	s.walFile.Sync()
+
+	// Reset count
+	postFlushMutationMux.Lock()
+	s.postFlushMutationCount = 0
+	postFlushMutationMux.Unlock()
 
 	// Debug
 	if trace {
