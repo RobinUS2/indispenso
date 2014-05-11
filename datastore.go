@@ -50,8 +50,8 @@ type MemEntry struct {
 	Key       string // Data key
 	Value     string // New value
 	Modified  int64  // Timestamp when last changed
-	Ttl int64 // Time-to-live (-1 = forever) beyond MemEntry.Modified
-	MuxBucket int    // Bucket of where to find my lock	
+	Ttl       int64  // Time-to-live (-1 = forever) beyond MemEntry.Modified
+	MuxBucket int    // Bucket of where to find my lock
 	IsDeleted bool   // Is this entry deleted? @todo Compact (permantenly remove deleted items)
 }
 
@@ -60,7 +60,7 @@ type DatastoreMutation struct {
 	Key          string // Data key
 	Value        string // New value
 	Timestamp    int64  // Timestamp when the change request it was issued
-	Ttl int64 // Time-to-live (-1 = forever) beyond MemEntry.Modified
+	Ttl          int64  // Time-to-live (-1 = forever) beyond MemEntry.Modified
 	Replicated   bool   // Is already replicated to all nodes?
 	MutationMode int    // Mutation type (1 = overwrite, 2 = append, 3 = delete, 4 = increment)
 }
@@ -98,7 +98,7 @@ func (m *DatastoreMutation) ExecuteMutation(s *Datastore, pos int) int {
 			Value:     m.Value,
 			Modified:  time.Now().UnixNano(),
 			MuxBucket: pos % MEM_ENTRY_MUX_BUCKETS,
-			Ttl: m.Ttl,
+			Ttl:       m.Ttl,
 		}
 
 		// Increment pos for buckets
@@ -276,8 +276,8 @@ func (s *Datastore) PushMutation(m *DatastoreMutation) bool {
 // Create new mutation
 func (s *Datastore) CreateMutation() *DatastoreMutation {
 	return &DatastoreMutation{
-		MutationMode: 1, // By default overwrite,
-		Ttl: -1, // Disabled by default
+		MutationMode: 1,  // By default overwrite,
+		Ttl:          -1, // Disabled by default
 	}
 }
 
@@ -518,6 +518,32 @@ func (s *Datastore) sendMutation(mutation map[string]string) bool {
 	return false
 }
 
+// Validate: Is this MemEntry visible to the clients?
+func (v *MemEntry) Validate() bool {
+	// Deleted
+	if v.IsDeleted {
+		if trace {
+			log.Println(fmt.Sprintf("TRACE: Key %s not found in datastore (deleted)", v.Key))
+		}
+		return false
+	}
+
+	// TTL
+	if v.Ttl > 0 {
+		now := time.Now().UTC().UnixNano()
+		maxNow := v.Modified + v.Ttl
+		if now > maxNow {
+			if trace {
+				log.Println(fmt.Sprintf("TRACE: Key %s not found in datastore (ttl expired)", v.Key))
+			}
+			return false
+		}
+	}
+
+	// OK
+	return true
+}
+
 // Get local entry (read from memtable)
 func (s *Datastore) GetLocalEntry(key string) (*MemEntry, error) {
 	// Get from mem-table
@@ -525,30 +551,18 @@ func (s *Datastore) GetLocalEntry(key string) (*MemEntry, error) {
 	v := s.memTable[key]
 	s.memTableMux.RUnlock()
 
-	// Check nil / deleted
-	if v == nil || v.IsDeleted == true {
+	// Check nil
+	if v == nil {
 		if trace {
-			if v == nil {
-				return nil, newErr(fmt.Sprintf("Key %s not found in datastore", key))
-			} else {
-				return nil, newErr(fmt.Sprintf("Key %s not found in datastore (deleted)", key))
-			}
+			return nil, newErr(fmt.Sprintf("Key %s not found in datastore", key))
 		} else {
 			return nil, nil
 		}
 	}
 
-	// Check ttl
-	if v.Ttl > 0 {
-		now := time.Now().UTC().UnixNano()
-		maxNow := v.Modified + v.Ttl
-		if now > maxNow {
-			if trace {
-				return nil, newErr(fmt.Sprintf("Key %s not found in datastore (ttl expired)", key))
-			} else {
-				return nil, nil
-			}
-		}
+	// Validate mem entry
+	if v.Validate() == false {
+		return nil, nil
 	}
 
 	// Value is OK
@@ -559,6 +573,34 @@ func (s *Datastore) GetLocalEntry(key string) (*MemEntry, error) {
 func (s *Datastore) GetEntry(key string) (*MemEntry, error) {
 	// @todo Implement
 	return s.GetLocalEntry(key)
+}
+
+// Cleanup memtable (removed deleted / expired entries)
+func (s *Datastore) cleanup() bool {
+	// Scan for stale keys
+	staleKeys := make([]string, 0)
+	s.globalMux.RLock()
+	for k,v := range s.memTable {
+		if v.Validate() == false {
+			// This one should be removed
+			staleKeys = append(staleKeys, k)
+		}
+	}
+	s.globalMux.RUnlock()
+
+	// Delete from memtable
+	if len(staleKeys) > 0 {
+		s.globalMux.Lock()
+		for _,k := range staleKeys {
+			delete(s.memTable, k)
+		}
+		s.globalMux.Unlock()
+		if debug {
+			log.Println(fmt.Sprintf("DEBUG: Removed %d stale keys from datastore", len(staleKeys)))
+		}
+	}
+
+	return true
 }
 
 // Get mem table json
@@ -585,6 +627,9 @@ func (s *Datastore) Flush() bool {
 	if fErr != nil {
 		log.Fatal(fmt.Sprintf("ERR: Failed to open tmp data file: %s", fErr))
 	}
+
+	// Cleanup
+	s.cleanup()
 
 	// Write to disk
 	jsonStr := s.memTableToJson()

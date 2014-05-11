@@ -17,10 +17,10 @@ import (
 
 // Task struct
 type Task struct {
-	Id       string   // Unique task id
-	targets  []*Node  // List of target nodes
-	Commands []string // List of commands to execute in that order
-	CreatedTimestamp int64 //  Created
+	Id               string   // Unique task id
+	targets          []*Node  // List of target nodes
+	Commands         []string // List of commands to execute in that order
+	CreatedTimestamp int64    //  Created
 }
 
 // Local task (on a specific node)
