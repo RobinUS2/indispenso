@@ -483,19 +483,25 @@ func (s *Datastore) startFlusher() bool {
 }
 
 // Append entry
-func (s *Datastore) AppendEntry(key string, value string) bool {
+func (s *Datastore) AppendEntry(key string, value string, ttl string) bool {
 	mutation := getEmptyMetaMsg("data_mutation")
 	mutation["k"] = key
 	mutation["v"] = value
 	mutation["m"] = "2" // Append mode
+	if len(ttl) > 0 {
+		mutation["ttl"] = ttl
+	}
 	return s.sendMutation(mutation)
 }
 
 // Put entry
-func (s *Datastore) PutEntry(key string, value string) bool {
+func (s *Datastore) PutEntry(key string, value string, ttl string) bool {
 	mutation := getEmptyMetaMsg("data_mutation")
 	mutation["k"] = key
 	mutation["v"] = value
+	if len(ttl) > 0 {
+		mutation["ttl"] = ttl
+	}
 	return s.sendMutation(mutation)
 }
 
@@ -580,7 +586,7 @@ func (s *Datastore) cleanup() bool {
 	// Scan for stale keys
 	staleKeys := make([]string, 0)
 	s.globalMux.RLock()
-	for k,v := range s.memTable {
+	for k, v := range s.memTable {
 		if v.Validate() == false {
 			// This one should be removed
 			staleKeys = append(staleKeys, k)
@@ -591,7 +597,7 @@ func (s *Datastore) cleanup() bool {
 	// Delete from memtable
 	if len(staleKeys) > 0 {
 		s.globalMux.Lock()
-		for _,k := range staleKeys {
+		for _, k := range staleKeys {
 			delete(s.memTable, k)
 		}
 		s.globalMux.Unlock()

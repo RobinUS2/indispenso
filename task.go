@@ -15,6 +15,8 @@ import (
 	"time"
 )
 
+const DATASTORE_TASK_TTL = "86400" // 24 hours
+
 // Task struct
 type Task struct {
 	Id               string   // Unique task id
@@ -55,7 +57,7 @@ func GetOutputKey(taskId string) string {
 
 // Save output
 func (lt *LocalTask) SaveOutput(output string) bool {
-	return datastore.PutEntry(GetCompletionKey(lt.Id), output)
+	return datastore.PutEntry(GetOutputKey(lt.Id), output, DATASTORE_TASK_TTL)
 }
 
 // Run local task
@@ -86,7 +88,7 @@ func (lt *LocalTask) Run() bool {
 
 	// Execute file
 	output, execErr := exec.Command(shell, file.Name()).Output()
-	datastore.PutEntry(GetCompletionKey(lt.Id), "1")
+	datastore.PutEntry(GetCompletionKey(lt.Id), "1", DATASTORE_TASK_TTL)
 	if execErr != nil {
 		log.Println(fmt.Sprintf("ERR: Failed to execute tmp task file: %s", execErr))
 		return false
@@ -201,7 +203,7 @@ func (td *TaskDiscoverer) Start() bool {
 
 // Write to datastore
 func (t *Task) writeDatastore() bool {
-	return datastore.PutEntry(fmt.Sprintf("task~%s", t.Id), t.toJson())
+	return datastore.PutEntry(fmt.Sprintf("task~%s", t.Id), t.toJson(), DATASTORE_TASK_TTL)
 }
 
 // Task to json
@@ -223,7 +225,7 @@ func (t *Task) executeNode(node *Node) bool {
 	}
 
 	// Append this task ID to that nodes task list, trailing comma
-	return datastore.AppendEntry(fmt.Sprintf("%s~task_ids", node.InstanceId), fmt.Sprintf("%s,", t.Id))
+	return datastore.AppendEntry(fmt.Sprintf("%s~task_ids", node.InstanceId), fmt.Sprintf("%s,", t.Id), DATASTORE_TASK_TTL)
 }
 
 // Execute task

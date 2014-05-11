@@ -133,7 +133,7 @@ func (u *UserHandler) CreateUser(username string, password string, isAdmin bool,
 	if datastore == nil {
 		return nil, newErr(fmt.Sprintf("ERR: Datastore not available"))
 	}
-	if datastore.PutEntry(k, string(b)) {
+	if datastore.PutEntry(k, string(b), "") {
 		log.Println(fmt.Sprintf("INFO: Created user %s", user.Username))
 	}
 
