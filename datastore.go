@@ -6,7 +6,6 @@ package main
 // Imports
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -51,9 +50,9 @@ type MemEntry struct {
 	Key       string // Data key
 	Value     string // New value
 	Modified  int64  // Timestamp when last changed
-	MuxBucket int    // Bucket of where to find my lock
+	Ttl int64 // Time-to-live (-1 = forever) beyond MemEntry.Modified
+	MuxBucket int    // Bucket of where to find my lock	
 	IsDeleted bool   // Is this entry deleted? @todo Compact (permantenly remove deleted items)
-	// @todo Support TTL
 }
 
 // Mutation
@@ -61,6 +60,7 @@ type DatastoreMutation struct {
 	Key          string // Data key
 	Value        string // New value
 	Timestamp    int64  // Timestamp when the change request it was issued
+	Ttl int64 // Time-to-live (-1 = forever) beyond MemEntry.Modified
 	Replicated   bool   // Is already replicated to all nodes?
 	MutationMode int    // Mutation type (1 = overwrite, 2 = append, 3 = delete, 4 = increment)
 }
@@ -98,6 +98,7 @@ func (m *DatastoreMutation) ExecuteMutation(s *Datastore, pos int) int {
 			Value:     m.Value,
 			Modified:  time.Now().UnixNano(),
 			MuxBucket: pos % MEM_ENTRY_MUX_BUCKETS,
+			Ttl: m.Ttl,
 		}
 
 		// Increment pos for buckets
@@ -164,7 +165,13 @@ func (m *DatastoreMutation) ExecuteMutation(s *Datastore, pos int) int {
 			log.Println(fmt.Sprintf("ERR: Dropping unknown mutation message with mode %d", m.MutationMode))
 			return pos
 		}
-		v.Modified = time.Now().UnixNano()
+		// Update ttl (-1 = off, >= 1 is enabled)
+		if m.Ttl != 0 {
+			v.Ttl = m.Ttl
+		}
+
+		// Update last modified
+		v.Modified = time.Now().UTC().UnixNano()
 		if trace {
 			log.Println(fmt.Sprintf("TRACE: Update value to '%s' in mux bucket %d", v.Value, v.MuxBucket))
 		}
@@ -269,7 +276,8 @@ func (s *Datastore) PushMutation(m *DatastoreMutation) bool {
 // Create new mutation
 func (s *Datastore) CreateMutation() *DatastoreMutation {
 	return &DatastoreMutation{
-		MutationMode: 1, // By default overwrite
+		MutationMode: 1, // By default overwrite,
+		Ttl: -1, // Disabled by default
 	}
 }
 
@@ -512,16 +520,38 @@ func (s *Datastore) sendMutation(mutation map[string]string) bool {
 
 // Get local entry (read from memtable)
 func (s *Datastore) GetLocalEntry(key string) (*MemEntry, error) {
+	// Get from mem-table
 	s.memTableMux.RLock()
 	v := s.memTable[key]
 	s.memTableMux.RUnlock()
+
+	// Check nil / deleted
 	if v == nil || v.IsDeleted == true {
 		if trace {
-			return nil, errors.New(fmt.Sprintf("Key %s not found in datastore", key))
+			if v == nil {
+				return nil, newErr(fmt.Sprintf("Key %s not found in datastore", key))
+			} else {
+				return nil, newErr(fmt.Sprintf("Key %s not found in datastore (deleted)", key))
+			}
 		} else {
 			return nil, nil
 		}
 	}
+
+	// Check ttl
+	if v.Ttl > 0 {
+		now := time.Now().UTC().UnixNano()
+		maxNow := v.Modified + v.Ttl
+		if now > maxNow {
+			if trace {
+				return nil, newErr(fmt.Sprintf("Key %s not found in datastore (ttl expired)", key))
+			} else {
+				return nil, nil
+			}
+		}
+	}
+
+	// Value is OK
 	return v, nil
 }
 

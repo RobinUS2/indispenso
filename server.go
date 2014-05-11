@@ -359,6 +359,22 @@ func dataHandler(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 
+		// Ttl
+		if bodyData["ttl"] != nil {
+			ttlStr := fmt.Sprintf("%s", bodyData["ttl"])
+			if len(ttlStr) > 0 {
+				ttl, ttlErr := strconv.ParseInt(ttlStr, 10, 64)
+				if ttlErr != nil {
+					log.Println(fmt.Sprintf("ERR: Invalid ttl %s", ttlErr))
+					return
+				}
+				if ttl > 0 {
+					// Multipy to convert to nanoseconds
+					m.Ttl = ttl * 1000000000
+				}
+			}
+		}
+
 		// Push mutation into datastore
 		datastore.PushMutation(m)
 
@@ -497,6 +513,7 @@ func testHandler(w http.ResponseWriter, r *http.Request) {
 		mutation["k"] = params.Get("k")
 		mutation["v"] = params.Get("v")
 		mutation["m"] = params.Get("m")
+		mutation["ttl"] = params.Get("ttl")
 		resp, _ := discoveryService.Nodes[0].sendData("data", msgToJson(mutation))
 		fmt.Fprintf(w, resp)
 
