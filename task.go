@@ -41,6 +41,11 @@ func NewTaskDiscoverer() *TaskDiscoverer {
 	}
 }
 
+// Tsk completion key
+func GetCompletionKey(taskId string) string {
+	return fmt.Sprintf("task~%s~completed~%s", taskId, instanceId)
+}
+
 // Run local task
 func (lt *LocalTask) Run() bool {
 	// Task file
@@ -77,6 +82,9 @@ func (lt *LocalTask) Run() bool {
 		log.Println(fmt.Sprintf("DEBUG: Removed tmp task file in %s", file.Name()))
 	}
 
+	// Done flag
+	datastore.PutEntry(GetCompletionKey(lt.Id), "1")
+
 	return false
 }
 
@@ -109,9 +117,16 @@ func (td *TaskDiscoverer) Discover() bool {
 		if len(taskId) == 0 {
 			continue
 		}
-		// Skip improted ones
+
+		// Skip imported ones
 		_, found := td.executionCache.Get(taskId)
 		if found {
+			continue
+		}
+
+		// Skip completed ones
+		doneFlag, _ := datastore.GetEntry(GetCompletionKey(taskId))
+		if doneFlag != nil {
 			continue
 		}
 
