@@ -2,10 +2,16 @@
 	"folders":
 	[
 		{
-			"path": "/Users/robin/Documents/code/indispenso"
+			"follow_symlinks": true,
+			"path": "."
 		},
 		{
+			"follow_symlinks": true,
 			"path": "/Users/robin/Documents/FlxOne/Fennec/src/com/flxone/fennec"
+		},
+		{
+			"follow_symlinks": true,
+			"path": "/Users/robin/Documents/FlxOne/Fennec/resources/benchmarks"
 		}
 	]
 }

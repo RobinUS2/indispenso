@@ -7,10 +7,11 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"log"
-	"time"
-	"strings"
 	"github.com/pmylund/go-cache"
+	"log"
+	"strings"
+	"time"
+	"os"
 )
 
 // Task struct
@@ -29,7 +30,7 @@ type LocalTask struct {
 // Task discoverer
 type TaskDiscoverer struct {
 	executionQueue chan *LocalTask // Queue of tasks to be executed
-	executionCache *cache.Cache // Cache of executed task ids
+	executionCache *cache.Cache    // Cache of executed task ids
 }
 
 // New task discoverer
@@ -42,10 +43,40 @@ func NewTaskDiscoverer() *TaskDiscoverer {
 
 // Run local task
 func (lt *LocalTask) Run() bool {
-	// @todo Actual running
-	for _, cmd := range lt.Commands {
-		log.Println(fmt.Sprintf("RUN %s", cmd))
+	// Task file
+	var tmpFolder string = "/tmp" // @todo Configure
+	var tmpFile string = fmt.Sprintf("%s/%s", tmpFolder, lt.Id)
+	file, fopenErr := os.OpenFile(tmpFile, os.O_RDWR|os.O_APPEND|os.O_CREATE, 0666)
+	if fopenErr != nil {
+		log.Println(fmt.Sprintf("ERROR: Failed to open tmp task file %s", fopenErr))
+		return false
 	}
+	if debug {
+		log.Println(fmt.Sprintf("DEBUG: Opened tmp task file in %s", file.Name()))
+	}
+
+	// Print commands to file
+	for _, cmd := range lt.Commands {
+		file.WriteString(cmd)
+		if debug {
+			log.Println(fmt.Sprintf("Writing to '%s': %s", file.Name(), cmd))
+		}
+	}
+	file.Sync()
+	file.Close()
+
+	// @todo Execute file
+
+	// Cleanup
+	removeErr := os.Remove(file.Name())
+	if removeErr != nil {
+		log.Println(fmt.Sprintf("ERR: Failed to remove tmp task file: %s", removeErr))
+		return false
+	}
+	if debug {
+		log.Println(fmt.Sprintf("DEBUG: Removed tmp task file in %s", file.Name()))
+	}
+
 	return false
 }
 
@@ -125,7 +156,7 @@ func (td *TaskDiscoverer) Start() bool {
 	go func(td *TaskDiscoverer) {
 		for {
 			var lt *LocalTask
-			lt = <- td.executionQueue
+			lt = <-td.executionQueue
 			lt.Run()
 		}
 	}(td)
