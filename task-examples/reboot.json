@@ -1,0 +1,8 @@
+{
+    "type": "task_template",
+    "unique_task_identifier": "reboot_server",
+    "title": "Reboot the server",
+    "description": "This will reboot the server(s) selected which makes them unreachable for a short period of time. This helps to apply updates, recover from hard issues, or to apply certain low-level configuration parameters. As a result it might go into a disk check which can take anywhere between 10 minutes and 12 hours.",
+    "min_approval": "3",
+    "commands": "reboot"
+}

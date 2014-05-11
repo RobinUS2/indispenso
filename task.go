@@ -61,7 +61,7 @@ func (lt *LocalTask) SaveOutput(output string) bool {
 func (lt *LocalTask) Run() bool {
 	// Task file
 	var tmpFolder string = "/tmp" // @todo Configure
-	var shell string = "sh" // @todo Configure
+	var shell string = "sh"       // @todo Configure
 	var tmpFile string = fmt.Sprintf("%s/%s", tmpFolder, lt.Id)
 	file, fopenErr := os.OpenFile(tmpFile, os.O_RDWR|os.O_APPEND|os.O_CREATE, 0666)
 	if fopenErr != nil {
