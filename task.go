@@ -9,9 +9,9 @@ import (
 	"fmt"
 	"github.com/pmylund/go-cache"
 	"log"
+	"os"
 	"strings"
 	"time"
-	"os"
 )
 
 // Task struct
