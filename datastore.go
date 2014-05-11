@@ -42,8 +42,8 @@ type Datastore struct {
 	flusherStarted bool         // Is the disk flusher started?
 	globalMux      sync.RWMutex // Global mutex for datastore struct values (thus NOT data mutations)
 
-	postFlushMutationCount int64 // Amount of changes since last flush
-	postFlushMutationMux sync.RWMutex // Lock count
+	postFlushMutationCount int64        // Amount of changes since last flush
+	postFlushMutationMux   sync.RWMutex // Lock count
 }
 
 // Mem entries

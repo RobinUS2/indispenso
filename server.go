@@ -13,12 +13,12 @@ import (
 	"github.com/gorilla/sessions"
 	"io/ioutil"
 	"log"
+	"mime"
 	"net/http"
 	"strconv"
 	"strings"
 	"sync"
 	"time"
-	"mime"
 )
 
 // Server

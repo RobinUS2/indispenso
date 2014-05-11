@@ -10,6 +10,7 @@ import (
 	"github.com/pmylund/go-cache"
 	"log"
 	"os"
+	"os/exec"
 	"strings"
 	"time"
 )
@@ -41,15 +42,26 @@ func NewTaskDiscoverer() *TaskDiscoverer {
 	}
 }
 
-// Tsk completion key
+// Task completion key
 func GetCompletionKey(taskId string) string {
 	return fmt.Sprintf("task~%s~completed~%s", taskId, instanceId)
+}
+
+// Task completion key
+func GetOutputKey(taskId string) string {
+	return fmt.Sprintf("task~%s~output~%s", taskId, instanceId)
+}
+
+// Save output
+func (lt *LocalTask) SaveOutput(output string) bool {
+	return datastore.PutEntry(GetCompletionKey(lt.Id), output)
 }
 
 // Run local task
 func (lt *LocalTask) Run() bool {
 	// Task file
 	var tmpFolder string = "/tmp" // @todo Configure
+	var shell string = "sh" // @todo Configure
 	var tmpFile string = fmt.Sprintf("%s/%s", tmpFolder, lt.Id)
 	file, fopenErr := os.OpenFile(tmpFile, os.O_RDWR|os.O_APPEND|os.O_CREATE, 0666)
 	if fopenErr != nil {
@@ -61,8 +73,9 @@ func (lt *LocalTask) Run() bool {
 	}
 
 	// Print commands to file
+	file.WriteString(fmt.Sprintf("#!/bin/%s\n", shell))
 	for _, cmd := range lt.Commands {
-		file.WriteString(cmd)
+		file.WriteString(cmd + "\n")
 		if debug {
 			log.Println(fmt.Sprintf("Writing to '%s': %s", file.Name(), cmd))
 		}
@@ -70,7 +83,17 @@ func (lt *LocalTask) Run() bool {
 	file.Sync()
 	file.Close()
 
-	// @todo Execute file
+	// Execute file
+	output, execErr := exec.Command(shell, file.Name()).Output()
+	datastore.PutEntry(GetCompletionKey(lt.Id), "1")
+	if execErr != nil {
+		log.Println(fmt.Sprintf("ERR: Failed to execute tmp task file: %s", execErr))
+		return false
+	}
+	lt.SaveOutput(string(output))
+	if debug {
+		log.Println(fmt.Sprintf("DEBUG: Task output: %s", output))
+	}
 
 	// Cleanup
 	removeErr := os.Remove(file.Name())
@@ -81,9 +104,6 @@ func (lt *LocalTask) Run() bool {
 	if debug {
 		log.Println(fmt.Sprintf("DEBUG: Removed tmp task file in %s", file.Name()))
 	}
-
-	// Done flag
-	datastore.PutEntry(GetCompletionKey(lt.Id), "1")
 
 	return false
 }
@@ -154,7 +174,7 @@ func (td *TaskDiscoverer) Discover() bool {
 func (td *TaskDiscoverer) Start() bool {
 	// Discovery
 	go func(td *TaskDiscoverer) {
-		ticker := time.NewTicker(1 * time.Second)
+		ticker := time.NewTicker(200 * time.Millisecond)
 		for {
 			select {
 			case <-ticker.C:
