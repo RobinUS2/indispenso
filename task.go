@@ -76,7 +76,7 @@ func (lt *LocalTask) Run() bool {
 	}
 
 	// Print commands to file
-	file.WriteString(fmt.Sprintf("#!/bin/%s\n", shell))
+	//file.WriteString(fmt.Sprintf("#!/bin/%s\n", shell))
 	for _, cmd := range lt.Commands {
 		file.WriteString(cmd + "\n")
 		if debug {
