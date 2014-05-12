@@ -64,7 +64,10 @@ func (lt *LocalTask) SaveOutput(output string) bool {
 func (lt *LocalTask) Run() bool {
 	// Task file
 	var tmpFolder string = "/tmp" // @todo Configure
-	var shell string = "sh"       // @todo Configure
+	var shell string = "bash"       // @todo Configure
+	if debug {
+		log.Println(fmt.Sprintf("DEBUG: Using shell '%s' in '%s'", shell, tmpFolder))
+	}
 	var tmpFile string = fmt.Sprintf("%s/%s", tmpFolder, lt.Id)
 	file, fopenErr := os.OpenFile(tmpFile, os.O_RDWR|os.O_APPEND|os.O_CREATE, 0666)
 	if fopenErr != nil {
@@ -87,15 +90,18 @@ func (lt *LocalTask) Run() bool {
 	file.Close()
 
 	// Execute file
-	output, execErr := exec.Command(shell, file.Name()).Output()
+	output, execErr := exec.Command(shell, file.Name()).CombinedOutput()
+	//output, execErr := exec.Command("cmd", fmt.Sprintf("/C %s", file.Name())).CombinedOutput()
+	if output != nil && len(output) > 0 {
+		lt.SaveOutput(string(output))
+		if debug {
+			log.Println(fmt.Sprintf("DEBUG: Task output: %s", output))
+		}
+	}
 	datastore.PutEntry(GetCompletionKey(lt.Id), "1", DATASTORE_TASK_TTL)
 	if execErr != nil {
 		log.Println(fmt.Sprintf("ERR: Failed to execute tmp task file: %s", execErr))
 		return false
-	}
-	lt.SaveOutput(string(output))
-	if debug {
-		log.Println(fmt.Sprintf("DEBUG: Task output: %s", output))
 	}
 
 	// Cleanup
