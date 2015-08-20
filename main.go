@@ -9,16 +9,33 @@ import (
 // Indispenso: Distribute, manage, regulate, arrange. Simple & secure management based on consensus.
 
 var conf *Conf
-var isServer *bool
-var seedUri *string
+var isServer bool
+var isClient bool
+var seedUri string
+var server *Server
+var client *Client
 
 func main() {
 	conf = newConf()
 
 	// Read flags
-	isServer = flag.Bool("server", false, "Should this run the server process")
-	seedUri = flag.String("seed", "", "Seed URI")
+	flag.BoolVar(&isServer, "server", false, "Should this run the server process")
+	flag.StringVar(&seedUri, "seed", "", "Seed URI")
 	flag.Parse()
-	log.Printf("%t", *isServer)
-	log.Printf("%s", *seedUri)
+	log.Printf("Server %t", isServer)
+	log.Printf("Client %t", isClient)
+	log.Printf("Seed %s", seedUri)
+	isClient = len(seedUri) > 0
+
+	// Server
+	if isServer {
+		server = newServer()
+		server.Start()
+	}
+
+	// Client
+	if isClient {
+		server = newServer()
+		server.Start()
+	}
 }
