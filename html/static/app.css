@@ -1,7 +1,0 @@
-.content-pane {
-	display: none;
-}
-
-.content-pane.content-visible {
-	display: block;
-}
