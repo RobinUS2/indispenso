@@ -30,8 +30,13 @@ func (s *Server) Start() bool {
 
 // Ping
 func ClientPing(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-    log.Printf("Client %s registered", ps.ByName("hostname"))
     jr := jresp.NewJsonResp()
+    if !auth(r) {
+    	jr.Error("Not authorized")
+    	fmt.Fprint(w, jr.ToString(debug))
+    	return
+    }
+    log.Printf("Client %s registered", ps.ByName("hostname"))
 	jr.Set("ack", true)
 	jr.OK()
     fmt.Fprint(w, jr.ToString(debug))
@@ -40,9 +45,22 @@ func ClientPing(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 // Ping
 func Ping(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	jr := jresp.NewJsonResp()
+	if !auth(r) {
+    	jr.Error("Not authorized")
+    	fmt.Fprint(w, jr.ToString(debug))
+    	return
+    }
 	jr.Set("ping", "pong")
 	jr.OK()
     fmt.Fprint(w, jr.ToString(debug))
+}
+
+// Auth
+func auth(r *http.Request) bool {
+	if r.Header.Get("X-Auth") != secureToken {
+		return false
+	}
+	return true
 }
 
 // Create new server

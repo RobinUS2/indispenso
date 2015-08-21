@@ -82,6 +82,9 @@ func (s *Client) _reqUnsafe(method string, uri string, data []byte) ([]byte, err
 		return nil, reqErr
 	}
 
+	// Auth token
+	req.Header.Add("X-Auth", secureToken)
+
 	// Execute
 	resp, respErr := client.Do(req)
 	if respErr != nil {
