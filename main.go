@@ -29,8 +29,8 @@ func main() {
 	// Read flags
 	flag.BoolVar(&isServer, "server", false, "Should this run the server process")
 	flag.StringVar(&seedUri, "seed", "", "Seed URI")
-	flag.IntVar(&serverPort, "server-port", 17, "Server port")
-	flag.IntVar(&clientPort, "client-port", 18, "Client port")
+	flag.IntVar(&serverPort, "server-port", 897, "Server port")
+	flag.IntVar(&clientPort, "client-port", 898, "Client port")
 	flag.Parse()
 
 	// Server
