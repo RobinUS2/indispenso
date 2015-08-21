@@ -9,6 +9,7 @@ import (
 	"time"
 	"strings"
 	"strconv"
+	"os"
 )
 
 // Server methods (you probably only need one or two in HA failover mode)
@@ -58,6 +59,17 @@ type RegisteredClient struct {
 	CmdChan chan bool
 }
 
+// Generate keys
+func (s *Server) _prepareTlsKeys() {
+	if _, err := os.Stat("./private_key"); os.IsNotExist(err) {
+		// No keys, generate
+		log.Println("Auto-generating keys for server")
+		cmd := newCmd("./generate_key.sh", 60)
+		cmd.Execute()
+		log.Println("Finished generating keys for server")
+	}
+}
+
 // Start server
 func (s *Server) Start() bool {
 	log.Println("Starting server")
@@ -70,6 +82,10 @@ func (s *Server) Start() bool {
 	    router.GET("/client/:hostname/cmds", ClientCmds)
 	    router.POST("/client/:hostname/cmd", PostClientCmd)
 
+	    // Auto generate key
+	    s._prepareTlsKeys()
+
+	    // Start server
 	    log.Fatal(http.ListenAndServeTLS(fmt.Sprintf(":%d", serverPort), "./public_key", "./private_key", router))
     }()
 
