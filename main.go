@@ -1,6 +1,7 @@
 package main
 
 import (
+	"strings"
 	"flag"
 	"fmt"
 	"os"
@@ -20,6 +21,7 @@ var client *Client
 var log *Log
 var hostname string
 var debug bool
+var secureToken string
 var shutdown chan bool = make(chan bool)
 
 func main() {
@@ -33,9 +35,16 @@ func main() {
 	flag.BoolVar(&isServer, "server", false, "Should this run the server process")
 	flag.BoolVar(&debug, "debug", false, "Enable debug logging")
 	flag.StringVar(&seedUri, "seed", "", "Seed URI")
+	flag.StringVar(&secureToken, "secure-token", "", "Secure token")
 	flag.IntVar(&serverPort, "server-port", 897, "Server port")
 	flag.IntVar(&clientPort, "client-port", 898, "Client port")
 	flag.Parse()
+
+	// Must have token
+	minLen := 32
+	if len(strings.TrimSpace(secureToken)) < minLen {
+		log.Fatal(fmt.Sprintf("Must have secure token with minimum length of %d", minLen))
+	}
 
 	// Hostname
 	hostname, _ = os.Hostname()
