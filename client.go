@@ -50,10 +50,10 @@ func (s *Client) Start() bool {
 	return true
 }
 
-// Ping server
+// Fetch commands
 func (s *Client) PollCmds() {
 	bytes, err := s._get(fmt.Sprintf("client/%s/cmds", url.QueryEscape(hostname)))
-	log.Printf("%v %v", bytes, err)
+	log.Printf("%s %v", string(bytes), err)
 }
 
 // Ping server

@@ -100,10 +100,12 @@ func PostClientCmd(w http.ResponseWriter, r *http.Request, ps httprouter.Params)
     	return
     }
 
+    // Create command
+    cmd := newCmd("date") // @todo dynamic
+
     // Add to list
-    cmdId := "2" // @todo dynamic
     registeredClient.mux.Lock()
-    registeredClient.Cmds[cmdId] = newCmd("date") // @todo dynamic
+    registeredClient.Cmds[cmd.Id] = cmd
     registeredClient.CmdChan <- true // Signal for work
     registeredClient.mux.Unlock()
 
@@ -132,7 +134,16 @@ func ClientCmds(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
     // @todo Read from channel flag and dispatch before timeout
     select {
     case <-registeredClient.CmdChan:
-        fmt.Println("Chan")
+    	cmds := make([]*Cmd, 0)
+    	registeredClient.mux.Lock()
+        for _, cmd := range registeredClient.Cmds {
+        	if cmd.Pending {
+        		cmds = append(cmds, cmd)
+        		cmd.Pending = false
+        	}
+        }
+        registeredClient.mux.Unlock()
+        jr.Set("cmds", cmds)
     case <-time.After(time.Second * LONG_POLL_TIMEOUT):
     	// No commands
         jr.Set("cmds", make([]string, 0))
