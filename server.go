@@ -20,10 +20,16 @@ func (s *Server) Start() bool {
 	go func() {
 		router := httprouter.New()
 	    router.GET("/ping", Ping)
+	    router.GET("/client/ping/:hostname", ClientPing)
 
 	    log.Fatal(http.ListenAndServe(fmt.Sprintf(":%d", serverPort), router))
     }()
 	return true
+}
+
+// Ping
+func ClientPing(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+    log.Printf("Client %s registered", ps.ByName("hostname"))
 }
 
 // Ping

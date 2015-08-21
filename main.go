@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"os"
 )
 
 // @author Robin Verlangen
@@ -17,6 +18,7 @@ var seedUri string
 var server *Server
 var client *Client
 var log *Log
+var hostname string
 var shutdown chan bool = make(chan bool)
 
 func main() {
@@ -32,6 +34,9 @@ func main() {
 	flag.IntVar(&serverPort, "server-port", 897, "Server port")
 	flag.IntVar(&clientPort, "client-port", 898, "Client port")
 	flag.Parse()
+
+	// Hostname
+	hostname, _ = os.Hostname()
 
 	// Server
 	if isServer {
