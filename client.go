@@ -60,7 +60,6 @@ func (s *Client) Start() bool {
 func (s *Client) PollCmds() {
 	bytes, err := s._get(fmt.Sprintf("client/%s/cmds", url.QueryEscape(hostname)))
 	if err == nil {
-		log.Println(string(bytes))
 		obj, jerr := jason.NewObjectFromBytes(bytes)
 		if jerr == nil {
 			cmds, _ := obj.GetObjectArray("cmds")
