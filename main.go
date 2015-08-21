@@ -23,6 +23,7 @@ var hostname string
 var debug bool
 var secureToken string
 var shutdown chan bool = make(chan bool)
+const CLIENT_PING_INTERVAL int = 60
 
 func main() {
 	// Log

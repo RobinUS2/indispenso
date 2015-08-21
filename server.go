@@ -29,6 +29,19 @@ func (s *Server) RegisterClient(hostname string) {
 	s.clientsMux.Unlock()
 }
 
+// Scan for old clients
+func (s *Server) CleanupClients() {
+	s.clientsMux.Lock()
+	for k, client := range s.clients {
+		if time.Now().Sub(client.LastPing).Seconds() > float64(CLIENT_PING_INTERVAL*5) {
+			// Disconnect
+			log.Printf("Client %s disconnected", client.Hostname)
+			delete(s.clients, k)
+		}
+	}
+	s.clientsMux.Unlock()
+}
+
 type RegisteredClient struct {
 	mux sync.RWMutex
 	Hostname string
@@ -47,6 +60,15 @@ func (s *Server) Start() bool {
 
 	    log.Fatal(http.ListenAndServe(fmt.Sprintf(":%d", serverPort), router))
     }()
+
+	// Minutely cleanups etc
+    go func() {
+	    c := time.Tick(1 * time.Minute)
+	    for _ = range c {
+	    	server.CleanupClients()
+	    }
+    }()
+
 	return true
 }
 

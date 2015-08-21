@@ -34,7 +34,7 @@ func (s *Client) Start() bool {
     	go func() {
 	    	s.PingServer()
     	}()
-	    c := time.Tick(1 * time.Minute)
+	    c := time.Tick(time.Duration(CLIENT_PING_INTERVAL) * time.Second)
 	    for _ = range c {
 	    	s.PingServer()
 	    }
