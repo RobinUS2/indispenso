@@ -28,3 +28,7 @@ indispenso
 # Deps
 src/**
 pkg/**
+
+# Keys
+private_key
+public_key

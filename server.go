@@ -70,7 +70,7 @@ func (s *Server) Start() bool {
 	    router.GET("/client/:hostname/cmds", ClientCmds)
 	    router.POST("/client/:hostname/cmd", PostClientCmd)
 
-	    log.Fatal(http.ListenAndServe(fmt.Sprintf(":%d", serverPort), router))
+	    log.Fatal(http.ListenAndServeTLS(fmt.Sprintf(":%d", serverPort), "./public_key", "./private_key", router))
     }()
 
 	// Minutely cleanups etc
