@@ -10,6 +10,8 @@ import (
 	"strings"
 	"strconv"
 	"os"
+	"crypto/sha256"
+	"encoding/base64"
 )
 
 // Server methods (you probably only need one or two in HA failover mode)
@@ -218,7 +220,14 @@ func Ping(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 
 // Auth
 func auth(r *http.Request) bool {
-	if r.Header.Get("X-Auth") != secureToken {
+	// Signed token
+	uri := r.URL.String()
+	hasher := sha256.New()
+    hasher.Write([]byte(uri))
+    signedToken := base64.URLEncoding.EncodeToString(hasher.Sum(nil))
+
+    // Validate
+	if r.Header.Get("X-Auth") != signedToken {
 		return false
 	}
 	return true

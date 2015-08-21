@@ -11,6 +11,9 @@ import (
 	"math/rand"
 	"net/url"
 	"crypto/tls"
+	"crypto/sha256"
+	"encoding/base64"
+	"strings"
 )
 
 // Client methods (one per "slave", communicates with the server)
@@ -113,15 +116,32 @@ func (s *Client) _reqUnsafe(method string, uri string, data []byte) ([]byte, err
 		Transport: tr,
 	}
 
+	// Sanitize urls
+	uri = fmt.Sprintf("/%s", strings.TrimLeft(uri, "/"))
+
+	// Append random string to uri
+	var randStr string = "asf"
+	if !strings.Contains(uri, "?") {
+		uri = fmt.Sprintf("%s?_rand=%s", uri, randStr)
+	} else {
+		uri = fmt.Sprintf("%s&_rand=%s", uri, randStr)
+	}
+	url := fmt.Sprintf("%s%s", strings.TrimRight(seedUri, "/"), uri)
+
 	// Req
 	// @todo support data
-	req, reqErr := http.NewRequest(method, fmt.Sprintf("%s%s", seedUri, uri), nil)
+	req, reqErr := http.NewRequest(method, url, nil)
 	if reqErr != nil {
 		return nil, reqErr
 	}
 
+	// Signed token
+	hasher := sha256.New()
+    hasher.Write([]byte(uri))
+    signedToken := base64.URLEncoding.EncodeToString(hasher.Sum(nil))
+
 	// Auth token
-	req.Header.Add("X-Auth", secureToken)
+	req.Header.Add("X-Auth", signedToken)
 
 	// Execute
 	resp, respErr := client.Do(req)
