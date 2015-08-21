@@ -5,6 +5,7 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"time"
 )
 
 // @author Robin Verlangen
@@ -24,6 +25,7 @@ var debug bool
 var secureToken string
 var shutdown chan bool = make(chan bool)
 const CLIENT_PING_INTERVAL int = 60
+const LONG_POLL_TIMEOUT time.Duration = time.Duration(30)
 
 func main() {
 	// Log

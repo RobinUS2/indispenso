@@ -29,6 +29,12 @@ func (s *Server) RegisterClient(hostname string) {
 	s.clientsMux.Unlock()
 }
 
+func (s *Server) GetClient(hostname string) *RegisteredClient {
+	s.clientsMux.Lock()
+	defer s.clientsMux.Unlock()
+	return s.clients[hostname]
+}
+
 // Scan for old clients
 func (s *Server) CleanupClients() {
 	s.clientsMux.Lock()
@@ -47,6 +53,7 @@ type RegisteredClient struct {
 	Hostname string
 	LastPing time.Time
 	Cmds map[string]*Cmd
+	CmdChan chan bool
 }
 
 // Start server
@@ -59,6 +66,7 @@ func (s *Server) Start() bool {
 	    router.GET("/ping", Ping)
 	    router.GET("/client/:hostname/ping", ClientPing)
 	    router.GET("/client/:hostname/cmds", ClientCmds)
+	    router.POST("/client/:hostname/cmd", PostClientCmd)
 
 	    log.Fatal(http.ListenAndServe(fmt.Sprintf(":%d", serverPort), router))
     }()
@@ -74,6 +82,36 @@ func (s *Server) Start() bool {
 	return true
 }
 
+// Submit client command
+func PostClientCmd(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+    
+    jr := jresp.NewJsonResp()
+    if !auth(r) {
+    	jr.Error("Not authorized")
+    	fmt.Fprint(w, jr.ToString(debug))
+    	return
+    }
+
+    // Get client
+    registeredClient := server.GetClient(ps.ByName("hostname"))
+    if registeredClient == nil {
+    	jr.Error("Client not registered")
+    	fmt.Fprint(w, jr.ToString(debug))
+    	return
+    }
+
+    // Add to list
+    cmdId := "2" // @todo dynamic
+    registeredClient.mux.Lock()
+    registeredClient.Cmds[cmdId] = newCmd("date") // @todo dynamic
+    registeredClient.CmdChan <- true // Signal for work
+    registeredClient.mux.Unlock()
+
+    jr.Set("ack", true)
+    jr.OK()
+    fmt.Fprint(w, jr.ToString(debug))
+}
+
 // Commands
 func ClientCmds(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
     jr := jresp.NewJsonResp()
@@ -82,9 +120,23 @@ func ClientCmds(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
     	fmt.Fprint(w, jr.ToString(debug))
     	return
     }
-    time.Sleep(1 * time.Second)
-    server.RegisterClient(ps.ByName("hostname"))
-	jr.Set("cmds", make([]string, 0))
+
+    // Get client
+    registeredClient := server.GetClient(ps.ByName("hostname"))
+    if registeredClient == nil {
+    	jr.Error("Client not registered")
+    	fmt.Fprint(w, jr.ToString(debug))
+    	return
+    }
+
+    // @todo Read from channel flag and dispatch before timeout
+    select {
+    case <-registeredClient.CmdChan:
+        fmt.Println("Chan")
+    case <-time.After(time.Second * LONG_POLL_TIMEOUT):
+    	// No commands
+        jr.Set("cmds", make([]string, 0))
+    }
 	jr.OK()
     fmt.Fprint(w, jr.ToString(debug))
 }
@@ -136,5 +188,6 @@ func newRegisteredClient(hostname string) *RegisteredClient {
 	return &RegisteredClient{
 		Hostname: hostname,
 		Cmds: make(map[string]*Cmd),
+		CmdChan: make(chan bool),
 	}
 }
