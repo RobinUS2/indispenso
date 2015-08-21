@@ -57,7 +57,8 @@ func (s *Server) Start() bool {
 	go func() {
 		router := httprouter.New()
 	    router.GET("/ping", Ping)
-	    router.GET("/client/ping/:hostname", ClientPing)
+	    router.GET("/client/:hostname/ping", ClientPing)
+	    router.GET("/client/:hostname/cmds", ClientCmds)
 
 	    log.Fatal(http.ListenAndServe(fmt.Sprintf(":%d", serverPort), router))
     }()
@@ -71,6 +72,21 @@ func (s *Server) Start() bool {
     }()
 
 	return true
+}
+
+// Commands
+func ClientCmds(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+    jr := jresp.NewJsonResp()
+    if !auth(r) {
+    	jr.Error("Not authorized")
+    	fmt.Fprint(w, jr.ToString(debug))
+    	return
+    }
+    time.Sleep(1 * time.Second)
+    server.RegisterClient(ps.ByName("hostname"))
+	jr.Set("cmds", make([]string, 0))
+	jr.OK()
+    fmt.Fprint(w, jr.ToString(debug))
 }
 
 // Ping

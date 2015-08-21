@@ -40,12 +40,25 @@ func (s *Client) Start() bool {
 	    }
     }()
 
+    // Long poll commands
+    go func() {
+    	for {
+    		s.PollCmds()
+    	}
+    }()
+
 	return true
 }
 
 // Ping server
+func (s *Client) PollCmds() {
+	bytes, err := s._get(fmt.Sprintf("client/%s/cmds", url.QueryEscape(hostname)))
+	log.Printf("%v %v", bytes, err)
+}
+
+// Ping server
 func (s *Client) PingServer() {
-	s._get(fmt.Sprintf("client/ping/%s", url.QueryEscape(hostname)))
+	s._get(fmt.Sprintf("client/%s/ping", url.QueryEscape(hostname)))
 }
 
 // Get
