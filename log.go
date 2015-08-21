@@ -1,6 +1,8 @@
 package main
 
-import rawlog "log"
+import (
+	rawlog "log"
+)
 
 // @author Robin Verlangen
 
@@ -14,6 +16,10 @@ func (l *Log) Printf(format string, v ...interface{}) {
 
 func (l *Log) Println(x string) {
 	rawlog.Println(x)
+}
+
+func (l *Log) Fatal(v ...interface{}) {
+	rawlog.Fatal(v)
 }
 
 func newLog() *Log {
