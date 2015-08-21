@@ -5,12 +5,28 @@ import (
 	"fmt"
 	"github.com/julienschmidt/httprouter"
 	"github.com/RobinUS2/golang-jresp"
+	"sync"
 )
 
 // Server methods (you probably only need one or two in HA failover mode)
 
 type Server struct {
+	clientsMux sync.RWMutex
+	clients map[string]*RegisteredClient
+}
 
+// Register client
+func (s *Server) RegisterClient(hostname string) {
+	s.clientsMux.Lock()
+	if s.clients[hostname] == nil {
+		s.clients[hostname] = newRegisteredClient(hostname)
+		log.Printf("Client %s registered", hostname)
+	}
+	s.clientsMux.Unlock()
+}
+
+type RegisteredClient struct {
+	Hostname string
 }
 
 // Start server
@@ -36,7 +52,7 @@ func ClientPing(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
     	fmt.Fprint(w, jr.ToString(debug))
     	return
     }
-    log.Printf("Client %s registered", ps.ByName("hostname"))
+    server.RegisterClient(ps.ByName("hostname"))
 	jr.Set("ack", true)
 	jr.OK()
     fmt.Fprint(w, jr.ToString(debug))
@@ -65,5 +81,14 @@ func auth(r *http.Request) bool {
 
 // Create new server
 func newServer() *Server {
-	return &Server{}
+	return &Server{
+		clients : make(map[string]*RegisteredClient),
+	}
+}
+
+// New registered client
+func newRegisteredClient(hostname string) *RegisteredClient {
+	return &RegisteredClient{
+		Hostname: hostname,
+	}
 }
