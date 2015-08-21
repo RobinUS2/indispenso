@@ -60,7 +60,7 @@ func main() {
 
 		// Empty seed? Then go for local
 		if len(seedUri) < 1 {
-			seedUri = fmt.Sprintf("http://127.0.0.1:%d/", serverPort)
+			seedUri = fmt.Sprintf("https://127.0.0.1:%d/", serverPort)
 
 			// Sleep for 1 second to allow the server to start
 			time.Sleep(1 * time.Second)

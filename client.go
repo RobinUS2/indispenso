@@ -10,6 +10,7 @@ import (
 	"math"
 	"math/rand"
 	"net/url"
+	"crypto/tls"
 )
 
 // Client methods (one per "slave", communicates with the server)
@@ -100,8 +101,17 @@ func (s *Client) _req(method string, uri string, data []byte) ([]byte, error) {
 
 // Generic request method
 func (s *Client) _reqUnsafe(method string, uri string, data []byte) ([]byte, error) {
+	// Transport
+	tr := &http.Transport{
+        TLSClientConfig: &tls.Config{
+        	InsecureSkipVerify: true,
+        }, // Ignore certificate as this is self generated and invalid
+    }
+
 	// Client
-	client := &http.Client{}
+	client := &http.Client{
+		Transport: tr,
+	}
 
 	// Req
 	// @todo support data
