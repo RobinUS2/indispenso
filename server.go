@@ -46,6 +46,7 @@ type RegisteredClient struct {
 	mux sync.RWMutex
 	Hostname string
 	LastPing time.Time
+	Cmds map[string]*Cmd
 }
 
 // Start server
@@ -118,5 +119,6 @@ func newServer() *Server {
 func newRegisteredClient(hostname string) *RegisteredClient {
 	return &RegisteredClient{
 		Hostname: hostname,
+		Cmds: make(map[string]*Cmd),
 	}
 }
