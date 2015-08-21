@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"time"
 	"github.com/julienschmidt/httprouter"
+	"github.com/antonholmquist/jason"
 	"io/ioutil"
 	"math"
 	"math/rand"
@@ -53,7 +54,21 @@ func (s *Client) Start() bool {
 // Fetch commands
 func (s *Client) PollCmds() {
 	bytes, err := s._get(fmt.Sprintf("client/%s/cmds", url.QueryEscape(hostname)))
-	log.Printf("%s %v", string(bytes), err)
+	if err == nil {
+		log.Println(string(bytes))
+		obj, jerr := jason.NewObjectFromBytes(bytes)
+		if jerr == nil {
+			cmds, _ := obj.GetObjectArray("cmds")
+			for _, cmd := range cmds {
+				id, _ := cmd.GetString("Id")
+				command, _ := cmd.GetString("Command")
+				timeout, _ := cmd.GetInt64("Timeout")
+				cmd := newCmd(command, int(timeout))
+				cmd.Id = id
+				cmd.Execute()
+			}
+		}
+	}
 }
 
 // Ping server

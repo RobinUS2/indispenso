@@ -11,7 +11,7 @@ type Log struct {
 }
 
 func (l *Log) Printf(format string, v ...interface{}) {
-	rawlog.Printf(format, v)
+	rawlog.Printf(format, v...)
 }
 
 func (l *Log) Println(x string) {
@@ -19,7 +19,7 @@ func (l *Log) Println(x string) {
 }
 
 func (l *Log) Fatal(v ...interface{}) {
-	rawlog.Fatal(v)
+	rawlog.Fatal(v...)
 }
 
 func newLog() *Log {
