@@ -8,6 +8,7 @@ type Client struct {
 
 // Start c;oemt
 func (s *Client) Start() bool {
+	log.Println("Starting client")
 	// @todo
 	return true
 }

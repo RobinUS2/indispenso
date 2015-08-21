@@ -2,7 +2,6 @@ package main
 
 import (
 	"flag"
-	"log"
 )
 
 // @author Robin Verlangen
@@ -14,9 +13,11 @@ var isClient bool
 var seedUri string
 var server *Server
 var client *Client
+var log *Log
 
 func main() {
 	conf = newConf()
+	log = newLog()
 
 	// Read flags
 	flag.BoolVar(&isServer, "server", false, "Should this run the server process")
@@ -35,7 +36,7 @@ func main() {
 
 	// Client
 	if isClient {
-		server = newServer()
-		server.Start()
+		client = newClient()
+		client.Start()
 	}
 }

@@ -8,6 +8,7 @@ type Server struct {
 
 // Start server
 func (s *Server) Start() bool {
+	log.Println("Starting server")
 	// @todo
 	return true
 }
