@@ -24,8 +24,9 @@ var hostname string
 var debug bool
 var secureToken string
 var shutdown chan bool = make(chan bool)
-const CLIENT_PING_INTERVAL int = 60
-const LONG_POLL_TIMEOUT time.Duration = time.Duration(30)
+const CLIENT_PING_INTERVAL int = 60 // In seconds
+const LONG_POLL_TIMEOUT time.Duration = time.Duration(30) // In seconds
+const DEFAULT_COMMAND_TIMEOUT int = 60 // In seconds
 
 func main() {
 	// Log
@@ -60,6 +61,9 @@ func main() {
 		// Empty seed? Then go for local
 		if len(seedUri) < 1 {
 			seedUri = fmt.Sprintf("http://127.0.0.1:%d/", serverPort)
+
+			// Sleep for 1 second to allow the server to start
+			time.Sleep(1 * time.Second)
 		}
 	}
 

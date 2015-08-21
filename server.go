@@ -7,6 +7,8 @@ import (
 	"github.com/RobinUS2/golang-jresp"
 	"sync"
 	"time"
+	"strings"
+	"strconv"
 )
 
 // Server methods (you probably only need one or two in HA failover mode)
@@ -100,8 +102,27 @@ func PostClientCmd(w http.ResponseWriter, r *http.Request, ps httprouter.Params)
     	return
     }
 
+    // Timeout
+    timeoutStr := r.URL.Query().Get("timeout")
+    var timeout int = DEFAULT_COMMAND_TIMEOUT
+    if len(strings.TrimSpace(timeoutStr)) > 0 {
+    	timeoutI, timeoutE := strconv.ParseInt(timeoutStr, 10, 0)
+    	if timeoutE != nil || timeoutI < 1 {
+    		jr.Error("Invalid timeout value")
+	    	fmt.Fprint(w, jr.ToString(debug))
+	    	return
+    	}
+    	timeout = int(timeoutI)
+    }
+
     // Create command
-    cmd := newCmd("date") // @todo dynamic
+    command := r.URL.Query().Get("cmd")
+    if len(strings.TrimSpace(command)) < 1 {
+    	jr.Error("Provide a command")
+    	fmt.Fprint(w, jr.ToString(debug))
+    	return
+    }
+    cmd := newCmd(command, timeout) // @todo dynamic
 
     // Add to list
     registeredClient.mux.Lock()

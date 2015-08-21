@@ -10,12 +10,14 @@ type Cmd struct {
 	Command string
 	Pending bool
 	Id string
+	Timeout int // in seconds
 }
 
-func newCmd(command string) *Cmd {
+func newCmd(command string, timeout int) *Cmd {
 	return &Cmd{
 		Id : uuid.New(),
 		Command: command,
 		Pending: true,
+		Timeout: timeout,
 	}
 }
