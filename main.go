@@ -19,6 +19,7 @@ var server *Server
 var client *Client
 var log *Log
 var hostname string
+var debug bool
 var shutdown chan bool = make(chan bool)
 
 func main() {
@@ -30,6 +31,7 @@ func main() {
 
 	// Read flags
 	flag.BoolVar(&isServer, "server", false, "Should this run the server process")
+	flag.BoolVar(&debug, "debug", false, "Enable debug logging")
 	flag.StringVar(&seedUri, "seed", "", "Seed URI")
 	flag.IntVar(&serverPort, "server-port", 897, "Server port")
 	flag.IntVar(&clientPort, "client-port", 898, "Client port")
