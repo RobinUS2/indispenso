@@ -6,6 +6,7 @@ import (
 	"github.com/julienschmidt/httprouter"
 	"github.com/RobinUS2/golang-jresp"
 	"sync"
+	"time"
 )
 
 // Server methods (you probably only need one or two in HA failover mode)
@@ -22,11 +23,16 @@ func (s *Server) RegisterClient(hostname string) {
 		s.clients[hostname] = newRegisteredClient(hostname)
 		log.Printf("Client %s registered", hostname)
 	}
+	s.clients[hostname].mux.Lock()
+	s.clients[hostname].LastPing = time.Now()
+	s.clients[hostname].mux.Unlock()
 	s.clientsMux.Unlock()
 }
 
 type RegisteredClient struct {
+	mux sync.RWMutex
 	Hostname string
+	LastPing time.Time
 }
 
 // Start server
