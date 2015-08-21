@@ -32,7 +32,7 @@ func (c *Cmd) Execute() {
 	ioutil.WriteFile(tmpFileName, fileBytes.Bytes(), 0644)
 
 	// Run file
-	cmd := exec.Command("bash", "-c", tmpFileName)
+	cmd := exec.Command("bash", tmpFileName)
 	err := cmd.Start()
 	if err != nil {
 		log.Printf("Failed to run command: %s", err)
