@@ -12,6 +12,7 @@ import (
 	"net/url"
 	"crypto/tls"
 	"crypto/sha256"
+	crand "crypto/rand"
 	"encoding/base64"
 	"strings"
 )
@@ -120,7 +121,14 @@ func (s *Client) _reqUnsafe(method string, uri string, data []byte) ([]byte, err
 	uri = fmt.Sprintf("/%s", strings.TrimLeft(uri, "/"))
 
 	// Append random string to uri
-	var randStr string = "asf"
+	var randStr string
+	c := 32
+	b := make([]byte, c)
+	_, randErr := crand.Read(b)
+	if randErr != nil {
+		return nil, randErr
+	}
+	randStr = base64.URLEncoding.EncodeToString(b)
 	if !strings.Contains(uri, "?") {
 		uri = fmt.Sprintf("%s?_rand=%s", uri, randStr)
 	} else {
