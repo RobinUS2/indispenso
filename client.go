@@ -12,7 +12,7 @@ type Client struct {
 
 }
 
-// Start c;oemt
+// Start client
 func (s *Client) Start() bool {
 	log.Println("Starting client")
 
