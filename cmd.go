@@ -39,7 +39,10 @@ func (c *Cmd) Execute() {
 	}
 
 	// Wait for completion
-	cmd.Wait()
+	waitE := cmd.Wait()
+	if waitE != nil {
+		log.Printf("Failed to wait for exit of command: %s", waitE)
+	}
 	log.Printf("Finished %s", c.Id)
 
 	// Remove file
