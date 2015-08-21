@@ -24,3 +24,7 @@ _testmain.go
 
 # Binary
 indispenso
+
+# Deps
+src/**
+pkg/**
