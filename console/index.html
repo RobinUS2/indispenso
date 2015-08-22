@@ -3,21 +3,50 @@ Indispenso: https://github.com/RobinUS2/indispenso
 @author Robin Verlangen
 @license Apache V2
 -->
-<html>
+<!DOCTYPE html>
+<html lang="en">
 	<head>
+		<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+
 		<!-- Latest compiled and minified CSS -->
 		<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap.min.css">
 
 		<!-- Optional theme -->
 		<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap-theme.min.css">
 
+		<link rel="stylesheet" href="style.css">
+
+		<script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.3/jquery.min.js"></script>
+
 		<!-- Latest compiled and minified JavaScript -->
 		<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/js/bootstrap.min.js"></script>
+
+		<script src="app.js"></script>
 	</head>
 
 	<body>
 		<div class="container">
 			<h1>Indispenso</h1>
+
+			<div class="page page-visible" data-name="login">
+				<div class="col-md-12">
+					<form id="login">
+					  <div class="form-group">
+					    <label for="username">Username</label>
+					    <input type="text" name="username" class="form-control" id="username" placeholder="Username">
+					  </div>
+					  <div class="form-group">
+					    <label for="password">Password</label>
+					    <input type="password" name="password" class="form-control" id="password" placeholder="Password">
+					  </div>
+					  <button type="submit" class="btn btn-default">Login</button>
+					</form>
+				</div>
+			</div>
+
+			<div class="page" data-name="home">
+				<p>Home</p>
+			</div>
 		</div>
 	</body>
 </html>
