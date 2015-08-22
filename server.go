@@ -22,22 +22,23 @@ type Server struct {
 }
 
 // Register client
-func (s *Server) RegisterClient(hostname string) {
+func (s *Server) RegisterClient(clientId string, tags []string) {
 	s.clientsMux.Lock()
-	if s.clients[hostname] == nil {
-		s.clients[hostname] = newRegisteredClient(hostname)
-		log.Printf("Client %s registered", hostname)
+	if s.clients[clientId] == nil {
+		s.clients[clientId] = newRegisteredClient(clientId)
+		log.Printf("Client %s registered with tags %s", clientId, tags)
 	}
-	s.clients[hostname].mux.Lock()
-	s.clients[hostname].LastPing = time.Now()
-	s.clients[hostname].mux.Unlock()
+	s.clients[clientId].mux.Lock()
+	s.clients[clientId].LastPing = time.Now()
+	s.clients[clientId].Tags = tags
+	s.clients[clientId].mux.Unlock()
 	s.clientsMux.Unlock()
 }
 
-func (s *Server) GetClient(hostname string) *RegisteredClient {
+func (s *Server) GetClient(clientId string) *RegisteredClient {
 	s.clientsMux.Lock()
 	defer s.clientsMux.Unlock()
-	return s.clients[hostname]
+	return s.clients[clientId]
 }
 
 // Scan for old clients
@@ -46,7 +47,7 @@ func (s *Server) CleanupClients() {
 	for k, client := range s.clients {
 		if time.Now().Sub(client.LastPing).Seconds() > float64(CLIENT_PING_INTERVAL*5) {
 			// Disconnect
-			log.Printf("Client %s disconnected", client.Hostname)
+			log.Printf("Client %s disconnected", client.clientId)
 			delete(s.clients, k)
 		}
 	}
@@ -55,8 +56,9 @@ func (s *Server) CleanupClients() {
 
 type RegisteredClient struct {
 	mux      sync.RWMutex
-	Hostname string
+	clientId string
 	LastPing time.Time
+	Tags     []string
 	Cmds     map[string]*Cmd
 	CmdChan  chan bool
 }
@@ -81,9 +83,9 @@ func (s *Server) Start() bool {
 		router := httprouter.New()
 		router.GET("/", Home)
 		router.GET("/ping", Ping)
-		router.GET("/client/:hostname/ping", ClientPing)
-		router.GET("/client/:hostname/cmds", ClientCmds)
-		router.POST("/client/:hostname/cmd", PostClientCmd)
+		router.GET("/client/:clientId/ping", ClientPing)
+		router.GET("/client/:clientId/cmds", ClientCmds)
+		router.POST("/client/:clientId/cmd", PostClientCmd)
 		router.ServeFiles("/console/*filepath", http.Dir("console"))
 
 		// Auto generate key
@@ -115,7 +117,7 @@ func PostClientCmd(w http.ResponseWriter, r *http.Request, ps httprouter.Params)
 	}
 
 	// Get client
-	registeredClient := server.GetClient(ps.ByName("hostname"))
+	registeredClient := server.GetClient(ps.ByName("clientId"))
 	if registeredClient == nil {
 		jr.Error("Client not registered")
 		fmt.Fprint(w, jr.ToString(debug))
@@ -165,7 +167,7 @@ func ClientCmds(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	}
 
 	// Get client
-	registeredClient := server.GetClient(ps.ByName("hostname"))
+	registeredClient := server.GetClient(ps.ByName("clientId"))
 	if registeredClient == nil {
 		jr.Error("Client not registered")
 		fmt.Fprint(w, jr.ToString(debug))
@@ -202,8 +204,7 @@ func ClientPing(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 		return
 	}
 	tags := strings.Split(r.URL.Query().Get("tags"), ",")
-	log.Printf("Tags %v", tags)
-	server.RegisterClient(ps.ByName("hostname"))
+	server.RegisterClient(ps.ByName("clientId"), tags)
 	jr.Set("ack", true)
 	jr.OK()
 	fmt.Fprint(w, jr.ToString(debug))
@@ -246,9 +247,9 @@ func newServer() *Server {
 }
 
 // New registered client
-func newRegisteredClient(hostname string) *RegisteredClient {
+func newRegisteredClient(clientId string) *RegisteredClient {
 	return &RegisteredClient{
-		Hostname: hostname,
+		clientId: clientId,
 		Cmds:     make(map[string]*Cmd),
 		CmdChan:  make(chan bool),
 	}
