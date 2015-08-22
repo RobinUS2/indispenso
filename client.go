@@ -1,26 +1,25 @@
 package main
 
 import (
-	"net/http"
+	crand "crypto/rand"
+	"crypto/sha256"
+	"crypto/tls"
+	"encoding/base64"
 	"fmt"
-	"time"
-	"github.com/julienschmidt/httprouter"
 	"github.com/antonholmquist/jason"
+	"github.com/julienschmidt/httprouter"
 	"io/ioutil"
 	"math"
 	"math/rand"
+	"net/http"
 	"net/url"
-	"crypto/tls"
-	"crypto/sha256"
-	crand "crypto/rand"
-	"encoding/base64"
 	"strings"
+	"time"
 )
 
 // Client methods (one per "slave", communicates with the server)
 
 type Client struct {
-
 }
 
 // Start client
@@ -30,28 +29,28 @@ func (s *Client) Start() bool {
 	// Start webserver
 	go func() {
 		router := httprouter.New()
-	    router.GET("/ping", Ping)
+		router.GET("/ping", Ping)
 
-	    log.Fatal(http.ListenAndServe(fmt.Sprintf(":%d", clientPort), router))
-    }()
+		log.Fatal(http.ListenAndServe(fmt.Sprintf(":%d", clientPort), router))
+	}()
 
-    // Register with server
-    go func() {
-    	go func() {
-	    	s.PingServer()
-    	}()
-	    c := time.Tick(time.Duration(CLIENT_PING_INTERVAL) * time.Second)
-	    for _ = range c {
-	    	s.PingServer()
-	    }
-    }()
+	// Register with server
+	go func() {
+		go func() {
+			s.PingServer()
+		}()
+		c := time.Tick(time.Duration(CLIENT_PING_INTERVAL) * time.Second)
+		for _ = range c {
+			s.PingServer()
+		}
+	}()
 
-    // Long poll commands
-    go func() {
-    	for {
-    		s.PollCmds()
-    	}
-    }()
+	// Long poll commands
+	go func() {
+		for {
+			s.PollCmds()
+		}
+	}()
 
 	return true
 }
@@ -106,10 +105,10 @@ func (s *Client) _req(method string, uri string, data []byte) ([]byte, error) {
 func (s *Client) _reqUnsafe(method string, uri string, data []byte) ([]byte, error) {
 	// Transport
 	tr := &http.Transport{
-        TLSClientConfig: &tls.Config{
-        	InsecureSkipVerify: true,
-        }, // Ignore certificate as this is self generated and invalid
-    }
+		TLSClientConfig: &tls.Config{
+			InsecureSkipVerify: true,
+		}, // Ignore certificate as this is self generated and invalid
+	}
 
 	// Client
 	client := &http.Client{
@@ -144,8 +143,8 @@ func (s *Client) _reqUnsafe(method string, uri string, data []byte) ([]byte, err
 
 	// Signed token
 	hasher := sha256.New()
-    hasher.Write([]byte(uri))
-    signedToken := base64.URLEncoding.EncodeToString(hasher.Sum(nil))
+	hasher.Write([]byte(uri))
+	signedToken := base64.URLEncoding.EncodeToString(hasher.Sum(nil))
 
 	// Auth token
 	req.Header.Add("X-Auth", signedToken)

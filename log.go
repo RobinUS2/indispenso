@@ -7,7 +7,6 @@ import (
 // @author Robin Verlangen
 
 type Log struct {
-
 }
 
 func (l *Log) Printf(format string, v ...interface{}) {

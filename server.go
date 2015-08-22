@@ -1,24 +1,24 @@
 package main
 
 import (
-	"net/http"
-	"fmt"
-	"github.com/julienschmidt/httprouter"
-	"github.com/RobinUS2/golang-jresp"
-	"sync"
-	"time"
-	"strings"
-	"strconv"
-	"os"
 	"crypto/sha256"
 	"encoding/base64"
+	"fmt"
+	"github.com/RobinUS2/golang-jresp"
+	"github.com/julienschmidt/httprouter"
+	"net/http"
+	"os"
+	"strconv"
+	"strings"
+	"sync"
+	"time"
 )
 
 // Server methods (you probably only need one or two in HA failover mode)
 
 type Server struct {
 	clientsMux sync.RWMutex
-	clients map[string]*RegisteredClient
+	clients    map[string]*RegisteredClient
 }
 
 // Register client
@@ -54,11 +54,11 @@ func (s *Server) CleanupClients() {
 }
 
 type RegisteredClient struct {
-	mux sync.RWMutex
+	mux      sync.RWMutex
 	Hostname string
 	LastPing time.Time
-	Cmds map[string]*Cmd
-	CmdChan chan bool
+	Cmds     map[string]*Cmd
+	CmdChan  chan bool
 }
 
 // Generate keys
@@ -74,148 +74,148 @@ func (s *Server) _prepareTlsKeys() {
 
 // Start server
 func (s *Server) Start() bool {
-	log.Println("Starting server")
+	log.Printf("Starting server at https://localhost:%d/", serverPort)
 
 	// Start webserver
 	go func() {
 		router := httprouter.New()
-	    router.GET("/ping", Ping)
-	    router.GET("/client/:hostname/ping", ClientPing)
-	    router.GET("/client/:hostname/cmds", ClientCmds)
-	    router.POST("/client/:hostname/cmd", PostClientCmd)
+		router.GET("/ping", Ping)
+		router.GET("/client/:hostname/ping", ClientPing)
+		router.GET("/client/:hostname/cmds", ClientCmds)
+		router.POST("/client/:hostname/cmd", PostClientCmd)
 
-	    // Auto generate key
-	    s._prepareTlsKeys()
+		// Auto generate key
+		s._prepareTlsKeys()
 
-	    // Start server
-	    log.Fatal(http.ListenAndServeTLS(fmt.Sprintf(":%d", serverPort), "./public_key", "./private_key", router))
-    }()
+		// Start server
+		log.Fatal(http.ListenAndServeTLS(fmt.Sprintf(":%d", serverPort), "./public_key", "./private_key", router))
+	}()
 
 	// Minutely cleanups etc
-    go func() {
-	    c := time.Tick(1 * time.Minute)
-	    for _ = range c {
-	    	server.CleanupClients()
-	    }
-    }()
+	go func() {
+		c := time.Tick(1 * time.Minute)
+		for _ = range c {
+			server.CleanupClients()
+		}
+	}()
 
 	return true
 }
 
 // Submit client command
 func PostClientCmd(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-    
-    jr := jresp.NewJsonResp()
-    if !auth(r) {
-    	jr.Error("Not authorized")
-    	fmt.Fprint(w, jr.ToString(debug))
-    	return
-    }
 
-    // Get client
-    registeredClient := server.GetClient(ps.ByName("hostname"))
-    if registeredClient == nil {
-    	jr.Error("Client not registered")
-    	fmt.Fprint(w, jr.ToString(debug))
-    	return
-    }
+	jr := jresp.NewJsonResp()
+	if !auth(r) {
+		jr.Error("Not authorized")
+		fmt.Fprint(w, jr.ToString(debug))
+		return
+	}
 
-    // Timeout
-    timeoutStr := r.URL.Query().Get("timeout")
-    var timeout int = DEFAULT_COMMAND_TIMEOUT
-    if len(strings.TrimSpace(timeoutStr)) > 0 {
-    	timeoutI, timeoutE := strconv.ParseInt(timeoutStr, 10, 0)
-    	if timeoutE != nil || timeoutI < 1 {
-    		jr.Error("Invalid timeout value")
-	    	fmt.Fprint(w, jr.ToString(debug))
-	    	return
-    	}
-    	timeout = int(timeoutI)
-    }
+	// Get client
+	registeredClient := server.GetClient(ps.ByName("hostname"))
+	if registeredClient == nil {
+		jr.Error("Client not registered")
+		fmt.Fprint(w, jr.ToString(debug))
+		return
+	}
 
-    // Create command
-    command := r.URL.Query().Get("cmd")
-    if len(strings.TrimSpace(command)) < 1 {
-    	jr.Error("Provide a command")
-    	fmt.Fprint(w, jr.ToString(debug))
-    	return
-    }
-    cmd := newCmd(command, timeout) // @todo dynamic
+	// Timeout
+	timeoutStr := r.URL.Query().Get("timeout")
+	var timeout int = DEFAULT_COMMAND_TIMEOUT
+	if len(strings.TrimSpace(timeoutStr)) > 0 {
+		timeoutI, timeoutE := strconv.ParseInt(timeoutStr, 10, 0)
+		if timeoutE != nil || timeoutI < 1 {
+			jr.Error("Invalid timeout value")
+			fmt.Fprint(w, jr.ToString(debug))
+			return
+		}
+		timeout = int(timeoutI)
+	}
 
-    // Add to list
-    registeredClient.mux.Lock()
-    registeredClient.Cmds[cmd.Id] = cmd
-    registeredClient.CmdChan <- true // Signal for work
-    registeredClient.mux.Unlock()
+	// Create command
+	command := r.URL.Query().Get("cmd")
+	if len(strings.TrimSpace(command)) < 1 {
+		jr.Error("Provide a command")
+		fmt.Fprint(w, jr.ToString(debug))
+		return
+	}
+	cmd := newCmd(command, timeout) // @todo dynamic
 
-    jr.Set("ack", true)
-    jr.OK()
-    fmt.Fprint(w, jr.ToString(debug))
+	// Add to list
+	registeredClient.mux.Lock()
+	registeredClient.Cmds[cmd.Id] = cmd
+	registeredClient.CmdChan <- true // Signal for work
+	registeredClient.mux.Unlock()
+
+	jr.Set("ack", true)
+	jr.OK()
+	fmt.Fprint(w, jr.ToString(debug))
 }
 
 // Commands
 func ClientCmds(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-    jr := jresp.NewJsonResp()
-    if !auth(r) {
-    	jr.Error("Not authorized")
-    	fmt.Fprint(w, jr.ToString(debug))
-    	return
-    }
+	jr := jresp.NewJsonResp()
+	if !auth(r) {
+		jr.Error("Not authorized")
+		fmt.Fprint(w, jr.ToString(debug))
+		return
+	}
 
-    // Get client
-    registeredClient := server.GetClient(ps.ByName("hostname"))
-    if registeredClient == nil {
-    	jr.Error("Client not registered")
-    	fmt.Fprint(w, jr.ToString(debug))
-    	return
-    }
+	// Get client
+	registeredClient := server.GetClient(ps.ByName("hostname"))
+	if registeredClient == nil {
+		jr.Error("Client not registered")
+		fmt.Fprint(w, jr.ToString(debug))
+		return
+	}
 
-    // @todo Read from channel flag and dispatch before timeout
-    select {
-    case <-registeredClient.CmdChan:
-    	cmds := make([]*Cmd, 0)
-    	registeredClient.mux.Lock()
-        for _, cmd := range registeredClient.Cmds {
-        	if cmd.Pending {
-        		cmds = append(cmds, cmd)
-        		cmd.Pending = false
-        	}
-        }
-        registeredClient.mux.Unlock()
-        jr.Set("cmds", cmds)
-    case <-time.After(time.Second * LONG_POLL_TIMEOUT):
-    	// No commands
-        jr.Set("cmds", make([]string, 0))
-    }
+	// @todo Read from channel flag and dispatch before timeout
+	select {
+	case <-registeredClient.CmdChan:
+		cmds := make([]*Cmd, 0)
+		registeredClient.mux.Lock()
+		for _, cmd := range registeredClient.Cmds {
+			if cmd.Pending {
+				cmds = append(cmds, cmd)
+				cmd.Pending = false
+			}
+		}
+		registeredClient.mux.Unlock()
+		jr.Set("cmds", cmds)
+	case <-time.After(time.Second * LONG_POLL_TIMEOUT):
+		// No commands
+		jr.Set("cmds", make([]string, 0))
+	}
 	jr.OK()
-    fmt.Fprint(w, jr.ToString(debug))
+	fmt.Fprint(w, jr.ToString(debug))
 }
 
 // Ping
 func ClientPing(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-    jr := jresp.NewJsonResp()
-    if !auth(r) {
-    	jr.Error("Not authorized")
-    	fmt.Fprint(w, jr.ToString(debug))
-    	return
-    }
-    server.RegisterClient(ps.ByName("hostname"))
+	jr := jresp.NewJsonResp()
+	if !auth(r) {
+		jr.Error("Not authorized")
+		fmt.Fprint(w, jr.ToString(debug))
+		return
+	}
+	server.RegisterClient(ps.ByName("hostname"))
 	jr.Set("ack", true)
 	jr.OK()
-    fmt.Fprint(w, jr.ToString(debug))
+	fmt.Fprint(w, jr.ToString(debug))
 }
 
 // Ping
 func Ping(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	jr := jresp.NewJsonResp()
 	if !auth(r) {
-    	jr.Error("Not authorized")
-    	fmt.Fprint(w, jr.ToString(debug))
-    	return
-    }
+		jr.Error("Not authorized")
+		fmt.Fprint(w, jr.ToString(debug))
+		return
+	}
 	jr.Set("ping", "pong")
 	jr.OK()
-    fmt.Fprint(w, jr.ToString(debug))
+	fmt.Fprint(w, jr.ToString(debug))
 }
 
 // Auth
@@ -223,10 +223,10 @@ func auth(r *http.Request) bool {
 	// Signed token
 	uri := r.URL.String()
 	hasher := sha256.New()
-    hasher.Write([]byte(uri))
-    signedToken := base64.URLEncoding.EncodeToString(hasher.Sum(nil))
+	hasher.Write([]byte(uri))
+	signedToken := base64.URLEncoding.EncodeToString(hasher.Sum(nil))
 
-    // Validate
+	// Validate
 	if r.Header.Get("X-Auth") != signedToken {
 		return false
 	}
@@ -236,7 +236,7 @@ func auth(r *http.Request) bool {
 // Create new server
 func newServer() *Server {
 	return &Server{
-		clients : make(map[string]*RegisteredClient),
+		clients: make(map[string]*RegisteredClient),
 	}
 }
 
@@ -244,7 +244,7 @@ func newServer() *Server {
 func newRegisteredClient(hostname string) *RegisteredClient {
 	return &RegisteredClient{
 		Hostname: hostname,
-		Cmds: make(map[string]*Cmd),
-		CmdChan: make(chan bool),
+		Cmds:     make(map[string]*Cmd),
+		CmdChan:  make(chan bool),
 	}
 }

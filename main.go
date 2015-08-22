@@ -1,10 +1,10 @@
 package main
 
 import (
-	"strings"
 	"flag"
 	"fmt"
 	"os"
+	"strings"
 	"time"
 )
 
@@ -24,9 +24,10 @@ var hostname string
 var debug bool
 var secureToken string
 var shutdown chan bool = make(chan bool)
-const CLIENT_PING_INTERVAL int = 60 // In seconds
+
+const CLIENT_PING_INTERVAL int = 60                       // In seconds
 const LONG_POLL_TIMEOUT time.Duration = time.Duration(30) // In seconds
-const DEFAULT_COMMAND_TIMEOUT int = 60 // In seconds
+const DEFAULT_COMMAND_TIMEOUT int = 60                    // In seconds
 
 func main() {
 	// Log
@@ -75,5 +76,5 @@ func main() {
 	}
 
 	// Wait for shutdown
-	<- shutdown
+	<-shutdown
 }
