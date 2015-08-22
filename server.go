@@ -92,6 +92,7 @@ func (s *Server) Start() bool {
 		router.GET("/client/:clientId/cmds", ClientCmds)
 		router.POST("/client/:clientId/cmd", PostClientCmd)
 		router.POST("/auth", PostAuth)
+		router.GET("/clients", GetClients)
 		router.ServeFiles("/console/*filepath", http.Dir("console"))
 
 		// Auto generate key
@@ -138,6 +139,18 @@ func PostAuth(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	token := user.StartSession()
 	user.TouchSession()
 	jr.Set("session_token", token)
+	jr.OK()
+	fmt.Fprint(w, jr.ToString(debug))
+}
+
+// List clients
+func GetClients(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+	jr := jresp.NewJsonResp()
+	if !authUser(r) {
+		jr.Error("Not authorized")
+		fmt.Fprint(w, jr.ToString(debug))
+		return
+	}
 	jr.OK()
 	fmt.Fprint(w, jr.ToString(debug))
 }
@@ -270,6 +283,34 @@ func auth(r *http.Request) bool {
 
 	// Validate
 	if r.Header.Get("X-Auth") != signedToken {
+		return false
+	}
+	return true
+}
+
+// Auth user
+func authUser(r *http.Request) bool {
+	// Username
+	usr := r.Header.Get("X-Auth-User")
+
+	// Get user
+	user := server.userStore.ByName(usr)
+	if user == nil {
+		return false
+	}
+
+	// Has token?
+	if len(user.SessionToken) < 1 {
+		return false
+	}
+
+	// Token expired
+	if time.Now().Sub(user.SessionLastTimestamp) > time.Duration(30*time.Minute) {
+		return false
+	}
+
+	// Validate token match
+	if r.Header.Get("X-Auth-Session") != user.SessionToken {
 		return false
 	}
 	return true
