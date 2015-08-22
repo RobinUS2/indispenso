@@ -92,6 +92,7 @@ func (s *Server) Start() bool {
 		router.GET("/client/:clientId/cmds", ClientCmds)
 		router.POST("/client/:clientId/cmd", PostClientCmd)
 		router.POST("/auth", PostAuth)
+		router.POST("/user/password", PostUserPassword)
 		router.GET("/clients", GetClients)
 		router.ServeFiles("/console/*filepath", http.Dir("console"))
 
@@ -116,8 +117,8 @@ func (s *Server) Start() bool {
 // Login
 func PostAuth(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	jr := jresp.NewJsonResp()
-	usr := r.PostFormValue("username")
-	pwd := r.PostFormValue("password")
+	usr := strings.TrimSpace(r.PostFormValue("username"))
+	pwd := strings.TrimSpace(r.PostFormValue("password"))
 
 	// Fetch user
 	user := server.userStore.ByName(usr)
@@ -131,7 +132,7 @@ func PostAuth(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 		hash = "JDJhJDExJDBnOVJ4cmo4OHhzeGliV2oucDFrLmUzQlYzN296OVBlU1JqNU1FVWNqVGVCZEEuaWtMS2oo"
 	}
 	authRes := server.userStore.Auth(hash, pwd)
-	if !authRes {
+	if !authRes || len(usr) < 1 || len(pwd) < 1 || user == nil {
 		jr.Error("Username / password invalid")
 		fmt.Fprint(w, jr.ToString(debug))
 		return
@@ -141,6 +142,66 @@ func PostAuth(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	jr.Set("session_token", token)
 	jr.OK()
 	fmt.Fprint(w, jr.ToString(debug))
+}
+
+// Change password
+func PostUserPassword(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+	jr := jresp.NewJsonResp()
+	if !authUser(r) {
+		jr.Error("Not authorized")
+		fmt.Fprint(w, jr.ToString(debug))
+		return
+	}
+
+	// Validate password
+	newPwd := r.PostFormValue("pasword")
+	if len(newPwd) < 16 {
+		jr.Error("Password must be at least 16 characters, please pick a strong one!")
+		fmt.Fprint(w, jr.ToString(debug))
+		return
+	}
+
+	// Get user
+	user := getUser(r)
+	if user == nil {
+		return
+	}
+
+	// Change password
+	user.PasswordHash, _ = server.userStore.HashPassword(newPwd)
+	server.userStore.save()
+
+	jr.Set("saved", true)
+	jr.OK()
+	fmt.Fprint(w, jr.ToString(debug))
+}
+
+// User from request
+func getUser(r *http.Request) *User {
+	// Username
+	usr := r.Header.Get("X-Auth-User")
+
+	// Get user
+	user := server.userStore.ByName(usr)
+	if user == nil {
+		return nil
+	}
+
+	// Has token?
+	if len(user.SessionToken) < 1 {
+		return nil
+	}
+
+	// Token expired
+	if time.Now().Sub(user.SessionLastTimestamp) > time.Duration(30*time.Minute) {
+		return nil
+	}
+
+	// Validate token match
+	if r.Header.Get("X-Auth-Session") != user.SessionToken {
+		return nil
+	}
+	return user
 }
 
 // List clients
@@ -298,26 +359,8 @@ func auth(r *http.Request) bool {
 // Auth user
 func authUser(r *http.Request) bool {
 	// Username
-	usr := r.Header.Get("X-Auth-User")
-
-	// Get user
-	user := server.userStore.ByName(usr)
+	user := getUser(r)
 	if user == nil {
-		return false
-	}
-
-	// Has token?
-	if len(user.SessionToken) < 1 {
-		return false
-	}
-
-	// Token expired
-	if time.Now().Sub(user.SessionLastTimestamp) > time.Duration(30*time.Minute) {
-		return false
-	}
-
-	// Validate token match
-	if r.Header.Get("X-Auth-Session") != user.SessionToken {
 		return false
 	}
 	user.TouchSession()
