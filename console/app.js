@@ -79,8 +79,12 @@ var app = {
 		return resp;
 	},
 
+	pageInstance : function() {
+		return $('.page-visible');
+	},
+
 	bindData : function(k, v) {
-		$('[data-bind="' + k + '"]', '.page-visible').html(v);
+		$('[data-bind="' + k + '"]', app.pageInstance()).html(v);
 	},
 
 	pages : {
@@ -98,14 +102,62 @@ var app = {
 				app.ajax('/clients').done(function(resp) {
 					var resp = app.handleResponse(resp);
 					var rows = [];
+					var listTags = [];
 					$(resp.clients).each(function(i, client) {
 						var tags = [];
 						$(client.Tags).each(function(j, tag) {
-							tags.push('<span class="label label-default">' + tag + '</span>');
+							tags.push('<span class="label label-primary">' + tag + '</span>');
+							if (listTags.indexOf(tag) === -1) {
+								listTags.push(tag);
+							}
 						});
-						rows.push('<tr><td>' + client.ClientId + '</td><td>' + tags.join("\n") + '</td><td>' + client.LastPing + '</td></tr>');
+						rows.push('<tr class="client"><td>' + client.ClientId + '</td><td>' + tags.join("\n") + '</td><td>' + client.LastPing + '</td></tr>');
 					});
 					app.bindData('clients', rows.join("\n"));
+
+					// List of tags
+					var listTagsHtml = [];
+					$(listTags).each(function(i, tag) {
+						listTagsHtml.push('<li><span class="label label-primary filter-tag clickable" data-included="1" data-tag="' + tag + '">' + tag + '</span></li>');
+					});
+					app.bindData('tags', listTagsHtml.join("\n"));
+
+					// Filter based on tags
+					$('span.filter-tag', app.pageInstance()).click(function() {
+						var included = $(this).attr('data-included') === '1';
+						if (included) {
+							$(this).removeClass('label-primary').addClass('label-default').attr('data-included', '0');
+						} else {
+							$(this).removeClass('label-default').addClass('label-primary').attr('data-included', '1');
+						}
+
+						// On tags
+						var onTags = [];
+						$('span.filter-tag[data-included="1"]').each(function(i, on) {
+							onTags.push($(on).attr('data-tag'));
+						});
+
+						// Update list
+						$('tr.client').each(function(i, tr) {
+							var found = false;
+							var trHtml = $(tr).html();
+							$(onTags).each(function(j, tag) {
+								if (trHtml.indexOf(tag) !== -1) {
+									found = true;
+									return false;
+								}
+							});
+							if (!found) {
+								$(tr).hide();
+							} else {
+								$(tr).show();
+							}
+						});
+
+						return false;
+					});
+
+					// @todo double click on filter tag only turns on that specific one
 				});
 			}
 		},

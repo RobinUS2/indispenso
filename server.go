@@ -320,6 +320,7 @@ func authUser(r *http.Request) bool {
 	if r.Header.Get("X-Auth-Session") != user.SessionToken {
 		return false
 	}
+	user.TouchSession()
 	return true
 }
 
