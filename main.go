@@ -35,6 +35,7 @@ func main() {
 
 	// Conf
 	conf = newConf()
+	conf.load()
 
 	// Read flags
 	flag.BoolVar(&isServer, "server", false, "Should this run the server process")
