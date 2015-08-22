@@ -76,7 +76,7 @@ func (s *Client) PollCmds() {
 
 // Ping server
 func (s *Client) PingServer() {
-	s._get(fmt.Sprintf("client/%s/ping", url.QueryEscape(hostname)))
+	s._get(fmt.Sprintf("client/%s/ping?tags=%s", url.QueryEscape(hostname), url.QueryEscape(strings.Join(conf.Tags(), ","))))
 }
 
 // Get

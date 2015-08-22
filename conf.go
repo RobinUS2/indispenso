@@ -8,7 +8,16 @@ import (
 
 // Configuration
 type Conf struct {
-	Tags map[string]bool
+	tags map[string]bool
+}
+
+// Get tags
+func (c *Conf) Tags() []string {
+	keys := make([]string, 0, len(c.tags))
+	for k := range c.tags {
+		keys = append(keys, k)
+	}
+	return keys
 }
 
 // Load config files
@@ -39,7 +48,7 @@ func (c *Conf) load() {
 		tags := conf.Root.(yaml.Map).Key("tags").(yaml.List)
 		if tags != nil {
 			for _, tag := range tags {
-				c.Tags[tag.(yaml.Scalar).String()] = true
+				c.tags[tag.(yaml.Scalar).String()] = true
 			}
 		}
 	}
@@ -47,6 +56,6 @@ func (c *Conf) load() {
 
 func newConf() *Conf {
 	return &Conf{
-		Tags: make(map[string]bool),
+		tags: make(map[string]bool),
 	}
 }

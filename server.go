@@ -201,6 +201,8 @@ func ClientPing(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 		fmt.Fprint(w, jr.ToString(debug))
 		return
 	}
+	tags := strings.Split(r.URL.Query().Get("tags"), ",")
+	log.Printf("Tags %v", tags)
 	server.RegisterClient(ps.ByName("hostname"))
 	jr.Set("ack", true)
 	jr.OK()
