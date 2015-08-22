@@ -71,6 +71,9 @@ func (s *Client) PollCmds() {
 				cmd.Execute()
 			}
 		}
+	} else {
+		// In case of fast error back off a bit
+		time.Sleep(1 * time.Second)
 	}
 }
 
@@ -156,6 +159,7 @@ func (s *Client) _reqUnsafe(method string, uri string, data []byte) ([]byte, err
 	}
 
 	// Read body
+	defer resp.Body.Close()
 	body, bodyErr := ioutil.ReadAll(resp.Body)
 	if bodyErr != nil {
 		return nil, bodyErr

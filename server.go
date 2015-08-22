@@ -19,6 +19,7 @@ import (
 type Server struct {
 	clientsMux sync.RWMutex
 	clients    map[string]*RegisteredClient
+	userStore  *UserStore
 }
 
 // Register client
@@ -76,6 +77,10 @@ func (s *Server) _prepareTlsKeys() {
 
 // Start server
 func (s *Server) Start() bool {
+	// Users
+	s.userStore = newUserStore()
+
+	// Print info
 	log.Printf("Starting server at https://localhost:%d/", serverPort)
 
 	// Start webserver
