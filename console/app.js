@@ -34,7 +34,8 @@ var app = {
 	pages : {
 		home : {
 			load : function() {
-				
+				// @todo finish
+				$.get('/clients');
 			}
 		},
 

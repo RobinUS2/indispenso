@@ -151,6 +151,13 @@ func GetClients(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 		fmt.Fprint(w, jr.ToString(debug))
 		return
 	}
+	clients := make([]*RegisteredClient, 0)
+	server.clientsMux.RLock()
+	for _, client := range server.clients {
+		clients = append(clients, client)
+	}
+	server.clientsMux.RUnlock()
+	jr.Set("clients", clients)
 	jr.OK()
 	fmt.Fprint(w, jr.ToString(debug))
 }
