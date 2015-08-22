@@ -1,7 +1,6 @@
 package main
 
 import (
-	crand "crypto/rand"
 	"crypto/sha256"
 	"crypto/tls"
 	"encoding/base64"
@@ -122,14 +121,7 @@ func (s *Client) _reqUnsafe(method string, uri string, data []byte) ([]byte, err
 	uri = fmt.Sprintf("/%s", strings.TrimLeft(uri, "/"))
 
 	// Append random string to uri
-	var randStr string
-	c := 32
-	b := make([]byte, c)
-	_, randErr := crand.Read(b)
-	if randErr != nil {
-		return nil, randErr
-	}
-	randStr = base64.URLEncoding.EncodeToString(b)
+	var randStr, _ = secureRandomString(32)
 	if !strings.Contains(uri, "?") {
 		uri = fmt.Sprintf("%s?_rand=%s", uri, randStr)
 	} else {

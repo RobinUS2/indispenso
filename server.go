@@ -115,6 +115,30 @@ func (s *Server) Start() bool {
 // Login
 func PostAuth(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	jr := jresp.NewJsonResp()
+	usr := r.PostFormValue("username")
+	pwd := r.PostFormValue("password")
+
+	// Fetch user
+	user := server.userStore.ByName(usr)
+
+	// Hash and check (also if there is no user to prevent timing attacks)
+	hash := ""
+	if user != nil {
+		hash = user.PasswordHash
+	} else {
+		// Fake password
+		hash = "JDJhJDExJDBnOVJ4cmo4OHhzeGliV2oucDFrLmUzQlYzN296OVBlU1JqNU1FVWNqVGVCZEEuaWtMS2oo"
+	}
+	authRes := server.userStore.Auth(hash, pwd)
+	if !authRes {
+		jr.Error("Username / password invalid")
+		fmt.Fprint(w, jr.ToString(debug))
+		return
+	}
+	token := user.StartSession()
+	user.TouchSession()
+	jr.Set("session_token", token)
+	jr.OK()
 	fmt.Fprint(w, jr.ToString(debug))
 }
 

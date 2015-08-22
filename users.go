@@ -6,6 +6,7 @@ import (
 	"golang.org/x/crypto/bcrypt"
 	"io/ioutil"
 	"sync"
+	"time"
 )
 
 // Users
@@ -14,6 +15,18 @@ type UserStore struct {
 	usersMux sync.RWMutex
 	Users    []*User
 	ConfFile string
+}
+
+func (s *UserStore) ByName(username string) *User {
+	s.usersMux.Lock()
+	defer s.usersMux.Unlock()
+
+	for _, user := range s.Users {
+		if user.Username == username {
+			return user
+		}
+	}
+	return nil
 }
 
 func (s *UserStore) save() {
@@ -29,6 +42,15 @@ func (s *UserStore) save() {
 		log.Printf("Failed to write users: %s", err)
 		return
 	}
+}
+
+func (s *UserStore) Auth(hash string, pwd string) bool {
+	bytes, be := base64.URLEncoding.DecodeString(hash)
+	if be != nil {
+		log.Printf("%s", be)
+		bytes = make([]byte, 0)
+	}
+	return bcrypt.CompareHashAndPassword(bytes, []byte(pwd)) == nil
 }
 
 func (s *UserStore) CreateUser(username string, password string) {
@@ -76,9 +98,25 @@ func (s *UserStore) prepareDefaultUser() {
 }
 
 type User struct {
-	Username     string
-	PasswordHash string
-	Enabled      bool
+	Username             string
+	PasswordHash         string
+	Enabled              bool
+	SessionToken         string
+	SessionLastTimestamp time.Time
+	mux                  sync.RWMutex
+}
+
+func (u *User) TouchSession() {
+	u.mux.Lock()
+	defer u.mux.Unlock()
+	u.SessionLastTimestamp = time.Now()
+}
+
+func (u *User) StartSession() string {
+	u.mux.Lock()
+	defer u.mux.Unlock()
+	u.SessionToken, _ = secureRandomString(32)
+	return u.SessionToken
 }
 
 func newUser() *User {
