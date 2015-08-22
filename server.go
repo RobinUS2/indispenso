@@ -86,6 +86,7 @@ func (s *Server) Start() bool {
 		router.GET("/client/:clientId/ping", ClientPing)
 		router.GET("/client/:clientId/cmds", ClientCmds)
 		router.POST("/client/:clientId/cmd", PostClientCmd)
+		router.POST("/auth", PostAuth)
 		router.ServeFiles("/console/*filepath", http.Dir("console"))
 
 		// Auto generate key
@@ -104,6 +105,12 @@ func (s *Server) Start() bool {
 	}()
 
 	return true
+}
+
+// Login
+func PostAuth(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+	jr := jresp.NewJsonResp()
+	fmt.Fprint(w, jr.ToString(debug))
 }
 
 // Submit client command
