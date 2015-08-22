@@ -39,7 +39,6 @@ var app = {
 	run : function() {
 		/** Top menu */
 		$('a[data-nav]').click(function() {
-			console.log($(this));
 			app.showPage($(this).attr('data-nav'));
 			return false;
 		});
@@ -100,7 +99,11 @@ var app = {
 					var resp = app.handleResponse(resp);
 					var rows = [];
 					$(resp.clients).each(function(i, client) {
-						rows.push('<tr><td>' + client.ClientId + '</td><td>' + client.LastPing + '</td></tr>');
+						var tags = [];
+						$(client.Tags).each(function(j, tag) {
+							tags.push('<span class="label label-default">' + tag + '</span>');
+						});
+						rows.push('<tr><td>' + client.ClientId + '</td><td>' + tags.join("\n") + '</td><td>' + client.LastPing + '</td></tr>');
 					});
 					app.bindData('clients', rows.join("\n"));
 				});
@@ -109,7 +112,6 @@ var app = {
 
 		'404' : {
 			load : function() {
-
 			}
 		},
 
@@ -127,6 +129,9 @@ var app = {
 					}, 'json');
 					return false;
 				});
+			},
+			unload : function() {
+				$('form#login').unbind('submit');
 			}
 		}
 	}
