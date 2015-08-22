@@ -61,12 +61,16 @@ var app = {
 		return resp;
 	},
 
+	bindData : function(k, v) {
+		$('[data-bind="' + k + '"]', '.page-visible').html(v);
+	},
+
 	pages : {
 		home : {
 			load : function() {
 				app.ajax('/clients').done(function(resp) {
 					var resp = app.handleResponse(resp);
-					console.log(resp);
+					app.bindData('number-of-clients', resp.clients.length);
 				});
 			}
 		},
