@@ -31,7 +31,7 @@ func (s *Client) Start() bool {
 		router := httprouter.New()
 		router.GET("/ping", Ping)
 
-		log.Fatal(http.ListenAndServe(fmt.Sprintf(":%d", clientPort), router))
+		log.Printf("%v", http.ListenAndServe(fmt.Sprintf(":%d", clientPort), router))
 	}()
 
 	// Register with server
