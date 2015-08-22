@@ -79,10 +79,12 @@ func (s *Server) Start() bool {
 	// Start webserver
 	go func() {
 		router := httprouter.New()
+		router.GET("/", Home)
 		router.GET("/ping", Ping)
 		router.GET("/client/:hostname/ping", ClientPing)
 		router.GET("/client/:hostname/cmds", ClientCmds)
 		router.POST("/client/:hostname/cmd", PostClientCmd)
+		router.ServeFiles("/console/*filepath", http.Dir("console"))
 
 		// Auto generate key
 		s._prepareTlsKeys()
@@ -205,14 +207,15 @@ func ClientPing(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	fmt.Fprint(w, jr.ToString(debug))
 }
 
+// Home
+func Home(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+	// Redirect to console
+	http.Redirect(w, r, r.URL.String()+"console/", 301)
+}
+
 // Ping
 func Ping(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	jr := jresp.NewJsonResp()
-	if !auth(r) {
-		jr.Error("Not authorized")
-		fmt.Fprint(w, jr.ToString(debug))
-		return
-	}
 	jr.Set("ping", "pong")
 	jr.OK()
 	fmt.Fprint(w, jr.ToString(debug))
