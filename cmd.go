@@ -1,9 +1,9 @@
 package main
 
 import (
-	"code.google.com/p/go-uuid/uuid"
 	"bytes"
 	"fmt"
+	"github.com/nu7hatch/gouuid"
 	"io/ioutil"
 	"os"
 	"os/exec"
@@ -14,7 +14,7 @@ import (
 type Cmd struct {
 	Command string
 	Pending bool
-	Id string
+	Id      string
 	Timeout int // in seconds
 }
 
@@ -50,8 +50,9 @@ func (c *Cmd) Execute() {
 }
 
 func newCmd(command string, timeout int) *Cmd {
+	id, _ := uuid.NewV4()
 	return &Cmd{
-		Id : uuid.New(),
+		Id:      id.String(),
 		Command: command,
 		Pending: true,
 		Timeout: timeout,
