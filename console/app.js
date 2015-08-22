@@ -3,6 +3,10 @@ var app = {
 		return localStorage['token'];
 	},
 
+	username : function() {
+		return localStorage['username'];
+	},
+
 	apiErr : function(resp) {
 		alert(resp.error);
 	},
@@ -24,18 +28,31 @@ var app = {
 
 	run : function() {
 		/** Login */
-		if (app.token() !== null && app.token().length > 0) {
+		if (typeof app.token() !== 'undefined' && app.token() !== null && app.token().length > 0) {
 			app.showPage('home');
 		} else {
 			app.showPage('login');
 		}
 	},
 
+	ajax : function(url, opts) {
+		if (typeof opts === 'undefined' || opts === null) {
+			opts = {};
+		}
+		if (typeof opts["headers"] === 'undefined') {
+			opts["headers"] = {};
+		}
+		opts["headers"]["X-Auth-User"] = app.username();
+		opts["headers"]["X-Auth-Session"] = app.token();
+		console.log(opts);
+		return $.ajax(url, opts);
+	},
+
 	pages : {
 		home : {
 			load : function() {
 				// @todo finish
-				$.get('/clients');
+				app.ajax('/clients');
 			}
 		},
 
@@ -45,6 +62,7 @@ var app = {
 					$.post('/auth', $(this).serialize(), function(resp) {
 						if (resp.status === 'OK') {
 							localStorage['token'] = resp.session_token;
+							localStorage['username'] = $('form#login input[name="username"]').val();
 							app.showPage('home');
 						} else {
 							app.apiErr(resp);

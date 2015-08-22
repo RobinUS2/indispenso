@@ -61,7 +61,7 @@ type RegisteredClient struct {
 	LastPing time.Time
 	Tags     []string
 	Cmds     map[string]*Cmd
-	CmdChan  chan bool
+	CmdChan  chan bool `json:"-"`
 }
 
 // Generate keys
