@@ -48,7 +48,7 @@ func (s *Server) CleanupClients() {
 	for k, client := range s.clients {
 		if time.Now().Sub(client.LastPing).Seconds() > float64(CLIENT_PING_INTERVAL*5) {
 			// Disconnect
-			log.Printf("Client %s disconnected", client.clientId)
+			log.Printf("Client %s disconnected", client.ClientId)
 			delete(s.clients, k)
 		}
 	}
@@ -57,7 +57,7 @@ func (s *Server) CleanupClients() {
 
 type RegisteredClient struct {
 	mux      sync.RWMutex
-	clientId string
+	ClientId string
 	LastPing time.Time
 	Tags     []string
 	Cmds     map[string]*Cmd
@@ -333,7 +333,7 @@ func newServer() *Server {
 // New registered client
 func newRegisteredClient(clientId string) *RegisteredClient {
 	return &RegisteredClient{
-		clientId: clientId,
+		ClientId: clientId,
 		Cmds:     make(map[string]*Cmd),
 		CmdChan:  make(chan bool),
 	}

@@ -17,14 +17,19 @@ var app = {
 	},
 
 	showPage : function(name) {
+		history.pushState(null, null, '#!' + name);
 		var currentPage = $('.page-visible');
 		var currentPageName = currentPage.attr('data-name');
 		currentPage.removeClass('page-visible');
 		$('.page[data-name="' + name + '"]').addClass('page-visible');
 
 		// Call load and unload
-		if (typeof app.pages[currentPageName]['unload'] === 'function') {
+		if (typeof app.pages[currentPageName] !== 'undefined' && typeof app.pages[currentPageName]['unload'] === 'function') {
 			app.pages[currentPageName]['unload']();
+		}
+		if (typeof app.pages[name] === 'undefined' && name !== '404') {
+			this.showPage('404');
+			return;
 		}
 		if (typeof app.pages[name]['load'] === 'function') {
 			app.pages[name]['load']();
@@ -32,6 +37,20 @@ var app = {
 	},
 
 	run : function() {
+		/** Top menu */
+		$('a[data-nav]').click(function() {
+			console.log($(this));
+			app.showPage($(this).attr('data-nav'));
+			return false;
+		});
+
+		/** Init route based of location */
+		var h = document.location.hash.substr(2);
+		if (h.length > 0) {
+			app.showPage(h);
+			return;
+		}
+
 		/** Login */
 		if (typeof app.token() !== 'undefined' && app.token() !== null && app.token().length > 0) {
 			app.showPage('home');
@@ -72,6 +91,12 @@ var app = {
 					var resp = app.handleResponse(resp);
 					app.bindData('number-of-clients', resp.clients.length);
 				});
+			}
+		},
+
+		'404' : {
+			load : function() {
+
 			}
 		},
 

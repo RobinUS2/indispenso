@@ -25,10 +25,15 @@ Indispenso: https://github.com/RobinUS2/indispenso
 	</head>
 
 	<body>
-		<div class="container">
-			<h1>Indispenso</h1>
+		<nav class="navbar navbar-inverse">
+		  <div class="container">
+		    <a class="navbar-brand" href="#" data-nav="home">Indispenso</a>
+		  </div>
+		</nav>
 
-			<div class="page page-visible" data-name="login">
+		<div class="container">
+
+			<div class="page" data-name="login">
 				<div class="col-md-12">
 					<form id="login">
 					  <div class="form-group">
@@ -45,7 +50,13 @@ Indispenso: https://github.com/RobinUS2/indispenso
 			</div>
 
 			<div class="page" data-name="home">
-				<p>Clients: <span data-bind="number-of-clients"></span></p>
+				<p><a href="#" data-nav="clients">Clients</a>: <span data-bind="number-of-clients"></span></p>
+			</div>
+
+			<div class="page" data-name="404">
+				<div class="col-md-12">
+					<h2>404 Page Not Found</h2>
+				</div>
 			</div>
 		</div>
 	</body>
