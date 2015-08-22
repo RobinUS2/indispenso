@@ -94,6 +94,19 @@ var app = {
 			}
 		},
 
+		clients : {
+			load : function() {
+				app.ajax('/clients').done(function(resp) {
+					var resp = app.handleResponse(resp);
+					var rows = [];
+					$(resp.clients).each(function(i, client) {
+						rows.push('<tr><td>' + client.ClientId + '</td><td>' + client.LastPing + '</td></tr>');
+					});
+					app.bindData('clients', rows.join("\n"));
+				});
+			}
+		},
+
 		'404' : {
 			load : function() {
 

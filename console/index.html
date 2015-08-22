@@ -32,7 +32,7 @@ Indispenso: https://github.com/RobinUS2/indispenso
 		</nav>
 
 		<div class="container">
-
+			<!-- Login -->
 			<div class="page" data-name="login">
 				<div class="col-md-12">
 					<form id="login">
@@ -49,10 +49,26 @@ Indispenso: https://github.com/RobinUS2/indispenso
 				</div>
 			</div>
 
+			<!-- Home -->
 			<div class="page" data-name="home">
 				<p><a href="#" data-nav="clients">Clients</a>: <span data-bind="number-of-clients"></span></p>
 			</div>
 
+			<!-- Clients -->
+			<div class="page" data-name="clients">
+				<table class="table table-striped table-condensed">
+					<thead>
+						<tr>
+							<th>Identifier</th>
+							<th>Last contact</th>
+						</tr>
+					</thead>
+					<tbody data-bind="clients">
+					</tbody>
+				</table>
+			</div>
+
+			<!-- 404 -->
 			<div class="page" data-name="404">
 				<div class="col-md-12">
 					<h2>404 Page Not Found</h2>
