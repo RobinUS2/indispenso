@@ -8,6 +8,11 @@ var app = {
 	},
 
 	apiErr : function(resp) {
+		if (resp.error.indexOf('authorized') !== -1) {
+			delete localStorage['token'];
+			delete localStorage['username'];
+			app.showPage('login');
+		}
 		alert(resp.error);
 	},
 
@@ -44,15 +49,25 @@ var app = {
 		}
 		opts["headers"]["X-Auth-User"] = app.username();
 		opts["headers"]["X-Auth-Session"] = app.token();
-		console.log(opts);
-		return $.ajax(url, opts);
+		opts["dataType"] = 'json';
+		var x = $.ajax(url, opts);
+		return x;
+	},
+
+	handleResponse : function(resp) {
+		if (resp['status'] !== 'OK') {
+			app.apiErr(resp);
+		}
+		return resp;
 	},
 
 	pages : {
 		home : {
 			load : function() {
-				// @todo finish
-				app.ajax('/clients');
+				app.ajax('/clients').done(function(resp) {
+					var resp = app.handleResponse(resp);
+					console.log(resp);
+				});
 			}
 		},
 
