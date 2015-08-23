@@ -190,12 +190,37 @@ var app = {
 
 		templates : {
 			load : function() {
+				// @todo
 			}
 		},
 
 		'create-template' : {
 			load : function() {
-				$('.select2', app.pageInstance()).select2();
+				app.ajax('/tags').done(function(resp) {
+					var resp = app.handleResponse(resp);
+					var tagOptions = [];
+					$(resp.tags).each(function(i, tag) {
+						tagOptions.push('<option value="' + tag + '">' + tag + '</option>');
+					});
+					app.bindData('tags', tagOptions.join("\n"));
+					$('.select2', app.pageInstance()).select2();
+				});
+
+				$('form#create-template').submit(function() {
+					var d = $(this).serialize();
+					
+					app.ajax('/template', { method: 'POST', data : d }).done(function(resp) {
+						var resp = app.handleResponse(resp);
+						console.log(resp);
+						if (resp.status === 'OK') {
+							showPage('templates');
+						}
+					}, 'json');
+					return false;
+				});
+			},
+			unload : function() {
+				$('form#create-template').unbind('submit');
 			}
 		},
 

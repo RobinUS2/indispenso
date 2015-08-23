@@ -4,6 +4,7 @@ import (
 	"github.com/kylelemons/go-gypsy/yaml"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 )
 
@@ -47,10 +48,15 @@ func (c *Conf) load() {
 
 		// Tags
 		tags := conf.Root.(yaml.Map).Key("tags").(yaml.List)
+		tagRegexp, _ := regexp.Compile("[[:alnum:]]")
 		if tags != nil {
 			for _, tag := range tags {
 				cleanTag := strings.ToLower(tag.(yaml.Scalar).String())
-				c.tags[cleanTag] = true
+				if tagRegexp.MatchString(cleanTag) {
+					c.tags[cleanTag] = true
+				} else {
+					log.Printf("Invalid tag %s, must be alphanumeric", tag)
+				}
 			}
 		}
 	}

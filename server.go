@@ -106,6 +106,7 @@ func (s *Server) Start() bool {
 		router.GET("/client/:clientId/cmds", ClientCmds)
 		router.POST("/client/:clientId/cmd", PostClientCmd)
 		router.POST("/auth", PostAuth)
+		router.POST("/template", PostTemplate)
 		router.PUT("/user/password", PutUserPassword)
 		router.GET("/clients", GetClients)
 		router.ServeFiles("/console/*filepath", http.Dir("console"))
@@ -126,6 +127,26 @@ func (s *Server) Start() bool {
 	}()
 
 	return true
+}
+
+// Create template
+func PostTemplate(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+	jr := jresp.NewJsonResp()
+	if !authUser(r) {
+		jr.Error("Not authorized")
+		fmt.Fprint(w, jr.ToString(debug))
+		return
+	}
+
+	// title := strings.TrimSpace(r.PostFormValue("title"))
+	// description := strings.TrimSpace(r.PostFormValue("description"))
+	// command := r.PostFormValue("command")
+	includedTags := r.PostForm["includedTags"]
+	log.Printf("%v", includedTags)
+
+	jr.Set("saved", true)
+	jr.OK()
+	fmt.Fprint(w, jr.ToString(debug))
 }
 
 // Login
