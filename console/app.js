@@ -11,7 +11,11 @@ var app = {
 		if (resp.error.indexOf('authorized') !== -1) {
 			app.logout();
 		}
-		alert(resp.error);
+		app.alert('warning', 'Error', resp.error);
+	},
+
+	alert : function(type, title, message) {
+		$('#alert').html('<div class="alert alert-' + type + '" role="alert"><strong>' + title + '</strong> ' + message + '</div>');
 	},
 
 	showPage : function(name) {
