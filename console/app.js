@@ -259,6 +259,11 @@ var app = {
 			}
 		},
 
+		pending : {
+			load : function() {
+			}
+		},
+
 		users : {
 			load : function() {
 				app.ajax('/users').done(function(resp) {
