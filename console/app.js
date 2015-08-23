@@ -195,6 +195,7 @@ var app = {
 
 		'create-template' : {
 			load : function() {
+				$('.select2', app.pageInstance()).select2();
 			}
 		},
 
