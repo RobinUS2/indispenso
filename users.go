@@ -30,6 +30,19 @@ func (s *UserStore) ByName(username string) *User {
 	return nil
 }
 
+func (s *UserStore) RemoveByName(username string) {
+	s.usersMux.Lock()
+	defer s.usersMux.Unlock()
+	tmp := make([]*User, 0)
+	for _, user := range s.Users {
+		if user.Username == username {
+			continue
+		}
+		tmp = append(tmp, user)
+	}
+	s.Users = tmp
+}
+
 func (s *UserStore) save() {
 	s.usersMux.Lock()
 	defer s.usersMux.Unlock()

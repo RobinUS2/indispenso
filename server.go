@@ -112,6 +112,7 @@ func (s *Server) Start() bool {
 		router.GET("/clients", GetClients)
 		router.GET("/users", GetUsers)
 		router.POST("/user", PostUser)
+		router.DELETE("/user", DeleteUser)
 		router.ServeFiles("/console/*filepath", http.Dir("console"))
 
 		// Auto generate key
@@ -326,6 +327,31 @@ func getUser(r *http.Request) *User {
 		return nil
 	}
 	return user
+}
+
+// Delete user
+func DeleteUser(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+	jr := jresp.NewJsonResp()
+	if !authUser(r) {
+		jr.Error("Not authorized")
+		fmt.Fprint(w, jr.ToString(debug))
+		return
+	}
+	usr := getUser(r)
+	if !usr.HasRole("admin") {
+		jr.Error("Not authorized")
+		fmt.Fprint(w, jr.ToString(debug))
+		return
+	}
+
+	// Get user
+	username := r.PostFormValue("username")
+	server.userStore.RemoveByName(username)
+	server.userStore.save()
+
+	jr.Set("saved", true)
+	jr.OK()
+	fmt.Fprint(w, jr.ToString(debug))
 }
 
 // Create user
