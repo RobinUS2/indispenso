@@ -110,6 +110,7 @@ func (s *Server) Start() bool {
 		router.POST("/template", PostTemplate)
 		router.PUT("/user/password", PutUserPassword)
 		router.GET("/clients", GetClients)
+		router.GET("/users", GetUsers)
 		router.ServeFiles("/console/*filepath", http.Dir("console"))
 
 		// Auto generate key
@@ -319,6 +320,35 @@ func getUser(r *http.Request) *User {
 		return nil
 	}
 	return user
+}
+
+// List users
+func GetUsers(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+	jr := jresp.NewJsonResp()
+	if !authUser(r) {
+		jr.Error("Not authorized")
+		fmt.Fprint(w, jr.ToString(debug))
+		return
+	}
+	usr := getUser(r)
+	if !usr.HasRole("admin") {
+		jr.Error("Not authorized")
+		fmt.Fprint(w, jr.ToString(debug))
+		return
+	}
+	server.userStore.usersMux.RLock()
+	users := make([]User, 0)
+	for _, userPtr := range server.userStore.Users {
+		user := *userPtr
+		// Hide sensitive fields
+		user.PasswordHash = ""
+		user.SessionToken = ""
+		users = append(users, user)
+	}
+	jr.Set("users", users)
+	server.userStore.usersMux.RUnlock()
+	jr.OK()
+	fmt.Fprint(w, jr.ToString(debug))
 }
 
 // List clients

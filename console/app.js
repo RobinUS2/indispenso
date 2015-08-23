@@ -220,6 +220,15 @@ var app = {
 			}
 		},
 
+		users : {
+			load : function() {
+				app.ajax('/users').done(function(resp) {
+					var resp = app.handleResponse(resp);
+					console.log(resp);
+				});
+			}
+		},
+
 		templates : {
 			load : function() {
 				app.ajax('/templates').done(function(resp) {
