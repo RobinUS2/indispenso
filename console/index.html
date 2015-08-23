@@ -36,12 +36,13 @@ Indispenso: https://github.com/RobinUS2/indispenso
 		    <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
 		      <ul class="nav navbar-nav">
 		        <li><a href="#" data-nav="clients">Clients</a></li>
+		        <li><a href="#" data-nav="templates">Templates</a></li>
 		      </ul>
 		      <ul class="nav navbar-nav navbar-right">
 		        <li class="dropdown">
 		          <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-haspopup="true" aria-expanded="false">Settings <span class="caret"></span></a>
 		          <ul class="dropdown-menu">
-		            <li><a href="#" data-nav="profile">User</a></li>
+		            <li><a href="#" data-nav="profile">My Profile</a></li>
 		            <li role="separator" class="divider"></li>
 		            <li><a href="#" data-nav="logout">Logout</a></li>
 		          </ul>
@@ -72,6 +73,7 @@ Indispenso: https://github.com/RobinUS2/indispenso
 			<!-- Home -->
 			<div class="page" data-name="home">
 				<div class="col-md-12">
+					<h2>Dashboard</h2>
 					<p><a href="#" data-nav="clients">Clients</a>: <span data-bind="number-of-clients"></span></p>
 				</div>
 			</div>
@@ -79,6 +81,7 @@ Indispenso: https://github.com/RobinUS2/indispenso
 			<!-- Clients -->
 			<div class="page" data-name="clients">
 				<div class="col-md-12">
+					<h2>Clients</h2>
 					<div>
 						<ul data-bind="tags" class="tags-horizontal">
 						</ul>
@@ -101,6 +104,7 @@ Indispenso: https://github.com/RobinUS2/indispenso
 			<!-- My profile -->
 			<div class="page" data-name="profile">
 				<div class="col-md-12">
+					<h2>My Profile</h2>
 					<form id="change-password">
 					  <div class="form-group">
 					    <label for="password">Password</label>
@@ -112,6 +116,32 @@ Indispenso: https://github.com/RobinUS2/indispenso
 					  </div>
 					  <button type="submit" class="btn btn-primary">Change password</button>
 					</form>
+				</div>
+			</div>
+
+			<!-- Templates -->
+			<div class="page" data-name="templates">
+				<div class="col-md-12">
+					<h2>Templates</h2>
+					<table class="table table-striped table-condensed">
+						<thead>
+							<tr>
+								<th>Name</th>
+								<th>Tags</th>
+							</tr>
+						</thead>
+						<tbody data-bind="templates">
+							<!-- mock -->
+							<tr>
+								<td>Reboot server</td>
+								<td><span class="label label-warning">ALL</span></td>
+							</tr>
+							<tr>
+								<td>Update fennec</td>
+								<td><span class="label label-primary">fennec</span></td>
+							</tr>
+						</tbody>
+					</table>
 				</div>
 			</div>
 

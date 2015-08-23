@@ -188,6 +188,11 @@ var app = {
 			}
 		},
 
+		templates : {
+			load : function() {
+			}
+		},
+
 		logout : {
 			load : function() {
 				app.logout();

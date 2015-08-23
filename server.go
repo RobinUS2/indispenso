@@ -19,6 +19,8 @@ import (
 type Server struct {
 	clientsMux sync.RWMutex
 	clients    map[string]*RegisteredClient
+	tagsMux    sync.RWMutex
+	Tags       map[string]bool
 	userStore  *UserStore
 }
 
@@ -34,6 +36,13 @@ func (s *Server) RegisterClient(clientId string, tags []string) {
 	s.clients[clientId].Tags = tags
 	s.clients[clientId].mux.Unlock()
 	s.clientsMux.Unlock()
+
+	// Update tags
+	s.tagsMux.Lock()
+	for _, tag := range tags {
+		s.Tags[tag] = true
+	}
+	s.tagsMux.Unlock()
 }
 
 func (s *Server) GetClient(clientId string) *RegisteredClient {
@@ -88,6 +97,7 @@ func (s *Server) Start() bool {
 		router := httprouter.New()
 		router.GET("/", Home)
 		router.GET("/ping", Ping)
+		router.GET("/tags", GetTags)
 		router.GET("/client/:clientId/ping", ClientPing)
 		router.GET("/client/:clientId/cmds", ClientCmds)
 		router.POST("/client/:clientId/cmd", PostClientCmd)
@@ -140,6 +150,25 @@ func PostAuth(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	token := user.StartSession()
 	user.TouchSession()
 	jr.Set("session_token", token)
+	jr.OK()
+	fmt.Fprint(w, jr.ToString(debug))
+}
+
+// List of all tags
+func GetTags(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+	jr := jresp.NewJsonResp()
+	if !authUser(r) {
+		jr.Error("Not authorized")
+		fmt.Fprint(w, jr.ToString(debug))
+		return
+	}
+	server.tagsMux.RLock()
+	tags := make([]string, 0)
+	for tag := range server.Tags {
+		tags = append(tags, tag)
+	}
+	jr.Set("tags", tags)
+	server.tagsMux.RUnlock()
 	jr.OK()
 	fmt.Fprint(w, jr.ToString(debug))
 }
@@ -379,6 +408,7 @@ func authUser(r *http.Request) bool {
 func newServer() *Server {
 	return &Server{
 		clients: make(map[string]*RegisteredClient),
+		Tags:    make(map[string]bool),
 	}
 }
 

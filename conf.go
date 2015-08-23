@@ -4,6 +4,7 @@ import (
 	"github.com/kylelemons/go-gypsy/yaml"
 	"os"
 	"path/filepath"
+	"strings"
 )
 
 // Configuration
@@ -48,7 +49,8 @@ func (c *Conf) load() {
 		tags := conf.Root.(yaml.Map).Key("tags").(yaml.List)
 		if tags != nil {
 			for _, tag := range tags {
-				c.tags[tag.(yaml.Scalar).String()] = true
+				cleanTag := strings.ToLower(tag.(yaml.Scalar).String())
+				c.tags[cleanTag] = true
 			}
 		}
 	}
