@@ -281,17 +281,54 @@ var app = {
 							var resp = app.handleResponse(resp);
 							if (resp.status === 'OK') {
 								var workKeys = Object.keys(resp.work);
+								var workHtml = [];
 								$(workKeys).each(function(i, workKey) {
 									var work = resp.work[workKey];
+									var template = templates[work.TemplateId];
+									var user = userMap[work.RequestUserId];
+									if (typeof user === 'undefined') {
+										user = {
+											Username : ''
+										}
+									}
+									console.log(work, template, user);
 
-									console.log(work, templates[work.TemplateId], userMap[work.RequestUserId]);
+									var lines = [];
+									lines.push('<tr>');
+									lines.push('<td>' + template.Title + '</td>');
+									lines.push('<td>' + user.Username + '</td>');
+									lines.push('<td>APPROVE</td>');
+									lines.push('</tr>');
+									workHtml.push(lines.join(''));
 								});
+								app.bindData('work', workHtml.join("\n"));
 
+								var workHtml = [];
 								var requestKeys = Object.keys(resp.requests);
 								$(requestKeys).each(function(i, requestKey) {
 									var request = resp.requests[requestKey];
-									console.log(request, templates[request.TemplateId], userMap[request.RequestUserId]);
+									var template = templates[request.TemplateId];
+									var user = userMap[request.RequestUserId];
+									if (typeof user === 'undefined') {
+										user = {
+											Username : ''
+										}
+									}
+									console.log(request, template, user);
+
+									var lines = [];
+									lines.push('<tr>');
+									lines.push('<td>' + template.Title + '</td>');
+									lines.push('<td>' + user.Username + '</td>');
+									lines.push('<td>');
+									if (user.Id === app.userId()) {
+										lines.push('CANCEL');
+									}
+									lines.push('</td>');
+									lines.push('</tr>');
+									workHtml.push(lines.join(''));
 								});
+								app.bindData('pending', workHtml.join("\n"));
 							}
 						});
 					});

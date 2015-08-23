@@ -113,9 +113,31 @@ Indispenso: https://github.com/RobinUS2/indispenso
 				<div class="col-md-12">
 					<h2>Pending Approval</h2>
 					<p>The items below are pending your approval.</p>
+					<table class="table table-striped table-condensed" id="work-requests">
+						<thead>
+							<tr>
+								<th>Command</th>
+								<th>Requester</th>
+								<th></th>
+							</tr>
+						</thead>
+						<tbody data-bind="work">
+						</tbody>
+					</table>
 
 					<h2>Pending Requests</h2>
 					<p>The items below are pending executions. You are not eligible for voting for those items.</p>
+					<table class="table table-striped table-condensed" id="pending-requests">
+						<thead>
+							<tr>
+								<th>Command</th>
+								<th>Requester</th>
+								<th></th>
+							</tr>
+						</thead>
+						<tbody data-bind="pending">
+						</tbody>
+					</table>
 				</div>
 			</div>
 
