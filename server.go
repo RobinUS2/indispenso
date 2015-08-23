@@ -128,6 +128,7 @@ func (s *Server) Start() bool {
 		router.GET("/clients", GetClients)
 		router.GET("/users", GetUsers)
 		router.POST("/user", PostUser)
+		router.POST("/request", PostRequest)
 		router.DELETE("/user", DeleteUser)
 		router.ServeFiles("/console/*filepath", http.Dir("console"))
 
@@ -147,6 +148,31 @@ func (s *Server) Start() bool {
 	}()
 
 	return true
+}
+
+// Create execution request
+func PostRequest(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+	jr := jresp.NewJsonResp()
+	if !authUser(r) {
+		jr.Error("Not authorized")
+		fmt.Fprint(w, jr.ToString(debug))
+		return
+	}
+
+	user := getUser(r)
+	if !user.HasRole("requester") {
+		jr.Error("Not authorized")
+		fmt.Fprint(w, jr.ToString(debug))
+		return
+	}
+
+	// Template
+	templateId := strings.TrimSpace(r.PostFormValue("template"))
+	clientIds := strings.Split(strings.TrimSpace(r.PostFormValue("clients")), ",")
+	log.Printf("%v %v", templateId, clientIds)
+
+	jr.OK()
+	fmt.Fprint(w, jr.ToString(debug))
 }
 
 // Get templates

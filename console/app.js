@@ -392,12 +392,14 @@ var app = {
 						app.bindData('clients', rows.join("\n"));
 
 						// Make button active
+						$('.request-execution > .btn', app.pageInstance()).unbind('click');
 						$('.request-execution > .btn', app.pageInstance()).click(function() {
 							$('.request-execution', app.pageInstance()).hide();
 							$('.select-clients', app.pageInstance()).show();
 						});
 
 						// Toggle all
+						$('.toggle-clients', app.pageInstance()).unbind('click');
 						$('.toggle-clients', app.pageInstance()).click(function() {
 							var on = $(this).attr('data-state') === '1';
 							if (on) {
@@ -412,6 +414,7 @@ var app = {
 						});
 
 						// Execute
+						$('.do-request', app.pageInstance()).unbind('click');
 						$('.do-request', app.pageInstance()).click(function() {
 							// Confirm
 							if (!confirm('Are you sure you want to continue?')) {
@@ -423,9 +426,13 @@ var app = {
 							$('.select-client:checked').each(function(i, cb) {
 								clientIds.push($(cb).attr('data-id'));
 							});
-							
+							if (clientIds.length < 1) {
+								app.alert('warning', 'No clients', 'You need to select at least one target client');
+								return;
+							}
+
 							// Request
-							app.ajax('/request', { method: 'POST', data { template : template.Id, clients : clientIds.join(',')} }).done(function(resp) {
+							app.ajax('/request', { method: 'POST', data : { template : template.Id, clients : clientIds.join(',') } }).done(function(resp) {
 								var resp = app.handleResponse(resp);
 								if (resp.status === 'OK') {
 									app.showPage('pending');
@@ -436,10 +443,6 @@ var app = {
 						});
 					});
 				});
-			},
-			unload : function() {
-				$('.do-request', app.pageInstance()).unbind('click');
-				$('.toggle-clients', app.pageInstance()).unbind('click');
 			}
 		},
 
