@@ -17,11 +17,12 @@ import (
 // Server methods (you probably only need one or two in HA failover mode)
 
 type Server struct {
-	clientsMux sync.RWMutex
-	clients    map[string]*RegisteredClient
-	tagsMux    sync.RWMutex
-	Tags       map[string]bool
-	userStore  *UserStore
+	clientsMux    sync.RWMutex
+	clients       map[string]*RegisteredClient
+	tagsMux       sync.RWMutex
+	Tags          map[string]bool
+	userStore     *UserStore
+	templateStore *TemplateStore
 }
 
 // Register client
@@ -88,6 +89,9 @@ func (s *Server) _prepareTlsKeys() {
 func (s *Server) Start() bool {
 	// Users
 	s.userStore = newUserStore()
+
+	// Templates
+	s.templateStore = newTemplateStore()
 
 	// Print info
 	log.Printf("Starting server at https://localhost:%d/", serverPort)
