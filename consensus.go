@@ -1,7 +1,9 @@
 package main
 
 import (
+	"encoding/json"
 	"github.com/nu7hatch/gouuid"
+	"io/ioutil"
 	"sync"
 )
 
@@ -11,6 +13,7 @@ import (
 type Consensus struct {
 	pendingMux sync.RWMutex
 	Pending    map[string]*ConsensusRequest
+	ConfFile   string
 }
 
 type ConsensusRequest struct {
@@ -18,6 +21,37 @@ type ConsensusRequest struct {
 	TemplateId    string
 	ClientIds     []string
 	RequestUserId string
+}
+
+func (c *Consensus) save() {
+	c.pendingMux.Lock()
+	defer c.pendingMux.Unlock()
+	bytes, je := json.Marshal(c.Pending)
+	if je != nil {
+		log.Printf("Failed to write consensus: %s", je)
+		return
+	}
+	err := ioutil.WriteFile(c.ConfFile, bytes, 0644)
+	if err != nil {
+		log.Printf("Failed to write consensus: %s", err)
+		return
+	}
+}
+
+func (c *Consensus) load() {
+	c.pendingMux.Lock()
+	defer c.pendingMux.Unlock()
+	// Read file and load into
+	bytes, err := ioutil.ReadFile(c.ConfFile)
+	if err == nil {
+		var v map[string]*ConsensusRequest
+		je := json.Unmarshal(bytes, &v)
+		if je != nil {
+			log.Printf("Invalid users.json: %s", je)
+			return
+		}
+		c.Pending = v
+	}
 }
 
 func (c *Consensus) AddRequest(templateId string, clientIds []string, requestUserId string) {
@@ -32,9 +66,12 @@ func (c *Consensus) AddRequest(templateId string, clientIds []string, requestUse
 }
 
 func newConsensus() *Consensus {
-	return &Consensus{
-		Pending: make(map[string]*ConsensusRequest),
+	c := &Consensus{
+		Pending:  make(map[string]*ConsensusRequest),
+		ConfFile: "/etc/indispenso/consensus.json",
 	}
+	c.load()
+	return c
 }
 func newConsensusRequest() *ConsensusRequest {
 	id, _ := uuid.NewV4()

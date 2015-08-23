@@ -176,6 +176,7 @@ func PostConsensusRequest(w http.ResponseWriter, r *http.Request, ps httprouter.
 
 	// Create request
 	server.consensus.AddRequest(templateId, clientIds, user.Id)
+	server.consensus.save()
 
 	jr.OK()
 	fmt.Fprint(w, jr.ToString(debug))
