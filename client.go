@@ -111,6 +111,8 @@ func (s *Client) _reqUnsafe(method string, uri string, data []byte) ([]byte, err
 			InsecureSkipVerify: true,
 		}, // Ignore certificate as this is self generated and invalid
 	}
+	// For some reasons connections were not closed, this helps
+	defer tr.CloseIdleConnections()
 
 	// Client
 	client := &http.Client{
