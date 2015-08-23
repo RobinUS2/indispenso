@@ -30,8 +30,26 @@ var app = {
 		}, 2000);
 	},
 
-	showPage : function(name) {
-		history.pushState(null, null, '#!' + name);
+	_params : {},
+	getParam : function(k) {
+		return app._params[k];
+	},
+
+	showPage : function(input) {
+		// Params?
+		var qp = input.indexOf('?');
+		var name = input;
+		if (qp !== -1) {
+			name = input.substr(0, qp);
+			var paramStr = input.substr(qp + 1);
+			var paramParts = paramStr.split('&');
+			$(paramParts).each(function(i, part) {
+				var kv = part.split('=');
+				app._params[kv[0]] = decodeURIComponent(kv[1]);
+			});
+		}
+
+		history.pushState(null, null, '#!' + input);
 		var currentPage = $('.page-visible');
 		var currentPageName = currentPage.attr('data-name');
 		currentPage.removeClass('page-visible');
@@ -64,12 +82,17 @@ var app = {
 		});
 	},
 
-	run : function() {
-		/** Top menu */
+	initNav : function() {
+		$('a[data-nav]').unbind('click');
 		$('a[data-nav]').click(function() {
 			app.showPage($(this).attr('data-nav'));
 			return false;
 		});
+	},
+
+	run : function() {
+		/** Top menu */
+		app.initNav();
 
 		/** Init route based of location */
 		var h = document.location.hash.substr(2);
@@ -302,11 +325,12 @@ var app = {
 							tags.push('<span class="label label-success">ANY</span>');
 						}
 						lines.push('<td>' + tags.join(" ") + '</td>');
-						lines.push('<td><div class="btn-group btn-group-xs pull-right"><span class="btn btn-default ">Execute</span> <span class="btn btn-default delete-template" data-roles="admin" data-id="' + template.Id + '">Delete</span></div></td>');
+						lines.push('<td><div class="btn-group btn-group-xs pull-right"><a class="btn btn-default" data-nav="request-execution?id=' + template.Id + '" href="#">Execute</a> <span class="btn btn-default delete-template" data-roles="admin" data-id="' + template.Id + '">Delete</span></div></td>');
 						lines.push('</tr>');
 						templatesHtml.push(lines.join("\n"));
 					}
 					app.bindData('templates', templatesHtml.join("\n"));
+					app.initNav();
 					$('.delete-template').click(function() {
 						var id = $(this).attr('data-id');
 						if (!confirm('Are you sure you want to delete this template?')) {
@@ -320,6 +344,13 @@ var app = {
 						});
 					});
 				});
+			}
+		},
+
+		'request-execution' : {
+			load : function() {
+				var id = app.getParam('id');
+				console.log(id);
 			}
 		},
 
