@@ -134,6 +134,7 @@ func (s *Server) Start() bool {
 		router.GET("/users/names", GetUsersNames)
 		router.POST("/user", PostUser)
 		router.POST("/consensus/request", PostConsensusRequest)
+		router.DELETE("/consensus/request", DeleteConsensusRequest)
 		router.POST("/consensus/approve", PostConsensusApprove)
 		router.GET("/consensus/pending", GetConsensusPending)
 		router.DELETE("/user", DeleteUser)
@@ -216,6 +217,50 @@ func PostConsensusApprove(w http.ResponseWriter, r *http.Request, ps httprouter.
 	server.consensus.save()
 
 	jr.Set("approved", res)
+	jr.OK()
+	fmt.Fprint(w, jr.ToString(debug))
+}
+
+// Cancel execution request
+func DeleteConsensusRequest(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+	jr := jresp.NewJsonResp()
+	if !authUser(r) {
+		jr.Error("Not authorized")
+		fmt.Fprint(w, jr.ToString(debug))
+		return
+	}
+
+	user := getUser(r)
+	if !user.HasRole("requester") {
+		jr.Error("Not authorized")
+		fmt.Fprint(w, jr.ToString(debug))
+		return
+	}
+
+	// Get template
+	id := strings.TrimSpace(r.URL.Query().Get("id"))
+	req := server.consensus.Get(id)
+	if req == nil {
+		jr.Error("Request not found")
+		fmt.Fprint(w, jr.ToString(debug))
+		return
+	}
+
+	// Did we request this? Or are we admin
+	isAdmin := user.HasRole("admin")
+	isCreator := req.RequestUserId == user.Id
+	if !isAdmin && !isCreator {
+		jr.Error("Only the creator or admins can cancel a request")
+		fmt.Fprint(w, jr.ToString(debug))
+		return
+	}
+
+	// Create request
+	res := req.Cancel(user)
+	server.consensus.save()
+
+	jr.Set("cancelled", res)
+
 	jr.OK()
 	fmt.Fprint(w, jr.ToString(debug))
 }
@@ -349,6 +394,7 @@ func PostAuth(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 		roles = append(roles, role)
 	}
 	jr.Set("user_roles", roles)
+	jr.Set("user_id", user.Id)
 	jr.OK()
 	fmt.Fprint(w, jr.ToString(debug))
 }

@@ -7,6 +7,10 @@ var app = {
 		return localStorage['username'];
 	},
 
+	userId : function() {
+		return localStorage['user_id'];
+	},
+
 	apiErr : function(resp) {
 		if (resp.error.indexOf('authorized') !== -1) {
 			app.logout();
@@ -532,6 +536,7 @@ var app = {
 					$.post('/auth', $(this).serialize(), function(resp) {
 						if (resp.status === 'OK') {
 							localStorage['token'] = resp.session_token;
+							localStorage['user_id'] = resp.user_id;
 							localStorage['username'] = $('form#login input[name="username"]').val();
 							localStorage['user_roles'] = resp.user_roles.join(',');
 							app.alert('info', 'Login successful', 'Welcome back ' + localStorage['username']);

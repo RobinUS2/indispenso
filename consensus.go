@@ -30,6 +30,13 @@ func (c *Consensus) Get(id string) *ConsensusRequest {
 	return c.Pending[id]
 }
 
+func (c *ConsensusRequest) Cancel(user *User) bool {
+	server.consensus.pendingMux.Lock()
+	defer server.consensus.pendingMux.Unlock()
+	delete(server.consensus.Pending, c.Id)
+	return true
+}
+
 func (c *ConsensusRequest) Approve(user *User) bool {
 	if c.RequestUserId == user.Id {
 		return false
