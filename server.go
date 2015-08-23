@@ -133,6 +133,7 @@ func (s *Server) Start() bool {
 		router.GET("/users", GetUsers)
 		router.POST("/user", PostUser)
 		router.POST("/consensus/request", PostConsensusRequest)
+		router.POST("/consensus/approve", PostConsensusApprove)
 		router.GET("/consensus/pending", GetConsensusPending)
 		router.DELETE("/user", DeleteUser)
 		router.ServeFiles("/console/*filepath", http.Dir("console"))
@@ -182,6 +183,38 @@ func GetConsensusPending(w http.ResponseWriter, r *http.Request, ps httprouter.P
 	jr.Set("work", work)
 	server.consensus.pendingMux.RUnlock()
 
+	jr.OK()
+	fmt.Fprint(w, jr.ToString(debug))
+}
+
+// Approve execution request
+func PostConsensusApprove(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+	jr := jresp.NewJsonResp()
+	if !authUser(r) {
+		jr.Error("Not authorized")
+		fmt.Fprint(w, jr.ToString(debug))
+		return
+	}
+
+	user := getUser(r)
+	if !user.HasRole("approver") {
+		jr.Error("Not authorized")
+		fmt.Fprint(w, jr.ToString(debug))
+		return
+	}
+
+	// Vote
+	id := strings.TrimSpace(r.PostFormValue("id"))
+	req := server.consensus.Get(id)
+	if req == nil {
+		jr.Error("Request not found")
+		fmt.Fprint(w, jr.ToString(debug))
+		return
+	}
+	res := req.Approve(user)
+	server.consensus.save()
+
+	jr.Set("approved", res)
 	jr.OK()
 	fmt.Fprint(w, jr.ToString(debug))
 }

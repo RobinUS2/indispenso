@@ -24,6 +24,26 @@ type ConsensusRequest struct {
 	ApproveUserIds map[string]bool
 }
 
+func (c *Consensus) Get(id string) *ConsensusRequest {
+	c.pendingMux.RLock()
+	defer c.pendingMux.RUnlock()
+	return c.Pending[id]
+}
+
+func (c *ConsensusRequest) Approve(user *User) bool {
+	if c.RequestUserId == user.Id {
+		return false
+	}
+	if c.ApproveUserIds[user.Id] {
+		return false
+	}
+	c.ApproveUserIds[user.Id] = true
+
+	// @todo Start?
+
+	return true
+}
+
 func (c *Consensus) save() {
 	c.pendingMux.Lock()
 	defer c.pendingMux.Unlock()

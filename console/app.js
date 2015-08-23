@@ -261,6 +261,22 @@ var app = {
 
 		pending : {
 			load : function() {
+				app.ajax('/consensus/pending').done(function(resp) {
+					var resp = app.handleResponse(resp);
+					if (resp.status === 'OK') {
+						var workKeys = Object.keys(resp.work);
+						$(workKeys).each(function(i, workKey) {
+							var work = resp.work[workKey];
+							console.log(work);
+						});
+
+						var requestKeys = Object.keys(resp.requests);
+						$(requestKeys).each(function(i, requestKey) {
+							var request = resp.requests[requestKey];
+							console.log(request);
+						});
+					}
+				});
 			}
 		},
 
@@ -504,6 +520,7 @@ var app = {
 							localStorage['username'] = $('form#login input[name="username"]').val();
 							localStorage['user_roles'] = resp.user_roles.join(',');
 							app.alert('info', 'Login successful', 'Welcome back ' + localStorage['username']);
+							$('.navbar-nav').show();
 							app.showPage('home');
 						} else {
 							app.apiErr(resp);
