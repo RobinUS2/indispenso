@@ -225,6 +225,11 @@ func PostAuth(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	token := user.StartSession()
 	user.TouchSession()
 	jr.Set("session_token", token)
+	roles := make([]string, 0)
+	for role := range user.Roles {
+		roles = append(roles, role)
+	}
+	jr.Set("user_roles", roles)
 	jr.OK()
 	fmt.Fprint(w, jr.ToString(debug))
 }

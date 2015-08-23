@@ -36,6 +36,7 @@ Indispenso: https://github.com/RobinUS2/indispenso
 		      <ul class="nav navbar-nav">
 		        <li><a href="#" data-nav="clients">Clients</a></li>
 		        <li><a href="#" data-nav="templates">Templates</a></li>
+		        <li><a href="#" data-nav="users" data-roles="admin">Users</a></li>
 		      </ul>
 		      <ul class="nav navbar-nav navbar-right">
 		        <li class="dropdown">
@@ -127,7 +128,7 @@ Indispenso: https://github.com/RobinUS2/indispenso
 				<div class="col-md-12">
 					<div class="row-fluid">
 						<h2>Templates</h2>
-						<a class="btn btn-default pull-right" data-nav="create-template" data-role="admin" href="#">Create</a>
+						<a class="btn btn-default pull-right" data-nav="create-template" data-roles="admin" href="#">Create</a>
 					</div>
 					<table class="table table-striped table-condensed">
 						<thead>
@@ -144,7 +145,7 @@ Indispenso: https://github.com/RobinUS2/indispenso
 			</div>
 
 			<!-- Create template -->
-			<div class="page" data-name="create-template">
+			<div class="page" data-name="create-template" data-roles="admin">
 				<div class="col-md-12">
 					<h2>Create Template</h2>
 					<form id="create-template">

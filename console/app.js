@@ -14,6 +14,15 @@ var app = {
 		app.alert('warning', 'Error', resp.error);
 	},
 
+	// Only to be used for fast visual hiding of elements, real validation is on the server side
+	userRoles : function() {
+		var l = localStorage['user_roles'];
+		if (typeof l === 'undefined' || l === null) {
+			return [];
+		}
+		return l.split(',');
+	},
+
 	alert : function(type, title, message) {
 		$('#alert').html('<div class="alert alert-' + type + '" role="alert"><strong>' + title + '</strong> ' + message + '</div>');
 		setTimeout(function() {
@@ -39,6 +48,20 @@ var app = {
 		if (typeof app.pages[name]['load'] === 'function') {
 			app.pages[name]['load']();
 		}
+
+		// Hide elements that are not visible to your role
+		$('[data-roles]').each(function(i, elm) {
+			var roles = $(elm).attr('data-roles').split(',');
+			var hasAll = true;
+			$(roles).each(function(i, role) {
+				if (app.userRoles().indexOf(role) === -1) {
+					hasAll = false;
+				}
+			});
+			if (!hasAll) {
+				$(this).hide();
+			}
+		});
 	},
 
 	run : function() {
@@ -274,6 +297,7 @@ var app = {
 						if (resp.status === 'OK') {
 							localStorage['token'] = resp.session_token;
 							localStorage['username'] = $('form#login input[name="username"]').val();
+							localStorage['user_roles'] = resp.user_roles.join(',');
 							app.alert('info', 'Login successful', 'Welcome back ' + localStorage['username']);
 							app.showPage('home');
 						} else {
