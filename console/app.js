@@ -243,6 +243,11 @@ var app = {
 			}
 		},
 
+		'create-user' : {
+			load : function() {
+			}
+		},
+
 		templates : {
 			load : function() {
 				app.ajax('/templates').done(function(resp) {

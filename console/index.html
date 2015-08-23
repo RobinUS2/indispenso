@@ -143,6 +143,40 @@ Indispenso: https://github.com/RobinUS2/indispenso
 				</div>
 			</div>
 
+			<!-- Create user -->
+			<div class="page" data-name="create-user" data-roles="admin">
+				<div class="col-md-12">
+					<h2>Create User</h2>
+					<form id="change-password">
+					  <div class="form-group">
+					    <label for="username">Username</label>
+					    <input type="text" name="username" class="form-control" id="username" placeholder="Username">
+					  </div>
+					  <div class="form-group">
+					    <label for="password">Password</label>
+					    <input type="password" name="password" class="form-control" id="password" placeholder="Password">
+					  </div>
+					  <div class="form-group">
+					    <label for="password2">Password (confirm)</label>
+					    <input type="password" name="password2" class="form-control" id="password2" placeholder="Password">
+					  </div>
+					  <div class="form-group">
+					    <label for="email">Email address</label>
+					    <input type="text" name="email" class="form-control" id="email" placeholder="email">
+					  </div>
+					  <div class="form-group">
+					    <label for="roles">Roles</label>
+					    <select class="form-control select2" name="roles" id="roles">
+					    	<option value="admin">Admin</option>
+					    	<option value="requester">Requester</option>
+					    	<option value="approver">Approver</option>
+						</select>
+					  </div>
+					  <button type="submit" class="btn btn-primary">Create</button>
+					</form>
+				</div>
+			</div>
+
 			<!-- Templates -->
 			<div class="page" data-name="templates">
 				<div class="col-md-12">

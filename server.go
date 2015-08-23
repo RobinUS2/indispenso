@@ -322,6 +322,53 @@ func getUser(r *http.Request) *User {
 	return user
 }
 
+// Create user
+func PostUser(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+	jr := jresp.NewJsonResp()
+	if !authUser(r) {
+		jr.Error("Not authorized")
+		fmt.Fprint(w, jr.ToString(debug))
+		return
+	}
+	usr := getUser(r)
+	if !usr.HasRole("admin") {
+		jr.Error("Not authorized")
+		fmt.Fprint(w, jr.ToString(debug))
+		return
+	}
+
+	// Username
+	username := r.PostFormValue("username")
+	email := r.PostFormValue("email")
+
+	// Validate password
+	newPwd := r.PostFormValue("password")
+	if len(newPwd) < 16 {
+		jr.Error("Password must be at least 16 characters, please pick a strong one!")
+		fmt.Fprint(w, jr.ToString(debug))
+		return
+	}
+
+	// Match passwords
+	newPwd2 := r.PostFormValue("password2")
+	if newPwd != newPwd2 {
+		jr.Error("Please confirm your password")
+		fmt.Fprint(w, jr.ToString(debug))
+		return
+	}
+
+	// Roles
+	roles := strings.Split(r.PostFormValue("roles"), ",")
+
+	// Create user
+	res := server.userStore.CreateUser(username, newPwd, email, roles)
+	server.userStore.save()
+
+	jr.Set("saved", res)
+	jr.OK()
+	fmt.Fprint(w, jr.ToString(debug))
+}
+
 // List users
 func GetUsers(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	jr := jresp.NewJsonResp()

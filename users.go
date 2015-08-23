@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"golang.org/x/crypto/bcrypt"
 	"io/ioutil"
+	"strings"
 	"sync"
 	"time"
 )
@@ -53,18 +54,35 @@ func (s *UserStore) Auth(hash string, pwd string) bool {
 	return bcrypt.CompareHashAndPassword(bytes, []byte(pwd)) == nil
 }
 
-func (s *UserStore) CreateUser(username string, password string) {
+func (s *UserStore) CreateUser(username string, password string, email string, roles []string) bool {
 	s.usersMux.Lock()
 	defer s.usersMux.Unlock()
+
 	user := newUser()
-	user.Username = username
+	user.Username = strings.TrimSpace(username)
+	user.EmailAddress = email
+	user.Enabled = true
+
+	// Roles
+	for _, role := range roles {
+		user.AddRole(role)
+	}
+
+	// Check unique username
+	for _, usr := range s.Users {
+		if usr.Username == user.Username {
+			return false
+		}
+	}
+
 	hash, e := s.HashPassword(password)
 	if e != nil {
 		log.Fatal("Failed to hash password")
-		return
+		return false
 	}
 	user.PasswordHash = hash
 	s.Users = append(s.Users, user)
+	return true
 }
 
 func (s *UserStore) HashPassword(pwd string) (string, error) {
@@ -95,7 +113,7 @@ func (s *UserStore) prepareDefaultUser() {
 		log.Println("You don't have an admin user yet, creating with the following password:")
 		log.Println(pwd)
 
-		s.CreateUser("admin", pwd)
+		s.CreateUser("admin", pwd, "", make([]string, 0))
 
 		// Elevate to admin rights
 		usr := s.ByName("admin")
@@ -111,6 +129,7 @@ func (s *UserStore) prepareDefaultUser() {
 
 type User struct {
 	Username             string
+	EmailAddress         string
 	PasswordHash         string
 	Enabled              bool
 	SessionToken         string
