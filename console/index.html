@@ -147,7 +147,7 @@ Indispenso: https://github.com/RobinUS2/indispenso
 			<div class="page" data-name="create-user" data-roles="admin">
 				<div class="col-md-12">
 					<h2>Create User</h2>
-					<form id="change-password">
+					<form id="create-user">
 					  <div class="form-group">
 					    <label for="username">Username</label>
 					    <input type="text" name="username" class="form-control" id="username" placeholder="Username">
@@ -167,8 +167,8 @@ Indispenso: https://github.com/RobinUS2/indispenso
 					  <div class="form-group">
 					    <label for="roles">Roles</label>
 					    <select class="form-control select2" name="roles" id="roles">
-					    	<option value="admin">Admin</option>
-					    	<option value="requester">Requester</option>
+					    	<option value="admin,requester,approver">Admin</option>
+					    	<option value="requester,approver">Requester</option>
 					    	<option value="approver">Approver</option>
 						</select>
 					  </div>

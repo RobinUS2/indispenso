@@ -65,7 +65,7 @@ func (s *UserStore) CreateUser(username string, password string, email string, r
 
 	// Roles
 	for _, role := range roles {
-		user.AddRole(role)
+		user.Roles[role] = true
 	}
 
 	// Check unique username

@@ -111,6 +111,7 @@ func (s *Server) Start() bool {
 		router.PUT("/user/password", PutUserPassword)
 		router.GET("/clients", GetClients)
 		router.GET("/users", GetUsers)
+		router.POST("/user", PostUser)
 		router.ServeFiles("/console/*filepath", http.Dir("console"))
 
 		// Auto generate key

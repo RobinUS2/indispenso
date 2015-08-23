@@ -245,6 +245,20 @@ var app = {
 
 		'create-user' : {
 			load : function() {
+				$('form#create-user').submit(function() {
+					var d = $(this).serialize();
+					try { d['roles'] = $('#roles', app.pageInstance()).val().join(','); } catch (e) {}
+					app.ajax('/user', { method: 'POST', data : d }).done(function(resp) {
+						var resp = app.handleResponse(resp);
+						if (resp.status === 'OK') {
+							app.showPage('users');
+						}
+					}, 'json');
+					return false;
+				});
+			},
+			unload : function() {
+				$('form#create-user').unbind('submit');
 			}
 		},
 
