@@ -36,6 +36,64 @@ func (c *ConsensusRequest) Cancel(user *User) bool {
 	delete(server.consensus.Pending, c.Id)
 	return true
 }
+func (c *ConsensusRequest) Template() *Template {
+	server.templateStore.templateMux.RLock()
+	template := server.templateStore.Templates[c.TemplateId]
+	server.templateStore.templateMux.RUnlock()
+	return template
+}
+
+// Start template execution
+func (c *ConsensusRequest) start() bool {
+	template := c.Template()
+	if template == nil {
+		log.Printf("Template %s not found for request %s", c.TemplateId, c.Id)
+		return false
+	}
+
+	for _, clientId := range c.ClientIds {
+		client := server.GetClient(clientId)
+		if client == nil {
+			log.Printf("Client %s not found for request %s", clientId, c.Id)
+			continue
+		}
+
+		// Create command instance
+		cmd := newCmd(template.Command, DEFAULT_COMMAND_TIMEOUT)
+
+		// Submit command
+		client.mux.Lock()
+		client.Cmds[cmd.Id] = cmd
+		client.CmdChan <- true // Signal for work
+		client.mux.Unlock()
+	}
+
+	return true
+}
+
+// Check whether this request is good to dispatch
+func (c *ConsensusRequest) check() bool {
+	// Can we start?
+	template := c.Template()
+	if template == nil {
+		log.Printf("Template %s not found for request %s", c.TemplateId, c.Id)
+		return false
+	}
+
+	// Did we meet the auth?
+	minAuth := template.Acl.MinAuth
+	voteCount := 1 // Initial vote by the requester
+	for _ = range c.ApproveUserIds {
+		voteCount++
+	}
+	if uint(voteCount) < minAuth {
+		// Did not meet
+		return false
+	}
+
+	// Start
+	return c.start()
+}
 
 func (c *ConsensusRequest) Approve(user *User) bool {
 	if c.ApproveUserIds == nil {
@@ -49,7 +107,7 @@ func (c *ConsensusRequest) Approve(user *User) bool {
 	}
 	c.ApproveUserIds[user.Id] = true
 
-	// @todo Start?
+	c.check()
 
 	return true
 }

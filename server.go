@@ -123,7 +123,6 @@ func (s *Server) Start() bool {
 		router.GET("/tags", GetTags)
 		router.GET("/client/:clientId/ping", ClientPing)
 		router.GET("/client/:clientId/cmds", ClientCmds)
-		router.POST("/client/:clientId/cmd", PostClientCmd)
 		router.POST("/auth", PostAuth)
 		router.GET("/templates", GetTemplate)
 		router.POST("/template", PostTemplate)
@@ -704,57 +703,6 @@ outer:
 	}
 	server.clientsMux.RUnlock()
 	jr.Set("clients", clients)
-	jr.OK()
-	fmt.Fprint(w, jr.ToString(debug))
-}
-
-// Submit client command
-func PostClientCmd(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-
-	jr := jresp.NewJsonResp()
-	if !auth(r) {
-		jr.Error("Not authorized")
-		fmt.Fprint(w, jr.ToString(debug))
-		return
-	}
-
-	// Get client
-	registeredClient := server.GetClient(ps.ByName("clientId"))
-	if registeredClient == nil {
-		jr.Error("Client not registered")
-		fmt.Fprint(w, jr.ToString(debug))
-		return
-	}
-
-	// Timeout
-	timeoutStr := r.URL.Query().Get("timeout")
-	var timeout int = DEFAULT_COMMAND_TIMEOUT
-	if len(strings.TrimSpace(timeoutStr)) > 0 {
-		timeoutI, timeoutE := strconv.ParseInt(timeoutStr, 10, 0)
-		if timeoutE != nil || timeoutI < 1 {
-			jr.Error("Invalid timeout value")
-			fmt.Fprint(w, jr.ToString(debug))
-			return
-		}
-		timeout = int(timeoutI)
-	}
-
-	// Create command
-	command := r.URL.Query().Get("cmd")
-	if len(strings.TrimSpace(command)) < 1 {
-		jr.Error("Provide a command")
-		fmt.Fprint(w, jr.ToString(debug))
-		return
-	}
-	cmd := newCmd(command, timeout) // @todo dynamic
-
-	// Add to list
-	registeredClient.mux.Lock()
-	registeredClient.Cmds[cmd.Id] = cmd
-	registeredClient.CmdChan <- true // Signal for work
-	registeredClient.mux.Unlock()
-
-	jr.Set("ack", true)
 	jr.OK()
 	fmt.Fprint(w, jr.ToString(debug))
 }
