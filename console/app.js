@@ -193,6 +193,11 @@ var app = {
 			}
 		},
 
+		'create-template' : {
+			load : function() {
+			}
+		},
+
 		logout : {
 			load : function() {
 				app.logout();

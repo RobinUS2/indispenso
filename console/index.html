@@ -124,7 +124,7 @@ Indispenso: https://github.com/RobinUS2/indispenso
 				<div class="col-md-12">
 					<div class="row-fluid">
 						<h2>Templates</h2>
-						<a class="btn btn-default pull-right" data-nav="create-template" href="#">New</a>
+						<a class="btn btn-default pull-right" data-nav="create-template" data-role="admin" href="#">Create</a>
 					</div>
 					<table class="table table-striped table-condensed">
 						<thead>
@@ -148,6 +148,33 @@ Indispenso: https://github.com/RobinUS2/indispenso
 							</tr>
 						</tbody>
 					</table>
+				</div>
+			</div>
+
+			<!-- Create template -->
+			<div class="page" data-name="create-template">
+				<div class="col-md-12">
+					<h2>Create Template</h2>
+					<form id="create-template">
+					  <div class="form-group">
+					    <label for="title">Title</label>
+					    <input type="text" name="title" class="form-control" id="title" placeholder="Title">
+					  </div>
+					  <div class="form-group">
+					    <label for="description">Description</label>
+					    <input type="text" name="description" class="form-control" id="description" placeholder="Description">
+					  </div>
+					  <div class="form-group">
+					    <label for="command">Commmand</label>
+					    <textarea class="form-control" rows="5" id="command" name="command"></textarea>
+					  </div>
+					  <div class="form-group">
+					    <label for="minAuth">Minimum authorizations</label>
+					    <input type="text" name="minAuth" class="form-control" id="minAuth" placeholder="Minimum amount of authorizations">
+					    <span id="helpBlock" class="help-block">The requester of this command will count as the first. So a number of 3 in this field will require 2 more users to approve the request.</span>
+					  </div>
+					  <button type="submit" class="btn btn-primary">Create</button>
+					</form>
 				</div>
 			</div>
 
