@@ -268,6 +268,7 @@ var app = {
 
 		login : {
 			load : function() {
+				$('.navbar-nav').hide();
 				$('form#login').submit(function() {
 					$.post('/auth', $(this).serialize(), function(resp) {
 						if (resp.status === 'OK') {
@@ -283,6 +284,7 @@ var app = {
 				});
 			},
 			unload : function() {
+				$('.navbar-nav').show();
 				$('form#login').unbind('submit');
 			}
 		}
