@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"github.com/nu7hatch/gouuid"
 	"io/ioutil"
 	"sync"
 )
@@ -12,7 +13,9 @@ type Template struct {
 	Id          string
 	Title       string // Short title
 	Description string // Full description that explains in layman's terms what this does, so everyone can help as part of the authorization process
+	Command     string // Command to be executed
 	Enabled     bool   // Is this available for running?
+	MinAuth     uint   // Minimum amount of authorization before the template is actually executed (eg 3 = requester + 2 additional approvers)
 }
 
 type TemplateStore struct {
@@ -59,4 +62,16 @@ func newTemplateStore() *TemplateStore {
 	}
 	s.load()
 	return s
+}
+
+func newTemplate(title string, description string, command string, enabled bool, minAuth uint) *Template {
+	id, _ := uuid.NewV4()
+	return &Template{
+		Id:          id.String(),
+		Title:       title,
+		Description: description,
+		Command:     command,
+		Enabled:     enabled,
+		MinAuth:     minAuth,
+	}
 }
