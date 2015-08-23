@@ -218,7 +218,7 @@ func PostAuth(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 		hash = "JDJhJDExJDBnOVJ4cmo4OHhzeGliV2oucDFrLmUzQlYzN296OVBlU1JqNU1FVWNqVGVCZEEuaWtMS2oo"
 	}
 	authRes := server.userStore.Auth(hash, pwd)
-	if !authRes || len(usr) < 1 || len(pwd) < 1 || user == nil {
+	if !authRes || len(usr) < 1 || len(pwd) < 1 || user == nil || user.Enabled == false {
 		jr.Error("Username / password invalid")
 		fmt.Fprint(w, jr.ToString(debug))
 		return
