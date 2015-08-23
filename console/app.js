@@ -288,20 +288,29 @@ var app = {
 									var user = userMap[work.RequestUserId];
 									if (typeof user === 'undefined') {
 										user = {
+											Id : '',
 											Username : ''
 										}
 									}
-									console.log(work, template, user);
 
 									var lines = [];
 									lines.push('<tr>');
 									lines.push('<td>' + template.Title + '</td>');
 									lines.push('<td>' + user.Username + '</td>');
-									lines.push('<td>APPROVE</td>');
+									lines.push('<td><div class="btn-group btn-group-xs pull-right"><span class="btn btn-success approve-request" data-roles="approver" data-id="' + work.Id + '">Approve</span></div></td>');
 									lines.push('</tr>');
 									workHtml.push(lines.join(''));
 								});
 								app.bindData('work', workHtml.join("\n"));
+								$('.approve-request', app.pageInstance()).click(function() {
+									var id = $(this).attr('data-id');
+									app.ajax('/consensus/approve', { method: 'POST', data : { id : id } }).done(function(resp) {
+										var resp = app.handleResponse(resp);
+										if (resp.status === 'OK') {
+											app.showPage('pending');
+										}
+									});
+								});
 
 								var workHtml = [];
 								var requestKeys = Object.keys(resp.requests);
@@ -311,10 +320,10 @@ var app = {
 									var user = userMap[request.RequestUserId];
 									if (typeof user === 'undefined') {
 										user = {
+											Id : '',
 											Username : ''
 										}
 									}
-									console.log(request, template, user);
 
 									var lines = [];
 									lines.push('<tr>');
@@ -322,13 +331,22 @@ var app = {
 									lines.push('<td>' + user.Username + '</td>');
 									lines.push('<td>');
 									if (user.Id === app.userId()) {
-										lines.push('CANCEL');
+										lines.push('<div class="btn-group btn-group-xs pull-right"><span class="btn btn-default cancel-request" data-id="' + request.Id + '">Cancel</span></div>');
 									}
 									lines.push('</td>');
 									lines.push('</tr>');
 									workHtml.push(lines.join(''));
 								});
 								app.bindData('pending', workHtml.join("\n"));
+								$('.cancel-request', app.pageInstance()).click(function() {
+									var id = $(this).attr('data-id');
+									app.ajax('/consensus/request?id=' + id, { method: 'DELETE' }).done(function(resp) {
+										var resp = app.handleResponse(resp);
+										if (resp.status === 'OK') {
+											app.showPage('pending');
+										}
+									});
+								});
 							}
 						});
 					});

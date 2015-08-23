@@ -38,6 +38,9 @@ func (c *ConsensusRequest) Cancel(user *User) bool {
 }
 
 func (c *ConsensusRequest) Approve(user *User) bool {
+	if c.ApproveUserIds == nil {
+		c.ApproveUserIds = make(map[string]bool)
+	}
 	if c.RequestUserId == user.Id {
 		return false
 	}
@@ -104,6 +107,7 @@ func newConsensus() *Consensus {
 func newConsensusRequest() *ConsensusRequest {
 	id, _ := uuid.NewV4()
 	return &ConsensusRequest{
-		Id: id.String(),
+		Id:             id.String(),
+		ApproveUserIds: make(map[string]bool),
 	}
 }
