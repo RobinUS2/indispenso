@@ -302,11 +302,23 @@ var app = {
 							tags.push('<span class="label label-success">ANY</span>');
 						}
 						lines.push('<td>' + tags.join(" ") + '</td>');
-						lines.push('<td><div class="btn-group btn-group-xs pull-right"><span class="btn btn-default ">Execute</span></div></td>');
+						lines.push('<td><div class="btn-group btn-group-xs pull-right"><span class="btn btn-default ">Execute</span> <span class="btn btn-default delete-template" data-roles="admin" data-id="' + template.Id + '">Delete</span></div></td>');
 						lines.push('</tr>');
 						templatesHtml.push(lines.join("\n"));
 					}
 					app.bindData('templates', templatesHtml.join("\n"));
+					$('.delete-template').click(function() {
+						var id = $(this).attr('data-id');
+						if (!confirm('Are you sure you want to delete this template?')) {
+							return;
+						}
+						app.ajax('/template?id=' + id, { method: 'DELETE' }).done(function(resp) {
+							var resp = app.handleResponse(resp);
+							if (resp.status === 'OK') {
+								app.showPage('templates');
+							}
+						});
+					});
 				});
 			}
 		},

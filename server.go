@@ -108,6 +108,7 @@ func (s *Server) Start() bool {
 		router.POST("/auth", PostAuth)
 		router.GET("/templates", GetTemplate)
 		router.POST("/template", PostTemplate)
+		router.DELETE("/template", DeleteTemplate)
 		router.PUT("/user/password", PutUserPassword)
 		router.GET("/clients", GetClients)
 		router.GET("/users", GetUsers)
@@ -327,6 +328,33 @@ func getUser(r *http.Request) *User {
 		return nil
 	}
 	return user
+}
+
+// Delete template
+func DeleteTemplate(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+	jr := jresp.NewJsonResp()
+	if !authUser(r) {
+		jr.Error("Not authorized")
+		fmt.Fprint(w, jr.ToString(debug))
+		return
+	}
+	usr := getUser(r)
+	if !usr.HasRole("admin") {
+		jr.Error("Not authorized")
+		fmt.Fprint(w, jr.ToString(debug))
+		return
+	}
+
+	// Username
+	id := strings.TrimSpace(r.URL.Query().Get("id"))
+
+	// Remove
+	server.templateStore.Remove(id)
+	server.templateStore.save()
+
+	jr.Set("saved", true)
+	jr.OK()
+	fmt.Fprint(w, jr.ToString(debug))
 }
 
 // Delete user

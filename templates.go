@@ -54,6 +54,12 @@ func (s *Template) IsValid() (bool, error) {
 	return true, nil
 }
 
+func (s *TemplateStore) Remove(templateId string) {
+	s.templateMux.Lock()
+	defer s.templateMux.Unlock()
+	delete(s.Templates, templateId)
+}
+
 func (s *TemplateStore) Add(template *Template) {
 	s.templateMux.Lock()
 	defer s.templateMux.Unlock()
