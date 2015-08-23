@@ -32,7 +32,11 @@ var app = {
 
 	_params : {},
 	getParam : function(k) {
-		return app._params[k];
+		var v = app._params[k];
+		if (typeof v === 'undefined') {
+			return null;
+		}
+		return v;
 	},
 
 	showPage : function(input) {
@@ -350,7 +354,19 @@ var app = {
 		'request-execution' : {
 			load : function() {
 				var id = app.getParam('id');
-				console.log(id);
+				if (id === null || id.length < 1) {
+					return app.showPage('templates');
+				}
+				app.ajax('/templates').done(function(resp) {
+					var resp = app.handleResponse(resp);
+					var template = resp.templates[id];
+					if (typeof template === 'undefined' || template === null) {
+						return app.showPage('templates');
+					}
+
+					// Title
+					app.bindData('template-title', template.Title);
+				});
 			}
 		},
 
