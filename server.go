@@ -133,6 +133,7 @@ func (s *Server) Start() bool {
 		router.GET("/users", GetUsers)
 		router.POST("/user", PostUser)
 		router.POST("/consensus/request", PostConsensusRequest)
+		router.GET("/consensus/pending", GetConsensusPending)
 		router.DELETE("/user", DeleteUser)
 		router.ServeFiles("/console/*filepath", http.Dir("console"))
 
@@ -152,6 +153,23 @@ func (s *Server) Start() bool {
 	}()
 
 	return true
+}
+
+// Get pending execution request
+func GetConsensusPending(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+	jr := jresp.NewJsonResp()
+	if !authUser(r) {
+		jr.Error("Not authorized")
+		fmt.Fprint(w, jr.ToString(debug))
+		return
+	}
+
+	server.consensus.pendingMux.RLock()
+	jr.Set("requests", server.consensus.Pending)
+	server.consensus.pendingMux.RUnlock()
+
+	jr.OK()
+	fmt.Fprint(w, jr.ToString(debug))
 }
 
 // Create execution request

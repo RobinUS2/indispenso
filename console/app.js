@@ -162,6 +162,12 @@ var app = {
 						app.bindData('number-of-clients', resp.clients.length);
 					}
 				});
+				app.ajax('/consensus/pending').done(function(resp) {
+					var resp = app.handleResponse(resp);
+					if (resp.status === 'OK') {
+						app.bindData('number-of-pending', Object.keys(resp.requests).length);
+					}
+				});
 			}
 		},
 

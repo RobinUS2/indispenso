@@ -19,6 +19,8 @@ import (
 // Client methods (one per "slave", communicates with the server)
 
 type Client struct {
+	Id       string
+	Hostname string
 }
 
 // Start client
@@ -56,7 +58,7 @@ func (s *Client) Start() bool {
 
 // Fetch commands
 func (s *Client) PollCmds() {
-	bytes, err := s._get(fmt.Sprintf("client/%s/cmds", url.QueryEscape(hostname)))
+	bytes, err := s._get(fmt.Sprintf("client/%s/cmds", url.QueryEscape(s.Id)))
 	if err == nil {
 		obj, jerr := jason.NewObjectFromBytes(bytes)
 		if jerr == nil {
@@ -78,7 +80,7 @@ func (s *Client) PollCmds() {
 
 // Ping server
 func (s *Client) PingServer() {
-	s._get(fmt.Sprintf("client/%s/ping?tags=%s", url.QueryEscape(hostname), url.QueryEscape(strings.Join(conf.Tags(), ","))))
+	s._get(fmt.Sprintf("client/%s/ping?tags=%s&hostname=%s", url.QueryEscape(s.Id), url.QueryEscape(strings.Join(conf.Tags(), ",")), url.QueryEscape(s.Hostname)))
 }
 
 // Get
@@ -163,5 +165,8 @@ func (s *Client) _reqUnsafe(method string, uri string, data []byte) ([]byte, err
 
 // Create new client
 func newClient() *Client {
-	return &Client{}
+	return &Client{
+		Id:       hostname,
+		Hostname: hostname,
+	}
 }
