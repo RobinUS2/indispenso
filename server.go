@@ -310,6 +310,11 @@ func getUser(r *http.Request) *User {
 		return nil
 	}
 
+	// Enabled?
+	if user.Enabled == false {
+		return nil
+	}
+
 	// Token expired
 	if time.Now().Sub(user.SessionLastTimestamp) > time.Duration(30*time.Minute) {
 		return nil
