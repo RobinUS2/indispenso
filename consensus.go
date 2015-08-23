@@ -163,6 +163,7 @@ func (c *Consensus) AddRequest(templateId string, clientIds []string, requestUse
 	c.pendingMux.Lock()
 	c.Pending[cr.Id] = cr
 	c.pendingMux.Unlock()
+	cr.check()
 }
 
 func newConsensus() *Consensus {
