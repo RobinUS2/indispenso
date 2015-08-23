@@ -432,7 +432,7 @@ var app = {
 							}
 
 							// Request
-							app.ajax('/request', { method: 'POST', data : { template : template.Id, clients : clientIds.join(',') } }).done(function(resp) {
+							app.ajax('/consensus/request', { method: 'POST', data : { template : template.Id, clients : clientIds.join(',') } }).done(function(resp) {
 								var resp = app.handleResponse(resp);
 								if (resp.status === 'OK') {
 									app.showPage('pending');

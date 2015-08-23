@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/base64"
 	"encoding/json"
+	"github.com/nu7hatch/gouuid"
 	"golang.org/x/crypto/bcrypt"
 	"io/ioutil"
 	"strings"
@@ -142,6 +143,7 @@ func (s *UserStore) prepareDefaultUser() {
 }
 
 type User struct {
+	Id                   string
 	Username             string
 	EmailAddress         string
 	PasswordHash         string
@@ -160,7 +162,7 @@ func (u *User) HasRole(r string) bool {
 
 func (u *User) AddRole(r string) {
 	u.mux.Lock()
-	defer u.mux.Lock()
+	defer u.mux.Unlock()
 	u.Roles[r] = true
 }
 
@@ -178,7 +180,9 @@ func (u *User) StartSession() string {
 }
 
 func newUser() *User {
+	id, _ := uuid.NewV4()
 	return &User{
+		Id:    id.String(),
 		Roles: make(map[string]bool),
 	}
 }

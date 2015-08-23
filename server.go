@@ -23,6 +23,7 @@ type Server struct {
 	Tags          map[string]bool
 	userStore     *UserStore
 	templateStore *TemplateStore
+	consensus     *Consensus
 }
 
 // Register client
@@ -108,6 +109,9 @@ func (s *Server) Start() bool {
 	// Templates
 	s.templateStore = newTemplateStore()
 
+	// Consensus handler
+	s.consensus = newConsensus()
+
 	// Print info
 	log.Printf("Starting server at https://localhost:%d/", serverPort)
 
@@ -128,7 +132,7 @@ func (s *Server) Start() bool {
 		router.GET("/clients", GetClients)
 		router.GET("/users", GetUsers)
 		router.POST("/user", PostUser)
-		router.POST("/request", PostRequest)
+		router.POST("/consensus/request", PostConsensusRequest)
 		router.DELETE("/user", DeleteUser)
 		router.ServeFiles("/console/*filepath", http.Dir("console"))
 
@@ -151,7 +155,7 @@ func (s *Server) Start() bool {
 }
 
 // Create execution request
-func PostRequest(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+func PostConsensusRequest(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	jr := jresp.NewJsonResp()
 	if !authUser(r) {
 		jr.Error("Not authorized")
@@ -169,7 +173,9 @@ func PostRequest(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	// Template
 	templateId := strings.TrimSpace(r.PostFormValue("template"))
 	clientIds := strings.Split(strings.TrimSpace(r.PostFormValue("clients")), ",")
-	log.Printf("%v %v", templateId, clientIds)
+
+	// Create request
+	server.consensus.AddRequest(templateId, clientIds, user.Id)
 
 	jr.OK()
 	fmt.Fprint(w, jr.ToString(debug))
