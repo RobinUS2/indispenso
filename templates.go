@@ -113,6 +113,14 @@ func newTemplate(title string, description string, command string, enabled bool,
 	acl.IncludedTags = includedTags
 	acl.ExcludedTags = excludedTags
 	acl.MinAuth = minAuth
+
+	if len(acl.IncludedTags) == 1 && acl.IncludedTags[0] == "" {
+		acl.IncludedTags = make([]string, 0)
+	}
+	if len(acl.ExcludedTags) == 1 && acl.ExcludedTags[0] == "" {
+		acl.ExcludedTags = make([]string, 0)
+	}
+
 	return &Template{
 		Id:          id.String(),
 		Title:       title,

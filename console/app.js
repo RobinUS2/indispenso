@@ -96,7 +96,9 @@ var app = {
 			load : function() {
 				app.ajax('/clients').done(function(resp) {
 					var resp = app.handleResponse(resp);
-					app.bindData('number-of-clients', resp.clients.length);
+					if (resp.status === 'OK') {
+						app.bindData('number-of-clients', resp.clients.length);
+					}
 				});
 			}
 		},
@@ -190,7 +192,10 @@ var app = {
 
 		templates : {
 			load : function() {
-				// @todo
+				app.ajax('/templates').done(function(resp) {
+					var resp = app.handleResponse(resp);
+					console.log(resp);
+				});
 			}
 		},
 

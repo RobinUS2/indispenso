@@ -106,6 +106,7 @@ func (s *Server) Start() bool {
 		router.GET("/client/:clientId/cmds", ClientCmds)
 		router.POST("/client/:clientId/cmd", PostClientCmd)
 		router.POST("/auth", PostAuth)
+		router.GET("/templates", GetTemplate)
 		router.POST("/template", PostTemplate)
 		router.PUT("/user/password", PutUserPassword)
 		router.GET("/clients", GetClients)
@@ -127,6 +128,21 @@ func (s *Server) Start() bool {
 	}()
 
 	return true
+}
+
+// Get templates
+func GetTemplate(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+	jr := jresp.NewJsonResp()
+	if !authUser(r) {
+		jr.Error("Not authorized")
+		fmt.Fprint(w, jr.ToString(debug))
+		return
+	}
+	server.templateStore.templateMux.RLock()
+	jr.Set("templates", server.templateStore.Templates)
+	server.templateStore.templateMux.RUnlock()
+	jr.OK()
+	fmt.Fprint(w, jr.ToString(debug))
 }
 
 // Create template
