@@ -224,7 +224,21 @@ var app = {
 			load : function() {
 				app.ajax('/users').done(function(resp) {
 					var resp = app.handleResponse(resp);
-					console.log(resp);
+					var html = [];
+					for (var k in resp.users) {
+						if (!resp.users.hasOwnProperty(k)) {
+							continue;
+						}
+						var obj = resp.users[k];
+						var lines = [];
+						lines.push('<tr>');
+						lines.push('<td>' + obj.Username + '</td>');
+						lines.push('<td>' + Object.keys(obj.Roles).join(', ') + '</td>');
+						lines.push('<td><div class="btn-group btn-group-xs pull-right"><span class="btn btn-default ">Delete</span></div></td>');
+						lines.push('</tr>');
+						html.push(lines.join("\n"));
+					}
+					app.bindData('users', html.join("\n"));
 				});
 			}
 		},
