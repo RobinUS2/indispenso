@@ -228,6 +228,7 @@ func PostAuth(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	}
 	token := user.StartSession()
 	user.TouchSession()
+	server.userStore.save() // Call save to persist token
 	jr.Set("session_token", token)
 	roles := make([]string, 0)
 	for role := range user.Roles {
