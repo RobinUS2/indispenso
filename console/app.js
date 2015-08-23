@@ -16,6 +16,9 @@ var app = {
 
 	alert : function(type, title, message) {
 		$('#alert').html('<div class="alert alert-' + type + '" role="alert"><strong>' + title + '</strong> ' + message + '</div>');
+		setTimeout(function() {
+			$('#alert > div').slideUp();
+		}, 2000);
 	},
 
 	showPage : function(name) {
