@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
 	"github.com/nu7hatch/gouuid"
 	"io/ioutil"
 	"sync"
@@ -31,7 +32,26 @@ type TemplateStore struct {
 }
 
 func (s *Template) IsValid() (bool, error) {
-	return false, nil
+	if len(s.Title) < 1 {
+		return false, errors.New("Fill in a title")
+	}
+
+	// Title must be unique
+	server.templateStore.templateMux.RLock()
+	for _, template := range server.templateStore.Templates {
+		if template.Title == s.Title {
+			return false, errors.New("Title is not unique")
+		}
+	}
+	server.templateStore.templateMux.RUnlock()
+
+	if len(s.Description) < 1 {
+		return false, errors.New("Fill in a description")
+	}
+	if len(s.Command) < 1 {
+		return false, errors.New("Fill in a command")
+	}
+	return true, nil
 }
 
 func (s *TemplateStore) Add(template *Template) {

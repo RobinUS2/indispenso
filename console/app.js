@@ -208,13 +208,12 @@ var app = {
 
 				$('form#create-template').submit(function() {
 					var d = $(this).serialize();
-					d['includedTags'] = $('#includedTags', app.pageInstance()).val().join(',');
-					d['excludedTags'] = $('#excludedTags', app.pageInstance()).val().join(',');
+					try { d['includedTags'] = $('#includedTags', app.pageInstance()).val().join(','); } catch (e) {}
+					try { d['excludedTags'] = $('#excludedTags', app.pageInstance()).val().join(','); } catch (e) {}
 					app.ajax('/template', { method: 'POST', data : d }).done(function(resp) {
 						var resp = app.handleResponse(resp);
-						console.log(resp);
 						if (resp.status === 'OK') {
-							showPage('templates');
+							app.showPage('templates');
 						}
 					}, 'json');
 					return false;
