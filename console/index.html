@@ -125,7 +125,39 @@ Indispenso: https://github.com/RobinUS2/indispenso
 			<!-- Request execution -->
 			<div class="page" data-name="request-execution" data-roles="requester">
 				<div class="col-md-12">
-					<h2>Request Execution of &quot;<span data-bind="template-title"></span>&quot;</h2>
+					<div class="row">
+						<h2>Request Execution of &quot;<span data-bind="template-title"></span>&quot;</h2>
+					</div>
+					<div class="row">
+						<b>Description</b><br />
+						<p data-bind="template-description"></p>
+					</div>
+					<div class="row">
+						<b>Command</b><br />
+						<code data-bind="template-command"></code>
+					</div>
+					<div class="row">
+						<b>Minimum authorizations</b><br />
+						<p data-bind="template-minAuth"></p>
+					</div>
+					<div class="row request-execution">
+						<span class="btn btn-success">Request Execution</span>
+					</div>
+					<div class="row select-clients" style="display: none;">
+						<h3>Target Clients</h3>
+						<table class="table table-striped table-condensed">
+							<thead>
+								<tr>
+									<th style="width: 30px;"></th>
+									<th>Identifier</th>
+									<th>Tags</th>
+									<th>Last contact</th>
+								</tr>
+							</thead>
+							<tbody data-bind="clients">
+							</tbody>
+						</table>
+					</div>
 				</div>
 			</div>
 

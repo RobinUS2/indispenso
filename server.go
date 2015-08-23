@@ -74,6 +74,21 @@ type RegisteredClient struct {
 	CmdChan  chan bool `json:"-"`
 }
 
+func (c *RegisteredClient) HasTag(s string) bool {
+	if c.Tags == nil {
+		return false
+	}
+	if len(c.Tags) == 0 {
+		return false
+	}
+	for _, tag := range c.Tags {
+		if tag == s {
+			return true
+		}
+	}
+	return false
+}
+
 // Generate keys
 func (s *Server) _prepareTlsKeys() {
 	if _, err := os.Stat("./private_key"); os.IsNotExist(err) {
@@ -480,11 +495,36 @@ func GetClients(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	// Filters
 	tagsInclude := strings.Split(r.URL.Query().Get("filter_tags_include"), ",")
 	tagsExclude := strings.Split(r.URL.Query().Get("filter_tags_exclude"), ",")
-	log.Printf("%v %v", tagsInclude, tagsExclude)
+	if len(tagsInclude) == 1 && tagsInclude[0] == "" {
+		tagsInclude = make([]string, 0)
+	}
+	if len(tagsExclude) == 1 && tagsExclude[0] == "" {
+		tagsExclude = make([]string, 0)
+	}
 
 	clients := make([]*RegisteredClient, 0)
 	server.clientsMux.RLock()
+outer:
 	for _, client := range server.clients {
+		// Excluded?
+		for _, exclude := range tagsExclude {
+			if client.HasTag(exclude) {
+				continue outer
+			}
+		}
+
+		// Included?
+		var match bool = false
+		for _, include := range tagsInclude {
+			if client.HasTag(include) {
+				match = true
+				break
+			}
+		}
+		if match == false {
+			continue
+		}
+
 		clients = append(clients, client)
 	}
 	server.clientsMux.RUnlock()

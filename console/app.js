@@ -366,11 +366,28 @@ var app = {
 
 					// Title
 					app.bindData('template-title', template.Title);
+					app.bindData('template-description', template.Description);
+					app.bindData('template-command', template.Command);
+					app.bindData('template-minAuth', template.Acl.MinAuth);
 
 					// Get eligible clients
 					app.ajax('/clients?filter_tags_include=' + encodeURIComponent(template.Acl.IncludedTags.join(',')) + '&filter_tags_exclude=' + encodeURIComponent(template.Acl.ExcludedTags.join(','))).done(function(resp) {
 						var resp = app.handleResponse(resp);
-						console.log(resp.clients);
+						var rows = [];
+						$(resp.clients).each(function(i, client) {
+							var tags = [];
+							$(client.Tags).each(function(j, tag) {
+								tags.push('<span class="label label-primary">' + tag + '</span>');
+							});
+							rows.push('<tr class="client"><td>[ ]</td><td>' + client.ClientId + '</td><td>' + tags.join("\n") + '</td><td>' + client.LastPing + '</td></tr>');
+						});
+						app.bindData('clients', rows.join("\n"));
+
+						// Make button active
+						$('.request-execution > .btn', app.pageInstance()).click(function() {
+							$('.request-execution', app.pageInstance()).hide();
+							$('.select-clients', app.pageInstance()).show();
+						});
 					});
 				});
 			}
