@@ -91,7 +91,19 @@ func (s *UserStore) load() {
 
 func (s *UserStore) prepareDefaultUser() {
 	if s.Users == nil || len(s.Users) < 1 {
-		s.CreateUser("admin", "indispenso")
+		pwd, _ := secureRandomString(32)
+		log.Println("You don't have an admin user yet, creating with the following password:")
+		log.Println(pwd)
+
+		s.CreateUser("admin", pwd)
+
+		// Elevate to admin rights
+		usr := s.ByName("admin")
+		usr.Roles["admin"] = true
+		usr.Roles["requester"] = true
+		usr.Roles["approver"] = true
+
+		// Save and reload
 		s.save()
 		s.load()
 	}
@@ -103,6 +115,7 @@ type User struct {
 	Enabled              bool
 	SessionToken         string
 	SessionLastTimestamp time.Time
+	Roles                map[string]bool
 	mux                  sync.RWMutex
 }
 
@@ -120,7 +133,9 @@ func (u *User) StartSession() string {
 }
 
 func newUser() *User {
-	return &User{}
+	return &User{
+		Roles: make(map[string]bool),
+	}
 }
 
 func newUserStore() *UserStore {
