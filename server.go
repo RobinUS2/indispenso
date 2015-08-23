@@ -131,6 +131,7 @@ func (s *Server) Start() bool {
 		router.PUT("/user/password", PutUserPassword)
 		router.GET("/clients", GetClients)
 		router.GET("/users", GetUsers)
+		router.GET("/users/names", GetUsersNames)
 		router.POST("/user", PostUser)
 		router.POST("/consensus/request", PostConsensusRequest)
 		router.POST("/consensus/approve", PostConsensusApprove)
@@ -548,6 +549,29 @@ func PostUser(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	server.userStore.save()
 
 	jr.Set("saved", res)
+	jr.OK()
+	fmt.Fprint(w, jr.ToString(debug))
+}
+
+// Get user names
+func GetUsersNames(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+	jr := jresp.NewJsonResp()
+	if !authUser(r) {
+		jr.Error("Not authorized")
+		fmt.Fprint(w, jr.ToString(debug))
+		return
+	}
+	// Availble to anyone
+	server.userStore.usersMux.RLock()
+	users := make([]map[string]interface{}, 0)
+	for _, userPtr := range server.userStore.Users {
+		user := make(map[string]interface{})
+		user["Id"] = userPtr.Id
+		user["Username"] = userPtr.Username
+		users = append(users, user)
+	}
+	jr.Set("users", users)
+	server.userStore.usersMux.RUnlock()
 	jr.OK()
 	fmt.Fprint(w, jr.ToString(debug))
 }

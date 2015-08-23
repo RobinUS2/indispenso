@@ -265,22 +265,31 @@ var app = {
 					var resp = app.handleResponse(resp);
 					var templates = resp.templates;
 
-					app.ajax('/consensus/pending').done(function(resp) {
+					app.ajax('/users/names').done(function(resp) {
 						var resp = app.handleResponse(resp);
-						if (resp.status === 'OK') {
-							var workKeys = Object.keys(resp.work);
-							$(workKeys).each(function(i, workKey) {
-								var work = resp.work[workKey];
+						var userNames = resp.users;
+						var userMap = {};
+						$(userNames).each(function(i, user) {
+							userMap[user.Id] = user;
+						});
 
-								console.log(work, templates[work.TemplateId]);
-							});
+						app.ajax('/consensus/pending').done(function(resp) {
+							var resp = app.handleResponse(resp);
+							if (resp.status === 'OK') {
+								var workKeys = Object.keys(resp.work);
+								$(workKeys).each(function(i, workKey) {
+									var work = resp.work[workKey];
 
-							var requestKeys = Object.keys(resp.requests);
-							$(requestKeys).each(function(i, requestKey) {
-								var request = resp.requests[requestKey];
-								console.log(request, templates[request.TemplateId]);
-							});
-						}
+									console.log(work, templates[work.TemplateId], userMap[work.RequestUserId]);
+								});
+
+								var requestKeys = Object.keys(resp.requests);
+								$(requestKeys).each(function(i, requestKey) {
+									var request = resp.requests[requestKey];
+									console.log(request, templates[request.TemplateId], userMap[request.RequestUserId]);
+								});
+							}
+						});
 					});
 				});
 			}
