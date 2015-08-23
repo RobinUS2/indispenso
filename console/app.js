@@ -208,7 +208,8 @@ var app = {
 
 				$('form#create-template').submit(function() {
 					var d = $(this).serialize();
-					
+					d['includedTags'] = $('#includedTags', app.pageInstance()).val().join(',');
+					d['excludedTags'] = $('#excludedTags', app.pageInstance()).val().join(',');
 					app.ajax('/template', { method: 'POST', data : d }).done(function(resp) {
 						var resp = app.handleResponse(resp);
 						console.log(resp);

@@ -30,6 +30,16 @@ type TemplateStore struct {
 	templateMux sync.RWMutex
 }
 
+func (s *Template) IsValid() (bool, error) {
+	return false, nil
+}
+
+func (s *TemplateStore) Add(template *Template) {
+	s.templateMux.Lock()
+	defer s.templateMux.Unlock()
+	s.Templates[template.Id] = template
+}
+
 func (s *TemplateStore) save() {
 	s.templateMux.Lock()
 	defer s.templateMux.Unlock()

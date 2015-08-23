@@ -138,11 +138,34 @@ func PostTemplate(w http.ResponseWriter, r *http.Request, ps httprouter.Params) 
 		return
 	}
 
-	// title := strings.TrimSpace(r.PostFormValue("title"))
-	// description := strings.TrimSpace(r.PostFormValue("description"))
-	// command := r.PostFormValue("command")
-	includedTags := r.PostForm["includedTags"]
-	log.Printf("%v", includedTags)
+	title := strings.TrimSpace(r.PostFormValue("title"))
+	description := strings.TrimSpace(r.PostFormValue("description"))
+	command := r.PostFormValue("command")
+	includedTags := r.PostFormValue("includedTags")
+	excludedTags := r.PostFormValue("excludedTags")
+	minAuthStr := r.PostFormValue("minAuth")
+	minAuth, minAuthE := strconv.ParseInt(minAuthStr, 10, 0)
+	if minAuthE != nil {
+		jr.Error(fmt.Sprintf("%s", minAuthE))
+		fmt.Fprint(w, jr.ToString(debug))
+		return
+	} else if minAuth < 1 {
+		jr.Error("Min auth must be at least 1")
+		fmt.Fprint(w, jr.ToString(debug))
+		return
+	}
+
+	// Validate template
+	template := newTemplate(title, description, command, true, strings.Split(includedTags, ","), strings.Split(excludedTags, ","), uint(minAuth))
+	valid, err := template.IsValid()
+	if !valid {
+		jr.Error(fmt.Sprintf("%s", err))
+		fmt.Fprint(w, jr.ToString(debug))
+		return
+	}
+
+	server.templateStore.Add(template)
+	server.templateStore.save()
 
 	jr.Set("saved", true)
 	jr.OK()
