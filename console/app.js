@@ -273,6 +273,7 @@ var app = {
 						if (resp.status === 'OK') {
 							localStorage['token'] = resp.session_token;
 							localStorage['username'] = $('form#login input[name="username"]').val();
+							app.alert('info', 'Login successful', 'Welcome back ' + localStorage['username']);
 							app.showPage('home');
 						} else {
 							app.apiErr(resp);
