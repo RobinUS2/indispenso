@@ -166,9 +166,13 @@ func PostTemplate(w http.ResponseWriter, r *http.Request, ps httprouter.Params) 
 	command := r.PostFormValue("command")
 	includedTags := r.PostFormValue("includedTags")
 	excludedTags := r.PostFormValue("excludedTags")
-	minAuthStr := r.PostFormValue("minAuth")
+	minAuthStr := strings.TrimSpace(r.PostFormValue("minAuth"))
 	minAuth, minAuthE := strconv.ParseInt(minAuthStr, 10, 0)
-	if minAuthE != nil {
+	if len(minAuthStr) < 1 {
+		jr.Error("Fill in min auth")
+		fmt.Fprint(w, jr.ToString(debug))
+		return
+	} else if minAuthE != nil {
 		jr.Error(fmt.Sprintf("%s", minAuthE))
 		fmt.Fprint(w, jr.ToString(debug))
 		return
