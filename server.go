@@ -507,9 +507,11 @@ func GetClients(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 outer:
 	for _, client := range server.clients {
 		// Excluded?
-		for _, exclude := range tagsExclude {
-			if client.HasTag(exclude) {
-				continue outer
+		if len(tagsExclude) > 0 {
+			for _, exclude := range tagsExclude {
+				if client.HasTag(exclude) {
+					continue outer
+				}
 			}
 		}
 
@@ -521,7 +523,7 @@ outer:
 				break
 			}
 		}
-		if match == false {
+		if len(tagsInclude) > 0 && match == false {
 			continue
 		}
 
