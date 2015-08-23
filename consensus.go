@@ -99,6 +99,7 @@ func (c *ConsensusRequest) check() bool {
 	}
 	if uint(voteCount) < minAuth {
 		// Did not meet
+		log.Printf("Vote count %d does not yet meet required %d for request %s", voteCount, minAuth, c.Id)
 		return false
 	}
 
