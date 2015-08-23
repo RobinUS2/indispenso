@@ -261,21 +261,27 @@ var app = {
 
 		pending : {
 			load : function() {
-				app.ajax('/consensus/pending').done(function(resp) {
+				app.ajax('/templates').done(function(resp) {
 					var resp = app.handleResponse(resp);
-					if (resp.status === 'OK') {
-						var workKeys = Object.keys(resp.work);
-						$(workKeys).each(function(i, workKey) {
-							var work = resp.work[workKey];
-							console.log(work);
-						});
+					var templates = resp.templates;
 
-						var requestKeys = Object.keys(resp.requests);
-						$(requestKeys).each(function(i, requestKey) {
-							var request = resp.requests[requestKey];
-							console.log(request);
-						});
-					}
+					app.ajax('/consensus/pending').done(function(resp) {
+						var resp = app.handleResponse(resp);
+						if (resp.status === 'OK') {
+							var workKeys = Object.keys(resp.work);
+							$(workKeys).each(function(i, workKey) {
+								var work = resp.work[workKey];
+
+								console.log(work, templates[work.TemplateId]);
+							});
+
+							var requestKeys = Object.keys(resp.requests);
+							$(requestKeys).each(function(i, requestKey) {
+								var request = resp.requests[requestKey];
+								console.log(request, templates[request.TemplateId]);
+							});
+						}
+					});
 				});
 			}
 		},
