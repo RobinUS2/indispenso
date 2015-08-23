@@ -171,6 +171,11 @@ func GetConsensusPending(w http.ResponseWriter, r *http.Request, ps httprouter.P
 	pending := make([]*ConsensusRequest, 0)
 	work := make([]*ConsensusRequest, 0)
 	for _, req := range server.consensus.Pending {
+		// Ignore already executed
+		if req.Executed {
+			continue
+		}
+
 		// Ignore self
 		if req.RequestUserId == user.Id {
 			pending = append(pending, req)

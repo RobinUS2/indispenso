@@ -22,6 +22,8 @@ type ConsensusRequest struct {
 	ClientIds      []string
 	RequestUserId  string
 	ApproveUserIds map[string]bool
+	executeMux     sync.RWMutex
+	Executed       bool
 }
 
 func (c *Consensus) Get(id string) *ConsensusRequest {
@@ -50,6 +52,15 @@ func (c *ConsensusRequest) start() bool {
 		log.Printf("Template %s not found for request %s", c.TemplateId, c.Id)
 		return false
 	}
+
+	// Lock
+	c.executeMux.Lock()
+	defer c.executeMux.Unlock()
+	if c.Executed {
+		// Already executed
+		return false
+	}
+	c.Executed = true
 
 	for _, clientId := range c.ClientIds {
 		client := server.GetClient(clientId)
