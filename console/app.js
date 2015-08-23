@@ -366,6 +366,12 @@ var app = {
 
 					// Title
 					app.bindData('template-title', template.Title);
+
+					// Get eligible clients
+					app.ajax('/clients?filter_tags_include=' + encodeURIComponent(template.Acl.IncludedTags.join(',')) + '&filter_tags_exclude=' + encodeURIComponent(template.Acl.ExcludedTags.join(','))).done(function(resp) {
+						var resp = app.handleResponse(resp);
+						console.log(resp.clients);
+					});
 				});
 			}
 		},

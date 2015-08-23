@@ -476,6 +476,12 @@ func GetClients(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 		fmt.Fprint(w, jr.ToString(debug))
 		return
 	}
+
+	// Filters
+	tagsInclude := strings.Split(r.URL.Query().Get("filter_tags_include"), ",")
+	tagsExclude := strings.Split(r.URL.Query().Get("filter_tags_exclude"), ",")
+	log.Printf("%v %v", tagsInclude, tagsExclude)
+
 	clients := make([]*RegisteredClient, 0)
 	server.clientsMux.RLock()
 	for _, client := range server.clients {
