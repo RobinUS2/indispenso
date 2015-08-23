@@ -154,6 +154,13 @@ func PostTemplate(w http.ResponseWriter, r *http.Request, ps httprouter.Params) 
 		return
 	}
 
+	user := getUser(r)
+	if !user.HasRole("admin") {
+		jr.Error("Not authorized")
+		fmt.Fprint(w, jr.ToString(debug))
+		return
+	}
+
 	title := strings.TrimSpace(r.PostFormValue("title"))
 	description := strings.TrimSpace(r.PostFormValue("description"))
 	command := r.PostFormValue("command")

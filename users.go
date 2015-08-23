@@ -99,9 +99,9 @@ func (s *UserStore) prepareDefaultUser() {
 
 		// Elevate to admin rights
 		usr := s.ByName("admin")
-		usr.Roles["admin"] = true
-		usr.Roles["requester"] = true
-		usr.Roles["approver"] = true
+		usr.AddRole("admin")
+		usr.AddRole("requester")
+		usr.AddRole("approver")
 
 		// Save and reload
 		s.save()
@@ -117,6 +117,18 @@ type User struct {
 	SessionLastTimestamp time.Time
 	Roles                map[string]bool
 	mux                  sync.RWMutex
+}
+
+func (u *User) HasRole(r string) bool {
+	u.mux.RLock()
+	defer u.mux.RUnlock()
+	return u.Roles[r]
+}
+
+func (u *User) AddRole(r string) {
+	u.mux.Lock()
+	defer u.mux.Lock()
+	u.Roles[r] = true
 }
 
 func (u *User) TouchSession() {
