@@ -194,7 +194,31 @@ var app = {
 			load : function() {
 				app.ajax('/templates').done(function(resp) {
 					var resp = app.handleResponse(resp);
-					console.log(resp);
+					var templatesHtml = [];
+					for (var k in resp.templates) {
+						if (!resp.templates.hasOwnProperty(k)) {
+							continue;
+						}
+						var template = resp.templates[k];
+						var lines = [];
+						lines.push('<tr>');
+						lines.push('<td>' + template.Title + '</td>');
+						var tags = [];
+						$(template.Acl.IncludedTags).each(function(i, tag) {
+							tags.push('<span class="label label-primary">' + tag + '</span>');
+						});
+						$(template.Acl.ExcludedTags).each(function(i, tag) {
+							tags.push('<span class="label label-danger">' + tag + '</span>');
+						});
+						if (tags.length === 0) {
+							tags.push('<span class="label label-success">ANY</span>');
+						}
+						lines.push('<td>' + tags.join(" ") + '</td>');
+						lines.push('<td><div class="btn-group btn-group-xs pull-right"><span class="btn btn-default ">Execute</span></div></td>');
+						lines.push('</tr>');
+						templatesHtml.push(lines.join("\n"));
+					}
+					app.bindData('templates', templatesHtml.join("\n"));
 				});
 			}
 		},
