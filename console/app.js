@@ -154,6 +154,8 @@ var app = {
 	logout : function() {
 		delete localStorage['token'];
 		delete localStorage['username'];
+		delete localStorage['user_id'];
+		delete localStorage['user_roles'];
 		app.showPage('login');
 	},
 
