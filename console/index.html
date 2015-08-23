@@ -26,9 +26,29 @@ Indispenso: https://github.com/RobinUS2/indispenso
 
 	<body>
 		<nav class="navbar navbar-inverse">
-		  <div class="container">
-		    <a class="navbar-brand" href="#" data-nav="home">Indispenso</a>
-		  </div>
+		  <div class="container-fluid">
+		    <!-- Brand and toggle get grouped for better mobile display -->
+		    <div class="navbar-header">
+		      <a class="navbar-brand" href="#" data-nav="home">Indispenso</a>
+		    </div>
+
+		    <!-- Collect the nav links, forms, and other content for toggling -->
+		    <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
+		      <ul class="nav navbar-nav">
+		        <li><a href="#" data-nav="clients">Clients</a></li>
+		      </ul>
+		      <ul class="nav navbar-nav navbar-right">
+		        <li class="dropdown">
+		          <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-haspopup="true" aria-expanded="false">Settings <span class="caret"></span></a>
+		          <ul class="dropdown-menu">
+		            <li><a href="#" data-nav="profile">User</a></li>
+		            <li role="separator" class="divider"></li>
+		            <li><a href="#" data-nav="logout">Logout</a></li>
+		          </ul>
+		        </li>
+		      </ul>
+		    </div><!-- /.navbar-collapse -->
+		  </div><!-- /.container-fluid -->
 		</nav>
 
 		<div class="container">
@@ -44,34 +64,55 @@ Indispenso: https://github.com/RobinUS2/indispenso
 					    <label for="password">Password</label>
 					    <input type="password" name="password" class="form-control" id="password" placeholder="Password">
 					  </div>
-					  <button type="submit" class="btn btn-default">Login</button>
+					  <button type="submit" class="btn btn-primary">Login</button>
 					</form>
 				</div>
 			</div>
 
 			<!-- Home -->
 			<div class="page" data-name="home">
-				<p><a href="#" data-nav="clients">Clients</a>: <span data-bind="number-of-clients"></span></p>
+				<div class="col-md-12">
+					<p><a href="#" data-nav="clients">Clients</a>: <span data-bind="number-of-clients"></span></p>
+				</div>
 			</div>
 
 			<!-- Clients -->
 			<div class="page" data-name="clients">
-				<div>
-					<ul data-bind="tags" class="tags-horizontal">
-					</ul>
-				</div>
+				<div class="col-md-12">
+					<div>
+						<ul data-bind="tags" class="tags-horizontal">
+						</ul>
+					</div>
 
-				<table class="table table-striped table-condensed">
-					<thead>
-						<tr>
-							<th>Identifier</th>
-							<th>Tags</th>
-							<th>Last contact</th>
-						</tr>
-					</thead>
-					<tbody data-bind="clients">
-					</tbody>
-				</table>
+					<table class="table table-striped table-condensed">
+						<thead>
+							<tr>
+								<th>Identifier</th>
+								<th>Tags</th>
+								<th>Last contact</th>
+							</tr>
+						</thead>
+						<tbody data-bind="clients">
+						</tbody>
+					</table>
+				</div>
+			</div>
+
+			<!-- My profile -->
+			<div class="page" data-name="profile">
+				<div class="col-md-12">
+					<form id="change-password">
+					  <div class="form-group">
+					    <label for="password">Password</label>
+					    <input type="password" name="password" class="form-control" id="password" placeholder="Password">
+					  </div>
+					  <div class="form-group">
+					    <label for="password2">Password (confirm)</label>
+					    <input type="password" name="password2" class="form-control" id="password2" placeholder="Password">
+					  </div>
+					  <button type="submit" class="btn btn-primary">Change password</button>
+					</form>
+				</div>
 			</div>
 
 			<!-- 404 -->

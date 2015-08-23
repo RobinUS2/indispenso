@@ -9,9 +9,7 @@ var app = {
 
 	apiErr : function(resp) {
 		if (resp.error.indexOf('authorized') !== -1) {
-			delete localStorage['token'];
-			delete localStorage['username'];
-			app.showPage('login');
+			app.logout();
 		}
 		alert(resp.error);
 	},
@@ -87,6 +85,12 @@ var app = {
 		$('[data-bind="' + k + '"]', app.pageInstance()).html(v);
 	},
 
+	logout : function() {
+		delete localStorage['token'];
+		delete localStorage['username'];
+		app.showPage('login');
+	},
+
 	pages : {
 		home : {
 			load : function() {
@@ -94,6 +98,23 @@ var app = {
 					var resp = app.handleResponse(resp);
 					app.bindData('number-of-clients', resp.clients.length);
 				});
+			}
+		},
+
+		profile : {
+			load : function() {
+				$('form#change-password').submit(function() {
+					app.ajax('/user/password', { method: 'PUT', data : $(this).serialize() }).done(function(resp) {
+						var resp = app.handleResponse(resp);
+						if (resp.status === 'OK') {
+							app.logout();
+						}
+					}, 'json');
+					return false;
+				});
+			},
+			unload : function() {
+				$('form#change-password').unbind('submit');
 			}
 		},
 
@@ -164,6 +185,12 @@ var app = {
 
 		'404' : {
 			load : function() {
+			}
+		},
+
+		logout : {
+			load : function() {
+				app.logout();
 			}
 		},
 

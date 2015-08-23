@@ -92,7 +92,7 @@ func (s *Server) Start() bool {
 		router.GET("/client/:clientId/cmds", ClientCmds)
 		router.POST("/client/:clientId/cmd", PostClientCmd)
 		router.POST("/auth", PostAuth)
-		router.POST("/user/password", PostUserPassword)
+		router.PUT("/user/password", PutUserPassword)
 		router.GET("/clients", GetClients)
 		router.ServeFiles("/console/*filepath", http.Dir("console"))
 
@@ -145,7 +145,7 @@ func PostAuth(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 }
 
 // Change password
-func PostUserPassword(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+func PutUserPassword(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	jr := jresp.NewJsonResp()
 	if !authUser(r) {
 		jr.Error("Not authorized")
@@ -154,9 +154,17 @@ func PostUserPassword(w http.ResponseWriter, r *http.Request, ps httprouter.Para
 	}
 
 	// Validate password
-	newPwd := r.PostFormValue("pasword")
+	newPwd := r.PostFormValue("password")
 	if len(newPwd) < 16 {
 		jr.Error("Password must be at least 16 characters, please pick a strong one!")
+		fmt.Fprint(w, jr.ToString(debug))
+		return
+	}
+
+	// Match passwords
+	newPwd2 := r.PostFormValue("password2")
+	if newPwd != newPwd2 {
+		jr.Error("Please confirm your password")
 		fmt.Fprint(w, jr.ToString(debug))
 		return
 	}
