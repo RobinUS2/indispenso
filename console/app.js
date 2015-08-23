@@ -234,12 +234,28 @@ var app = {
 						lines.push('<tr>');
 						lines.push('<td>' + obj.Username + '</td>');
 						lines.push('<td>' + Object.keys(obj.Roles).join(', ') + '</td>');
-						lines.push('<td><div class="btn-group btn-group-xs pull-right"><span class="btn btn-default ">Delete</span></div></td>');
+						lines.push('<td><div class="btn-group btn-group-xs pull-right"><span class="btn btn-default delete-user" data-username="' + obj.Username + '">Delete</span></div></td>');
 						lines.push('</tr>');
 						html.push(lines.join("\n"));
 					}
 					app.bindData('users', html.join("\n"));
+
+					$('.delete-user').click(function() {
+						var username = $(this).attr('data-username');
+						if (!confirm('Are you sure you want to delete "' + username + '"?')) {
+							return;
+						}
+						app.ajax('/user?username=' + username, { method: 'DELETE' }).done(function(resp) {
+							var resp = app.handleResponse(resp);
+							if (resp.status === 'OK') {
+								app.showPage('users');
+							}
+						});
+					});
 				});
+			},
+			unload : function() {
+				$('.delete-user').unbind('click');
 			}
 		},
 

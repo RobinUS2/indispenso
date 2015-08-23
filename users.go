@@ -36,6 +36,7 @@ func (s *UserStore) RemoveByName(username string) {
 	tmp := make([]*User, 0)
 	for _, user := range s.Users {
 		if user.Username == username {
+
 			continue
 		}
 		tmp = append(tmp, user)

@@ -344,8 +344,17 @@ func DeleteUser(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 		return
 	}
 
+	// Username
+	username := strings.TrimSpace(r.URL.Query().Get("username"))
+
+	// Can not remove yourself
+	if usr.Username == username {
+		jr.Error("You can not remove yourself. If you want to achieve this, make a new admin account. Login as that new account and then remove the old account.")
+		fmt.Fprint(w, jr.ToString(debug))
+		return
+	}
+
 	// Get user
-	username := r.PostFormValue("username")
 	server.userStore.RemoveByName(username)
 	server.userStore.save()
 
