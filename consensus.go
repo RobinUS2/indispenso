@@ -17,10 +17,11 @@ type Consensus struct {
 }
 
 type ConsensusRequest struct {
-	Id            string
-	TemplateId    string
-	ClientIds     []string
-	RequestUserId string
+	Id             string
+	TemplateId     string
+	ClientIds      []string
+	RequestUserId  string
+	ApproveUserIds map[string]bool
 }
 
 func (c *Consensus) save() {

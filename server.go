@@ -163,9 +163,23 @@ func GetConsensusPending(w http.ResponseWriter, r *http.Request, ps httprouter.P
 		fmt.Fprint(w, jr.ToString(debug))
 		return
 	}
+	user := getUser(r)
 
 	server.consensus.pendingMux.RLock()
+	work := make([]*ConsensusRequest, 0)
+	for _, req := range server.consensus.Pending {
+		// Ignore self
+		if req.RequestUserId == user.Id {
+			continue
+		}
+
+		// Voted?
+		if req.ApproveUserIds[user.Id] {
+			continue
+		}
+	}
 	jr.Set("requests", server.consensus.Pending)
+	jr.Set("work", work)
 	server.consensus.pendingMux.RUnlock()
 
 	jr.OK()

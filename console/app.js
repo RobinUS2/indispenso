@@ -166,6 +166,7 @@ var app = {
 					var resp = app.handleResponse(resp);
 					if (resp.status === 'OK') {
 						app.bindData('number-of-pending', Object.keys(resp.requests).length);
+						app.bindData('number-of-work', Object.keys(resp.work).length);
 					}
 				});
 			}
