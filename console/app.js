@@ -112,7 +112,7 @@ var app = {
 		$('a[data-nav]').click(function() {
 			app.showPage($(this).attr('data-nav'));
 			// Hide nav on mobile
-			if ($('button.navbar-toggle').is(':visible')) {
+			if ($('button.navbar-toggle').is(':visible') && $('.navbar-collapse').hasClass('in')) {
 				$('button.navbar-toggle').click();
 			}
 			return false;

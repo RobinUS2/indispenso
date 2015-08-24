@@ -12,11 +12,11 @@ import (
 
 // Configuration
 type Conf struct {
-	Seed string
+	Seed        string
 	SecureToken string
-	IsServer bool
-	tagsMux sync.RWMutex
-	tags map[string]bool
+	IsServer    bool
+	tagsMux     sync.RWMutex
+	tags        map[string]bool
 }
 
 // Get tags
@@ -34,7 +34,7 @@ func (c *Conf) Tags() []string {
 func (c *Conf) autoTag() {
 	c.tagsMux.Lock()
 	defer c.tagsMux.Unlock()
-	tokens := strings.FieldsFunc(hostname, func (r rune) bool {
+	tokens := strings.FieldsFunc(hostname, func(r rune) bool {
 		return r == '.' || r == '-' || r == '_'
 	})
 	numbersOnlyRegexp, _ := regexp.Compile("^[[:digit:]]+$")
@@ -46,7 +46,7 @@ func (c *Conf) autoTag() {
 			// Count numbers
 			numberCount := float64(len(numbersRegexp.FindAllStringSubmatch(cleanTag, -1)))
 			strLen := float64(len(cleanTag))
-			if numberCount >= strLen * 0.5 {
+			if numberCount >= strLen*0.5 {
 				// More than half is numbers, ignore
 				continue
 			}
