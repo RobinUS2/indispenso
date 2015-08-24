@@ -30,7 +30,7 @@ func (c *Conf) autoTag() {
 	tokens := strings.FieldsFunc(hostname, func (r rune) bool {
 		return r == '.' || r == '-' || r == '_'
 	})
-	numbersOnlyRegexp, _ := regexp.Compile("[[:digit:]]")
+	numbersOnlyRegexp, _ := regexp.Compile("^[[:digit:]]+$")
 	for _, token := range tokens {
 		cleanTag := c.cleanTag(token)
 		// Min 2 characters && not just numbers
@@ -42,7 +42,7 @@ func (c *Conf) autoTag() {
 
 // Clean tag
 func (c *Conf) cleanTag(in string) string {
-	tagRegexp, _ := regexp.Compile("[[:alnum:]]")
+	tagRegexp, _ := regexp.Compile("^[[:alnum:]-]+$")
 	cleanTag := strings.ToLower(strings.TrimSpace(in))
 	// Must be alphanumeric
 	if !tagRegexp.MatchString(cleanTag) {
