@@ -49,11 +49,15 @@ func main() {
 	// Seed override?
 	if len(seedUri) > 0 {
 		conf.Seed = seedUri
+	} else {
+		seedUri = conf.Seed
 	}
 
 	// Secure token override?
 	if len(secureToken) > 0 {
 		conf.SecureToken = secureToken
+	} else {
+		secureToken = conf.SecureToken
 	}
 
 	// Must have token
