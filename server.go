@@ -67,12 +67,13 @@ func (s *Server) CleanupClients() {
 }
 
 type RegisteredClient struct {
-	mux      sync.RWMutex
-	ClientId string
-	LastPing time.Time
-	Tags     []string
-	Cmds     map[string]*Cmd
-	CmdChan  chan bool `json:"-"`
+	mux       sync.RWMutex
+	ClientId  string
+	AuthToken string
+	LastPing  time.Time
+	Tags      []string
+	Cmds      map[string]*Cmd
+	CmdChan   chan bool `json:"-"`
 }
 
 func (c *RegisteredClient) HasTag(s string) bool {
@@ -96,7 +97,7 @@ func (s *Server) _prepareTlsKeys() {
 		// No keys, generate
 		log.Println("Auto-generating keys for server")
 		cmd := newCmd("./generate_key.sh", 60)
-		cmd.Execute()
+		cmd.Execute(nil)
 		log.Println("Finished generating keys for server")
 	}
 }
@@ -123,6 +124,7 @@ func (s *Server) Start() bool {
 		router.GET("/tags", GetTags)
 		router.GET("/client/:clientId/ping", ClientPing)
 		router.GET("/client/:clientId/cmds", ClientCmds)
+		router.POST("/client/:clientId/auth", PostClientAuth)
 		router.POST("/auth", PostAuth)
 		router.GET("/templates", GetTemplate)
 		router.POST("/template", PostTemplate)
@@ -708,6 +710,40 @@ outer:
 	}
 	server.clientsMux.RUnlock()
 	jr.Set("clients", clients)
+	jr.OK()
+	fmt.Fprint(w, jr.ToString(debug))
+}
+
+// Register client with token, this is used for signing commands towards the client which will then verify them
+func PostClientAuth(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+	jr := jresp.NewJsonResp()
+	if !auth(r) {
+		jr.Error("Not authorized")
+		fmt.Fprint(w, jr.ToString(debug))
+		return
+	}
+
+	// Get client
+	registeredClient := server.GetClient(ps.ByName("clientId"))
+	if registeredClient == nil {
+		jr.Error("Client not registered")
+		fmt.Fprint(w, jr.ToString(debug))
+		return
+	}
+
+	// Generate token and return
+	token, tokenE := secureRandomString(32)
+	if tokenE != nil {
+		jr.Error("Failed to generate token")
+		fmt.Fprint(w, jr.ToString(debug))
+		return
+	}
+	registeredClient.mux.Lock()
+	registeredClient.AuthToken = token
+	registeredClient.mux.Unlock()
+
+	// Return token
+	jr.Set("token", token)
 	jr.OK()
 	fmt.Fprint(w, jr.ToString(debug))
 }

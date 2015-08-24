@@ -13,19 +13,28 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+	"sync"
 	"time"
 )
 
 // Client methods (one per "slave", communicates with the server)
 
 type Client struct {
-	Id       string
-	Hostname string
+	Id        string
+	Hostname  string
+	AuthToken string
+	mux       sync.RWMutex
 }
 
 // Start client
 func (s *Client) Start() bool {
 	log.Printf("Starting client from seed %s with tags %v", conf.Seed, conf.tags)
+
+	// Ping server to register
+	s.PingServer()
+
+	// Get auth token from server
+	s.AuthServer()
 
 	// Start webserver
 	go func() {
@@ -37,12 +46,20 @@ func (s *Client) Start() bool {
 
 	// Register with server
 	go func() {
-		go func() {
-			s.PingServer()
-		}()
 		c := time.Tick(time.Duration(CLIENT_PING_INTERVAL) * time.Second)
 		for _ = range c {
 			s.PingServer()
+
+			// Should we reload auth?
+			var reloadAuth bool = false
+			s.mux.RLock()
+			if len(s.AuthToken) < 1 {
+				reloadAuth = true
+			}
+			s.mux.RUnlock()
+			if reloadAuth {
+				s.AuthServer()
+			}
 		}
 	}()
 
@@ -66,15 +83,35 @@ func (s *Client) PollCmds() {
 			for _, cmd := range cmds {
 				id, _ := cmd.GetString("Id")
 				command, _ := cmd.GetString("Command")
+				signature, _ := cmd.GetString("Signature")
 				timeout, _ := cmd.GetInt64("Timeout")
 				cmd := newCmd(command, int(timeout))
 				cmd.Id = id
-				cmd.Execute()
+				cmd.Signature = signature
+				cmd.Execute(s)
 			}
 		}
 	} else {
 		// In case of fast error back off a bit
 		time.Sleep(1 * time.Second)
+	}
+}
+
+// Auth server, token is used for verifying commands
+func (s *Client) AuthServer() {
+	b, e := s._req("POST", fmt.Sprintf("client/%s/auth", url.QueryEscape(s.Id)), nil)
+	if e == nil {
+		obj, jerr := jason.NewObjectFromBytes(b)
+		if jerr == nil {
+			token, et := obj.GetString("token")
+			if et != nil || len(token) < 1 {
+				return
+			}
+			s.mux.Lock()
+			s.AuthToken = token
+			s.mux.Unlock()
+			log.Printf("Client authenticated with server")
+		}
 	}
 }
 
