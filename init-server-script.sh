@@ -10,7 +10,7 @@
 ### END INIT INFO
 
 dir="/usr/local/indispenso"
-cmd="./build.sh && ./start_server.sh"
+cmd="./start_server.sh"
 user="root"
 
 name=`basename $0`
