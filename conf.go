@@ -6,6 +6,8 @@ import (
 	"path/filepath"
 	"regexp"
 	"strings"
+	"sync"
+	"time"
 )
 
 // Configuration
@@ -13,11 +15,14 @@ type Conf struct {
 	Seed string
 	SecureToken string
 	IsServer bool
+	tagsMux sync.RWMutex
 	tags map[string]bool
 }
 
 // Get tags
 func (c *Conf) Tags() []string {
+	c.tagsMux.RLock()
+	defer c.tagsMux.RUnlock()
 	keys := make([]string, 0, len(c.tags))
 	for k := range c.tags {
 		keys = append(keys, k)
@@ -27,6 +32,8 @@ func (c *Conf) Tags() []string {
 
 // Auto tag
 func (c *Conf) autoTag() {
+	c.tagsMux.Lock()
+	defer c.tagsMux.Unlock()
 	tokens := strings.FieldsFunc(hostname, func (r rune) bool {
 		return r == '.' || r == '-' || r == '_'
 	})
@@ -51,8 +58,20 @@ func (c *Conf) cleanTag(in string) string {
 	return cleanTag
 }
 
+// Reload config every once in a while
+func (co *Conf) startAutoReload() {
+	go func() {
+		c := time.Tick(time.Duration(60) * time.Second)
+		for _ = range c {
+			co.load()
+		}
+	}()
+}
+
 // Load config files
 func (c *Conf) load() {
+	c.tagsMux.Lock()
+	defer c.tagsMux.Unlock()
 	mainConf := "/etc/indispenso/indispenso.conf"
 	additionalFilesPath := "/etc/indispenso/conf.d/*"
 	files, _ := filepath.Glob(additionalFilesPath)

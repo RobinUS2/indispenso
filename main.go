@@ -35,6 +35,7 @@ func main() {
 	// Conf
 	conf = newConf()
 	conf.load()
+	conf.startAutoReload()
 
 	// Read flags
 	flag.BoolVar(&debug, "debug", false, "Enable debug logging")
