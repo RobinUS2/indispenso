@@ -10,6 +10,7 @@ import (
 	"io/ioutil"
 	"os"
 	"os/exec"
+	"time"
 )
 
 // @author Robin Verlangen
@@ -65,22 +66,37 @@ func (c *Cmd) Execute(client *Client) {
 	tmpFileName := fmt.Sprintf("/tmp/indispenso_%s", c.Id)
 	ioutil.WriteFile(tmpFileName, fileBytes.Bytes(), 0644)
 
+	// Remove file once done
+	defer os.Remove(tmpFileName)
+
 	// Run file
 	cmd := exec.Command("bash", tmpFileName)
 	err := cmd.Start()
 	if err != nil {
-		log.Printf("Failed to run command: %s", err)
+		log.Printf("Failed to start command: %s", err)
+		return
 	}
 
-	// Wait for completion
-	waitE := cmd.Wait()
-	if waitE != nil {
-		log.Printf("Failed to wait for exit of command: %s", waitE)
+	// Timeout mechanism
+	done := make(chan error, 1)
+	go func() {
+		done <- cmd.Wait()
+	}()
+	select {
+	case <-time.After(time.Duration(c.Timeout) * time.Second):
+		if err := cmd.Process.Kill(); err != nil {
+			log.Printf("Failed to kill %s: %s", c.Id, err)
+			return
+		}
+		<-done // allow goroutine to exit
+		log.Printf("Process %s killed", c.Id)
+	case err := <-done:
+		if err != nil {
+			log.Printf("Process %s done with error = %v", c.Id, err)
+		} else {
+			log.Printf("Finished %s", c.Id)
+		}
 	}
-	log.Printf("Finished %s", c.Id)
-
-	// Remove file
-	os.Remove(tmpFileName)
 }
 
 func newCmd(command string, timeout int) *Cmd {

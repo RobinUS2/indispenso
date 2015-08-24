@@ -26,7 +26,7 @@ var shutdown chan bool = make(chan bool)
 
 const CLIENT_PING_INTERVAL int = 60                       // In seconds
 const LONG_POLL_TIMEOUT time.Duration = time.Duration(30) // In seconds
-const DEFAULT_COMMAND_TIMEOUT int = 60                    // In seconds
+const DEFAULT_COMMAND_TIMEOUT int = 300                   // In seconds
 
 func main() {
 	// Log
