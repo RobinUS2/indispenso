@@ -46,6 +46,12 @@ func (c *Conf) load() {
 			continue
 		}
 
+		// Read base conf
+		if file == mainConf {
+			seed := conf.Root.(yaml.Map).Key("seed").(yaml.Scalar).String()
+			log.Printf("%v", seed)
+		}
+
 		// Tags
 		tags := conf.Root.(yaml.Map).Key("tags").(yaml.List)
 		tagRegexp, _ := regexp.Compile("[[:alnum:]]")

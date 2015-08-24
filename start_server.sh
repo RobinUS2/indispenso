@@ -1,4 +1,7 @@
 #!/bin/bash
+# Auto create foldder
+mkdir -p /etc/indispenso
+
 # This will start the server of indispenso and will generate a unique token the first time
 SECURE_TOKEN_FILE="server.token"
 if [ ! -f $SECURE_TOKEN_FILE ]; then
