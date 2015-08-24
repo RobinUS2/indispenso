@@ -12,7 +12,6 @@ import (
 // Indispenso: Distribute, manage, regulate, arrange. Simple & secure management based on consensus.
 
 var conf *Conf
-var isServer bool
 var serverPort int
 var isClient bool
 var clientPort int
@@ -39,7 +38,6 @@ func main() {
 	conf.load()
 
 	// Read flags
-	flag.BoolVar(&isServer, "server", false, "Should this run the server process")
 	flag.BoolVar(&debug, "debug", false, "Enable debug logging")
 	flag.BoolVar(&autoTag, "auto-tag", true, "Auto tag based on server details")
 	flag.StringVar(&seedUri, "seed", "", "Seed URI")
@@ -71,12 +69,6 @@ func main() {
 		secureToken = conf.SecureToken
 	}
 
-	// Is server override?
-	if isServer != conf.IsServer {
-		// Flag is leading
-		conf.IsServer = isServer
-	}
-
 	// Must have token
 	minLen := 32
 	if len(strings.TrimSpace(secureToken)) < minLen {
@@ -84,7 +76,7 @@ func main() {
 	}
 
 	// Server
-	if isServer {
+	if conf.IsServer {
 		server = newServer()
 		server.Start()
 
