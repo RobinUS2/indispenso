@@ -12,6 +12,7 @@ import (
 type Conf struct {
 	Seed string
 	SecureToken string
+	IsServer bool
 	tags map[string]bool
 }
 
@@ -91,6 +92,16 @@ func (c *Conf) load() {
 				secureToken := rootMap.Key("secure_token").(yaml.Scalar).String()
 				if len(secureToken) > 0 {
 					c.SecureToken = secureToken
+				}
+			}
+
+			// Server
+			if rootMap.Key("server_enabled") != nil {
+				serverEnabled := rootMap.Key("server_enabled").(yaml.Scalar).String()
+				if len(serverEnabled) > 0 && (serverEnabled == "1" || serverEnabled == "true") {
+					c.IsServer = true
+				} else {
+					c.IsServer = false
 				}
 			}
 		}

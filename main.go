@@ -71,6 +71,12 @@ func main() {
 		secureToken = conf.SecureToken
 	}
 
+	// Is server override?
+	if isServer != conf.IsServer {
+		// Flag is leading
+		conf.IsServer = isServer
+	}
+
 	// Must have token
 	minLen := 32
 	if len(strings.TrimSpace(secureToken)) < minLen {
