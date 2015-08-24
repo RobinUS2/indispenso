@@ -52,8 +52,10 @@ func (c *Cmd) NotifyServer(state string) {
 
 // Should we flush the local buffer? After X milliseconds or Y lines
 func (c *Cmd) _checkFlushLogs() {
-	// @todo Implement
-	c._flushLogs()
+	// At least 10 lines
+	if len(c.BufOutput) > 10 || len(c.BufOutputErr) > 10 {
+		c._flushLogs()
+	}
 }
 
 // Write logs to server
@@ -231,6 +233,8 @@ func (c *Cmd) Execute(client *Client) {
 	for _, line := range strings.Split(outerr.String(), "\n") {
 		c.LogError(line)
 	}
+	// Final flush
+	c._flushLogs()
 }
 
 func newCmd(command string, timeout int) *Cmd {
