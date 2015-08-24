@@ -132,7 +132,7 @@ func (s *Client) _req(method string, uri string, data []byte) ([]byte, error) {
 	var err error = nil
 	for i := 0; i < 10; i++ {
 		bytes, err = s._reqUnsafe(method, uri, data)
-		if err == nil {
+		if err == nil && bytes != nil && len(bytes) > 0 {
 			return bytes, err
 		}
 

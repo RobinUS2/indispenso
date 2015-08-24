@@ -150,7 +150,11 @@ func (c *Cmd) Execute(client *Client) {
 
 	// Consume streams
 	go func() {
-		p, _ := cmd.StdoutPipe()
+		p, pe := cmd.StdoutPipe()
+		if pe != nil {
+			log.Printf("Pipe error: %s", pe)
+			return
+		}
 		scanner := bufio.NewScanner(p)
 		for scanner.Scan() {
 			txt := scanner.Text()
@@ -161,7 +165,11 @@ func (c *Cmd) Execute(client *Client) {
 		}
 	}()
 	go func() {
-		p, _ := cmd.StderrPipe()
+		p, pe := cmd.StderrPipe()
+		if pe != nil {
+			log.Printf("Pipe error: %s", pe)
+			return
+		}
 		scanner := bufio.NewScanner(p)
 		for scanner.Scan() {
 			txt := scanner.Text()

@@ -18,4 +18,4 @@ if [ ! -f "/etc/indispenso/indispenso.conf" ]; then
 fi
 
 # Start server
-./indispenso
+./indispenso --debug=true
