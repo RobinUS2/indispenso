@@ -27,10 +27,13 @@ func (c *Conf) Tags() []string {
 
 // Auto tag
 func (c *Conf) autoTag() {
-	tokens := strings.Split(hostname, ".")
+	tokens := strings.FieldsFunc(hostname, func (r rune) bool {
+		return r == '.' || r == '-' || r == '_'
+	})
 	for _, token := range tokens {
 		cleanTag := c.cleanTag(token)
-		if len(cleanTag) > 0 {
+		// Min 2 characters
+		if len(cleanTag) >= 2 {
 			c.tags[cleanTag] = true
 		}
 	}
@@ -39,12 +42,12 @@ func (c *Conf) autoTag() {
 // Clean tag
 func (c *Conf) cleanTag(in string) string {
 	tagRegexp, _ := regexp.Compile("[[:alnum:]]")
-	cleanTag := strings.ToLower(in)
+	cleanTag := strings.ToLower(strings.TrimSpace(in))
 	// Must be alphanumeric
-	if tagRegexp.MatchString(cleanTag) {
-		return cleanTag
+	if !tagRegexp.MatchString(cleanTag) {
+		return ""
 	}
-	return ""
+	return cleanTag
 }
 
 // Load config files
