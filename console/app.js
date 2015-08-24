@@ -336,7 +336,7 @@ var app = {
 									lines.push('<td>' + template.Title + '</td>');
 									lines.push('<td>' + user.Username + '</td>');
 									lines.push('<td>');
-									if (user.Id === app.userId()) {
+									if (user.Id === app.userId() || app.userRoles().indexOf('admin') !== -1) {
 										lines.push('<div class="btn-group btn-group-xs pull-right"><span class="btn btn-default cancel-request" data-id="' + request.Id + '">Cancel</span></div>');
 									}
 									lines.push('</td>');
