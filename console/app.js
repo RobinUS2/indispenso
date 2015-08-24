@@ -111,6 +111,10 @@ var app = {
 		$('a[data-nav]').unbind('click');
 		$('a[data-nav]').click(function() {
 			app.showPage($(this).attr('data-nav'));
+			// Hide nav on mobile
+			if ($('button.navbar-toggle').is(':visible')) {
+				$('button.navbar-toggle').click();
+			}
 			return false;
 		});
 	},
@@ -273,7 +277,8 @@ var app = {
 								listTags.push(tag);
 							}
 						});
-						rows.push('<tr class="client"><td>' + client.ClientId + '</td><td>' + tags.join("\n") + '</td><td>' + client.LastPing + '</td></tr>');
+						var lastTime = client.LastPing.substr(0, client.LastPing.indexOf('.')).replace('T', ' ');
+						rows.push('<tr class="client"><td>' + client.ClientId + '</td><td>' + tags.join("\n") + '</td><td>' + lastTime + '</td></tr>');
 					});
 					app.bindData('clients', rows.join("\n"));
 
