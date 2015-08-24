@@ -38,12 +38,13 @@ func (c *Conf) autoTag() {
 		return r == '.' || r == '-' || r == '_'
 	})
 	numbersOnlyRegexp, _ := regexp.Compile("^[[:digit:]]+$")
+	numbersRegexp, _ := regexp.Compile("[[:digit:]]")
 	for _, token := range tokens {
 		cleanTag := c.cleanTag(token)
 		// Min 2 characters && not just numbers && not only numbers
 		if len(cleanTag) >= 2 && !numbersOnlyRegexp.MatchString(cleanTag) {
 			// Count numbers
-			numberCount := float64(len(numbersOnlyRegexp.FindAllStringSubmatch(cleanTag, -1)))
+			numberCount := float64(len(numbersRegexp.FindAllStringSubmatch(cleanTag, -1)))
 			strLen := float64(len(cleanTag))
 			if numberCount >= strLen * 0.5 {
 				// More than half is numbers, ignore
