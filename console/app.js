@@ -123,7 +123,9 @@ var app = {
 					if (resp.status === 'OK') {
 						if (Object.keys(resp.work).length > 0) {
 							// New work, notify
-							app.showDesktopNotification('Pending Approval', '', 'pending');
+							if (!app._openNotification) {
+								app.showDesktopNotification('Pending Approval', '', 'pending');
+							}
 						}
 					}
 				});
@@ -190,6 +192,8 @@ var app = {
 		app.showPage('login');
 	},
 
+	_openNotification : false,
+
 	showDesktopNotification : function(title, msg, targetPage) {
 		if (!Notification) {
 			return
@@ -197,11 +201,13 @@ var app = {
 		var notification = new Notification(title, {
 	      body: msg,
 	    });
+	    app._openNotification = true;
 	    notification.onclick = function () {
-	      window.focus();
-	      if (targetPage !== 'undefined' && targetPage !== null) {
-	      	app.showPage(targetPage);
-	      }
+	     	window.focus();
+	     	app._openNotification = false;
+	     	if (targetPage !== 'undefined' && targetPage !== null) {
+	      		app.showPage(targetPage);
+	    	}
 	    };
 	},
 
