@@ -22,6 +22,7 @@ type Cmd struct {
 	Command      string
 	Pending      bool
 	Id           string
+	TemplateId   string
 	Signature    string // makes this only valid from the server to the client based on the preshared token and this is a signature with the command and id
 	Timeout      int    // in seconds
 	State        string

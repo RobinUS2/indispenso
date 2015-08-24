@@ -151,6 +151,7 @@ func (s *Server) Start() bool {
 		router.GET("/client/:clientId/cmds", ClientCmds)
 		router.PUT("/client/:clientId/cmd/:cmd/state", PutClientCmdState)
 		router.PUT("/client/:clientId/cmd/:cmd/logs", PutClientCmdLogs)
+		router.GET("/client/:clientId/cmd/:cmd/logs", GetClientCmdLogs)
 		router.POST("/client/:clientId/auth", PostClientAuth)
 		router.POST("/auth", PostAuth)
 		router.GET("/templates", GetTemplate)
@@ -187,7 +188,42 @@ func (s *Server) Start() bool {
 	return true
 }
 
-// Get dispatched
+// Get logs from dispatched job
+func GetClientCmdLogs(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+	jr := jresp.NewJsonResp()
+	if !authUser(r) {
+		jr.Error("Not authorized")
+		fmt.Fprint(w, jr.ToString(debug))
+		return
+	}
+
+	// Get client
+	registeredClient := server.GetClient(ps.ByName("clientId"))
+	if registeredClient == nil {
+		jr.Error("Client not registered")
+		fmt.Fprint(w, jr.ToString(debug))
+		return
+	}
+
+	// Command
+	cmdId := ps.ByName("cmd")
+	registeredClient.mux.RLock()
+	cmd := registeredClient.DispatchedCmds[cmdId]
+	registeredClient.mux.RUnlock()
+	if cmd == nil {
+		jr.Error("Command not found")
+		fmt.Fprint(w, jr.ToString(debug))
+		return
+	}
+
+	jr.Set("log_output", cmd.BufOutput)
+	jr.Set("log_error", cmd.BufOutputErr)
+
+	jr.OK()
+	fmt.Fprint(w, jr.ToString(debug))
+}
+
+// Get dispatched jobs list (no detail)
 func GetDispatched(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	jr := jresp.NewJsonResp()
 	if !authUser(r) {
@@ -195,7 +231,31 @@ func GetDispatched(w http.ResponseWriter, r *http.Request, ps httprouter.Params)
 		fmt.Fprint(w, jr.ToString(debug))
 		return
 	}
-	jr.Set("clients", server.clients)
+
+	// Create structure of dispatched jobs
+	type DispatchedCmd struct {
+		Id       string // Cmd id
+		ClientId string // Client id
+		State    string
+	}
+
+	// List
+	list := make([]map[string]string, 0)
+
+	// Fetch and create
+	server.clientsMux.RLock()
+	for _, client := range server.clients {
+		for _, d := range client.DispatchedCmds {
+			elm := make(map[string]string)
+			elm["Id"] = d.Id
+			elm["ClientId"] = client.ClientId
+			elm["State"] = d.State
+			list = append(list, elm)
+		}
+	}
+	server.clientsMux.RUnlock()
+	jr.Set("dispatched", list)
+
 	jr.OK()
 	fmt.Fprint(w, jr.ToString(debug))
 }
