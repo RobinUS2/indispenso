@@ -117,15 +117,17 @@ var app = {
 
 	pollWork : function() {
 		setInterval(function() {
-			app.ajax('/consensus/pending').done(function(resp) {
-				var resp = app.handleResponse(resp);
-				if (resp.status === 'OK') {
-					if (Object.keys(resp.work).length > 0) {
-						// New work, notify
-						app.showDesktopNotification('Pending Approval', '', 'pending');
+			if (typeof app.token() !== 'undefined' && app.token() !== null && app.token().length > 0) {
+				app.ajax('/consensus/pending').done(function(resp) {
+					var resp = app.handleResponse(resp);
+					if (resp.status === 'OK') {
+						if (Object.keys(resp.work).length > 0) {
+							// New work, notify
+							app.showDesktopNotification('Pending Approval', '', 'pending');
+						}
 					}
-				}
-			});
+				});
+			}
 		}, 3000);
 	},
 
