@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"crypto/sha256"
 	"crypto/tls"
 	"encoding/base64"
@@ -174,8 +175,13 @@ func (s *Client) _reqUnsafe(method string, uri string, data []byte) ([]byte, err
 	url := fmt.Sprintf("%s%s", strings.TrimRight(seedUri, "/"), uri)
 
 	// Req
-	// @todo support data
-	req, reqErr := http.NewRequest(method, url, nil)
+	var buf *bytes.Buffer
+	if data != nil && len(data) > 0 {
+		buf = bytes.NewBuffer(data)
+	} else {
+		buf = bytes.NewBuffer(make([]byte, 0))
+	}
+	req, reqErr := http.NewRequest(method, url, buf)
 	if reqErr != nil {
 		return nil, reqErr
 	}
