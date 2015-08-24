@@ -12,6 +12,7 @@ func secureRandomString(c int) (string, error) {
 	b := make([]byte, c)
 	_, randErr := crand.Read(b)
 	if randErr != nil {
+		log.Printf("Error during random number generation: %s", randErr)
 		return "", randErr
 	}
 	randStr = base64.URLEncoding.EncodeToString(b)
