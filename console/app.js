@@ -267,7 +267,12 @@ var app = {
 						return false;
 					});
 
-					// @todo double click on filter tag only turns on that specific one
+					// Double click on filter tag only turns on that specific one
+					$('.filter-tag').dblclick(function() { 
+						var tag = $(this).attr('data-tag'); 
+						$('.filter-tag:not([data-tag="' + tag + '"])').click(); 
+						return false; 
+					});
 				});
 			}
 		},
