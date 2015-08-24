@@ -6,6 +6,7 @@ import (
 	"crypto/hmac"
 	"crypto/sha256"
 	"encoding/base64"
+	"encoding/json"
 	"fmt"
 	"github.com/nu7hatch/gouuid"
 	"io/ioutil"
@@ -18,12 +19,14 @@ import (
 // @author Robin Verlangen
 
 type Cmd struct {
-	Command   string
-	Pending   bool
-	Id        string
-	Signature string // makes this only valid from the server to the client based on the preshared token and this is a signature with the command and id
-	Timeout   int    // in seconds
-	State     string
+	Command      string
+	Pending      bool
+	Id           string
+	Signature    string // makes this only valid from the server to the client based on the preshared token and this is a signature with the command and id
+	Timeout      int    // in seconds
+	State        string
+	BufOutput    []string
+	BufOutputErr []string
 }
 
 // Sign the command on the server
@@ -43,6 +46,58 @@ func (c *Cmd) NotifyServer(state string) {
 
 	// Update server state
 	client._req("PUT", fmt.Sprintf("client/%s/cmd/%s/state?state=%s", url.QueryEscape(client.Id), url.QueryEscape(c.Id), url.QueryEscape(state)), nil)
+}
+
+// Should we flush the local buffer? After X milliseconds or Y lines
+func (c *Cmd) _checkFlushLogs() {
+	// @todo Implement
+	c._flushLogs()
+}
+
+// Write logs to server
+func (c *Cmd) _flushLogs() {
+	// To JSON
+	m := make(map[string][]string)
+	m["output"] = c.BufOutput
+	m["error"] = c.BufOutputErr
+	bytes, je := json.Marshal(m)
+	if je != nil {
+		log.Printf("Failed to convert logs to JSON: %s", je)
+		return
+	}
+
+	// Post to server
+	uri := fmt.Sprintf("client/%s/cmd/%s/logs", url.QueryEscape(client.Id), url.QueryEscape(c.Id))
+	b, e := client._req("PUT", uri, bytes)
+	if e != nil || len(b) < 1 {
+		log.Printf("Failed log write: %s", e)
+	}
+
+	// Clear buffers
+	c.BufOutput = make([]string, 0)
+	c.BufOutputErr = make([]string, 0)
+}
+
+// Log output
+func (c *Cmd) LogOutput(line string) {
+	// No lock, only one routine can access this
+
+	// Append
+	c.BufOutput = append(c.BufOutput, line)
+
+	// Check to flush?
+	c._checkFlushLogs()
+}
+
+// Log error
+func (c *Cmd) LogError(line string) {
+	// No lock, only one routine can access this
+
+	// Append
+	c.BufOutputErr = append(c.BufOutputErr, line)
+
+	// Check to flush?
+	c._checkFlushLogs()
 }
 
 // Sign the command
@@ -97,14 +152,22 @@ func (c *Cmd) Execute(client *Client) {
 		p, _ := cmd.StdoutPipe()
 		scanner := bufio.NewScanner(p)
 		for scanner.Scan() {
-			log.Println(scanner.Text())
+			txt := scanner.Text()
+			c.LogOutput(txt)
+			if debug {
+				log.Println(scanner.Text())
+			}
 		}
 	}()
 	go func() {
 		p, _ := cmd.StderrPipe()
 		scanner := bufio.NewScanner(p)
 		for scanner.Scan() {
-			log.Println(scanner.Text())
+			txt := scanner.Text()
+			c.LogError(txt)
+			if debug {
+				log.Println(scanner.Text())
+			}
 		}
 	}()
 
@@ -145,9 +208,11 @@ func (c *Cmd) Execute(client *Client) {
 func newCmd(command string, timeout int) *Cmd {
 	id, _ := uuid.NewV4()
 	return &Cmd{
-		Id:      id.String(),
-		Command: command,
-		Pending: true,
-		Timeout: timeout,
+		Id:           id.String(),
+		Command:      command,
+		Pending:      true,
+		Timeout:      timeout,
+		BufOutput:    make([]string, 0),
+		BufOutputErr: make([]string, 0),
 	}
 }

@@ -3,9 +3,11 @@ package main
 import (
 	"crypto/sha256"
 	"encoding/base64"
+	"encoding/json"
 	"fmt"
 	"github.com/RobinUS2/golang-jresp"
 	"github.com/julienschmidt/httprouter"
+	"io/ioutil"
 	"net/http"
 	"os"
 	"strconv"
@@ -148,6 +150,7 @@ func (s *Server) Start() bool {
 		router.GET("/client/:clientId/ping", ClientPing)
 		router.GET("/client/:clientId/cmds", ClientCmds)
 		router.PUT("/client/:clientId/cmd/:cmd/state", PutClientCmdState)
+		router.PUT("/client/:clientId/cmd/:cmd/logs", PutClientCmdLogs)
 		router.POST("/client/:clientId/auth", PostClientAuth)
 		router.POST("/auth", PostAuth)
 		router.GET("/templates", GetTemplate)
@@ -162,6 +165,7 @@ func (s *Server) Start() bool {
 		router.DELETE("/consensus/request", DeleteConsensusRequest)
 		router.POST("/consensus/approve", PostConsensusApprove)
 		router.GET("/consensus/pending", GetConsensusPending)
+		router.GET("/dispatched", GetDispatched)
 		router.DELETE("/user", DeleteUser)
 		router.ServeFiles("/console/*filepath", http.Dir("console"))
 
@@ -181,6 +185,19 @@ func (s *Server) Start() bool {
 	}()
 
 	return true
+}
+
+// Get dispatched
+func GetDispatched(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+	jr := jresp.NewJsonResp()
+	if !authUser(r) {
+		jr.Error("Not authorized")
+		fmt.Fprint(w, jr.ToString(debug))
+		return
+	}
+	jr.Set("clients", server.clients)
+	jr.OK()
+	fmt.Fprint(w, jr.ToString(debug))
 }
 
 // Get pending execution request
@@ -768,6 +785,73 @@ func PostClientAuth(w http.ResponseWriter, r *http.Request, ps httprouter.Params
 
 	// Return token
 	jr.Set("token", token)
+	jr.OK()
+	fmt.Fprint(w, jr.ToString(debug))
+}
+
+// Set command logs
+func PutClientCmdLogs(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+	jr := jresp.NewJsonResp()
+	if !auth(r) {
+		jr.Error("Not authorized")
+		fmt.Fprint(w, jr.ToString(debug))
+		return
+	}
+
+	// Get client
+	registeredClient := server.GetClient(ps.ByName("clientId"))
+	if registeredClient == nil {
+		jr.Error("Client not registered")
+		fmt.Fprint(w, jr.ToString(debug))
+		return
+	}
+
+	// Command
+	cmdId := ps.ByName("cmd")
+	registeredClient.mux.RLock()
+	cmd := registeredClient.DispatchedCmds[cmdId]
+	registeredClient.mux.RUnlock()
+	if cmd == nil {
+		jr.Error("Command not found")
+		fmt.Fprint(w, jr.ToString(debug))
+		return
+	}
+
+	// Read body
+	body, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		jr.Error("Failed to read body")
+		fmt.Fprint(w, jr.ToString(debug))
+		return
+	}
+
+	// Decode json
+	type LogStruct struct {
+		Output []string `json:"output"`
+		Error  []string `json:"errors"`
+	}
+	var m *LogStruct
+	je := json.Unmarshal(body, &m)
+	if je != nil {
+		jr.Error("Failed to parse json")
+		fmt.Fprint(w, jr.ToString(debug))
+		return
+	}
+
+	// Append buffers
+	if m.Output != nil {
+		for _, line := range m.Output {
+			cmd.BufOutput = append(cmd.BufOutput, line)
+		}
+	}
+
+	// Append buffers
+	if m.Error != nil {
+		for _, line := range m.Error {
+			cmd.BufOutputErr = append(cmd.BufOutputErr, line)
+		}
+	}
+
 	jr.OK()
 	fmt.Fprint(w, jr.ToString(debug))
 }

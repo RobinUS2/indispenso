@@ -123,7 +123,7 @@ func (s *Client) PingServer() {
 
 // Get
 func (s *Client) _get(uri string) ([]byte, error) {
-	return s._req("GET", uri, nil)
+	return s._req("GET", uri, make([]byte, 0))
 }
 
 // Generic request method with retry handling
@@ -148,6 +148,11 @@ func (s *Client) _req(method string, uri string, data []byte) ([]byte, error) {
 
 // Generic request method
 func (s *Client) _reqUnsafe(method string, uri string, data []byte) ([]byte, error) {
+	// Log
+	if debug {
+		log.Printf("%s %s (bytes %d)", method, uri, len(data))
+	}
+
 	// Transport
 	tr := &http.Transport{
 		TLSClientConfig: &tls.Config{
