@@ -24,6 +24,28 @@ func (c *Conf) Tags() []string {
 	return keys
 }
 
+// Auto tag
+func (c *Conf) autoTag() {
+	tokens := strings.Split(hostname, ".")
+	for _, token := range tokens {
+		cleanTag := c.cleanTag(token)
+		if len(cleanTag) > 0 {
+			c.tags[cleanTag] = true
+		}
+	}
+}
+
+// Clean tag
+func (c *Conf) cleanTag(in string) string {
+	tagRegexp, _ := regexp.Compile("[[:alnum:]]")
+	cleanTag := strings.ToLower(in)
+	// Must be alphanumeric
+	if tagRegexp.MatchString(cleanTag) {
+		return cleanTag
+	}
+	return ""
+}
+
 // Load config files
 func (c *Conf) load() {
 	mainConf := "/etc/indispenso/indispenso.conf"
@@ -76,11 +98,10 @@ func (c *Conf) load() {
 		// Tags
 		if rootMap.Key("tags") != nil {
 			tags := rootMap.Key("tags").(yaml.List)
-			tagRegexp, _ := regexp.Compile("[[:alnum:]]")
 			if tags != nil {
 				for _, tag := range tags {
-					cleanTag := strings.ToLower(tag.(yaml.Scalar).String())
-					if tagRegexp.MatchString(cleanTag) {
+					cleanTag := c.cleanTag(tag.(yaml.Scalar).String())
+					if len(cleanTag) > 0 {
 						c.tags[cleanTag] = true
 					} else {
 						log.Printf("Invalid tag %s, must be alphanumeric", tag)

@@ -25,7 +25,7 @@ type Client struct {
 
 // Start client
 func (s *Client) Start() bool {
-	log.Println("Starting client")
+	log.Printf("Starting client from seed %s", conf.Seed)
 
 	// Start webserver
 	go func() {

@@ -22,6 +22,7 @@ var client *Client
 var log *Log
 var hostname string
 var debug bool
+var autoTag bool
 var secureToken string
 var shutdown chan bool = make(chan bool)
 
@@ -40,11 +41,21 @@ func main() {
 	// Read flags
 	flag.BoolVar(&isServer, "server", false, "Should this run the server process")
 	flag.BoolVar(&debug, "debug", false, "Enable debug logging")
+	flag.BoolVar(&autoTag, "auto-tag", true, "Auto tag based on server details")
 	flag.StringVar(&seedUri, "seed", "", "Seed URI")
 	flag.StringVar(&secureToken, "secure-token", "", "Secure token")
 	flag.IntVar(&serverPort, "server-port", 897, "Server port")
 	flag.IntVar(&clientPort, "client-port", 898, "Client port")
 	flag.Parse()
+
+	// Hostname
+	hostname, _ = os.Hostname()
+	hostname = strings.ToLower(hostname)
+
+	// Auto tag
+	if autoTag {
+		conf.autoTag()
+	}
 
 	// Seed override?
 	if len(seedUri) > 0 {
@@ -66,9 +77,6 @@ func main() {
 		log.Fatal(fmt.Sprintf("Must have secure token with minimum length of %d", minLen))
 	}
 
-	// Hostname
-	hostname, _ = os.Hostname()
-
 	// Server
 	if isServer {
 		server = newServer()
@@ -77,6 +85,7 @@ func main() {
 		// Empty seed? Then go for local
 		if len(seedUri) < 1 {
 			seedUri = fmt.Sprintf("https://127.0.0.1:%d/", serverPort)
+			conf.Seed = seedUri
 
 			// Sleep for 1 second to allow the server to start
 			time.Sleep(1 * time.Second)
