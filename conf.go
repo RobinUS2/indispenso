@@ -10,6 +10,8 @@ import (
 
 // Configuration
 type Conf struct {
+	Seed string
+	SecureToken string
 	tags map[string]bool
 }
 
@@ -24,7 +26,7 @@ func (c *Conf) Tags() []string {
 
 // Load config files
 func (c *Conf) load() {
-	mainConf := "/etc/indispenso.conf"
+	mainConf := "/etc/indispenso/indispenso.conf"
 	additionalFilesPath := "/etc/indispenso/conf.d/*"
 	files, _ := filepath.Glob(additionalFilesPath)
 	files = append([]string{mainConf}, files...) // Prepend item
@@ -46,22 +48,43 @@ func (c *Conf) load() {
 			continue
 		}
 
+		// Root map
+		if conf.Root == nil {
+			continue
+		}
+		rootMap := conf.Root.(yaml.Map)
+
 		// Read base conf
 		if file == mainConf {
-			seed := conf.Root.(yaml.Map).Key("seed").(yaml.Scalar).String()
-			log.Printf("%v", seed)
+			// Seed
+			if rootMap.Key("seed") != nil {
+				seed := rootMap.Key("seed").(yaml.Scalar).String()
+				if len(seed) > 0 {
+					c.Seed = seed
+				}
+			}
+
+			// Secure token
+			if rootMap.Key("secure_token") != nil {
+				secureToken := rootMap.Key("secure_token").(yaml.Scalar).String()
+				if len(secureToken) > 0 {
+					c.SecureToken = secureToken
+				}
+			}
 		}
 
 		// Tags
-		tags := conf.Root.(yaml.Map).Key("tags").(yaml.List)
-		tagRegexp, _ := regexp.Compile("[[:alnum:]]")
-		if tags != nil {
-			for _, tag := range tags {
-				cleanTag := strings.ToLower(tag.(yaml.Scalar).String())
-				if tagRegexp.MatchString(cleanTag) {
-					c.tags[cleanTag] = true
-				} else {
-					log.Printf("Invalid tag %s, must be alphanumeric", tag)
+		if rootMap.Key("tags") != nil {
+			tags := rootMap.Key("tags").(yaml.List)
+			tagRegexp, _ := regexp.Compile("[[:alnum:]]")
+			if tags != nil {
+				for _, tag := range tags {
+					cleanTag := strings.ToLower(tag.(yaml.Scalar).String())
+					if tagRegexp.MatchString(cleanTag) {
+						c.tags[cleanTag] = true
+					} else {
+						log.Printf("Invalid tag %s, must be alphanumeric", tag)
+					}
 				}
 			}
 		}

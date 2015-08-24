@@ -46,6 +46,16 @@ func main() {
 	flag.IntVar(&clientPort, "client-port", 898, "Client port")
 	flag.Parse()
 
+	// Seed override?
+	if len(seedUri) > 0 {
+		conf.Seed = seedUri
+	}
+
+	// Secure token override?
+	if len(secureToken) > 0 {
+		conf.SecureToken = secureToken
+	}
+
 	// Must have token
 	minLen := 32
 	if len(strings.TrimSpace(secureToken)) < minLen {
