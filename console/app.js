@@ -96,7 +96,13 @@ var app = {
 			if (!hasAll) {
 				$(this).hide();
 			} else {
-				$(this).show();
+				if ($(elm).hasClass('page')) {
+					if ($(elm).hasClass('page-visible')) {
+						$(this).show();
+					} else {
+						$(this).hide();
+					}
+				}
 			}
 		});
 	},
