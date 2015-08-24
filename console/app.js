@@ -115,9 +115,26 @@ var app = {
 		});
 	},
 
+	pollWork : function() {
+		setInterval(function() {
+			app.ajax('/consensus/pending').done(function(resp) {
+				var resp = app.handleResponse(resp);
+				if (resp.status === 'OK') {
+					if (Object.keys(resp.work).length > 0) {
+						// New work, notify
+						app.showDesktopNotification('Pending Approval', '', 'pending');
+					}
+				}
+			});
+		}, 3000);
+	},
+
 	run : function() {
 		/** Top menu */
 		app.initNav();
+
+		/** Check for work notifications */
+		this.pollWork();
 
 		/** Init route based of location */
 		var h = document.location.hash.substr(2);
@@ -171,6 +188,30 @@ var app = {
 		app.showPage('login');
 	},
 
+	showDesktopNotification : function(title, msg, targetPage) {
+		if (!Notification) {
+			return
+		}
+		var notification = new Notification(title, {
+	      body: msg,
+	    });
+	    notification.onclick = function () {
+	      window.focus();
+	      if (targetPage !== 'undefined' && targetPage !== null) {
+	      	app.showPage(targetPage);
+	      }
+	    };
+	},
+
+	requestDesktopNotification : function() {
+		if (!Notification) {
+			return
+		}
+		if (Notification.permission !== 'granted') {
+		    Notification.requestPermission();
+		}
+	},
+
 	pages : {
 		home : {
 			load : function() {
@@ -187,6 +228,9 @@ var app = {
 						app.bindData('number-of-work', Object.keys(resp.work).length);
 					}
 				});
+
+				// Ask notification permissions
+				app.requestDesktopNotification();
 			}
 		},
 
@@ -316,7 +360,7 @@ var app = {
 									lines.push('<tr>');
 									lines.push('<td>' + template.Title + '</td>');
 									lines.push('<td>' + user.Username + '</td>');
-									lines.push('<td><div class="btn-group btn-group-xs pull-right"><span class="btn btn-success approve-request" data-roles="approver" data-id="' + work.Id + '">Approve</span></div></td>');
+									lines.push('<td><div class="btn-group btn-group-xs pull-right"><span class="btn btn-success approve-request" data-roles="approver" data-id="' + work.Id + '">Approve</span> <span class="btn btn-default cancel-request" data-id="' + work.Id + '">Cancel</span></div></td>');
 									lines.push('</tr>');
 									workHtml.push(lines.join(''));
 								});
