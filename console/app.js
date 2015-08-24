@@ -81,6 +81,10 @@ var app = {
 		}
 
 		// Hide elements that are not visible to your role
+		app.updateRolesDom();
+	},
+
+	updateRolesDom : function() {
 		$('[data-roles]').each(function(i, elm) {
 			var roles = $(elm).attr('data-roles').split(',');
 			var hasAll = true;
@@ -444,6 +448,7 @@ var app = {
 					}
 					app.bindData('templates', templatesHtml.join("\n"));
 					app.initNav();
+					app.updateRolesDom();
 					$('.delete-template').click(function() {
 						var id = $(this).attr('data-id');
 						if (!confirm('Are you sure you want to delete this template?')) {
