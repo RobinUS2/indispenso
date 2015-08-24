@@ -38,12 +38,12 @@ func (s *Template) IsValid() (bool, error) {
 
 	// Title must be unique
 	server.templateStore.templateMux.RLock()
+	defer server.templateStore.templateMux.RUnlock()
 	for _, template := range server.templateStore.Templates {
 		if template.Title == s.Title {
 			return false, errors.New("Title is not unique")
 		}
 	}
-	server.templateStore.templateMux.RUnlock()
 
 	if len(s.Description) < 1 {
 		return false, errors.New("Fill in a description")

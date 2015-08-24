@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bufio"
 	"bytes"
 	"crypto/hmac"
 	"crypto/sha256"
@@ -91,11 +92,21 @@ func (c *Cmd) Execute(client *Client) {
 	// Run file
 	cmd := exec.Command("bash", tmpFileName)
 
-	// Attach to output
-	var out bytes.Buffer
-	var stderr bytes.Buffer
-	cmd.Stdout = &out
-	cmd.Stderr = &stderr
+	// Consume streams
+	go func() {
+		p, _ := cmd.StdoutPipe()
+		scanner := bufio.NewScanner(p)
+		for scanner.Scan() {
+			log.Println(scanner.Text())
+		}
+	}()
+	go func() {
+		p, _ := cmd.StderrPipe()
+		scanner := bufio.NewScanner(p)
+		for scanner.Scan() {
+			log.Println(scanner.Text())
+		}
+	}()
 
 	// Start
 	err := cmd.Start()
@@ -126,8 +137,6 @@ func (c *Cmd) Execute(client *Client) {
 			log.Printf("Process %s done with error = %v", c.Id, err)
 		} else {
 			c.NotifyServer("finished")
-			log.Println(out.String())
-			log.Println(stderr.String())
 			log.Printf("Finished %s", c.Id)
 		}
 	}
