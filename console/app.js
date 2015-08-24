@@ -95,6 +95,8 @@ var app = {
 			});
 			if (!hasAll) {
 				$(this).hide();
+			} else {
+				$(this).show();
 			}
 		});
 	},
