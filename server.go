@@ -785,6 +785,7 @@ func auth(r *http.Request) bool {
 	uri := r.URL.String()
 	hasher := sha256.New()
 	hasher.Write([]byte(uri))
+	hasher.Write([]byte(conf.SecureToken))
 	signedToken := base64.URLEncoding.EncodeToString(hasher.Sum(nil))
 
 	// Validate

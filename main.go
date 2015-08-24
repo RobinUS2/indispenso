@@ -22,7 +22,6 @@ var log *Log
 var hostname string
 var debug bool
 var autoTag bool
-var secureToken string
 var shutdown chan bool = make(chan bool)
 
 const CLIENT_PING_INTERVAL int = 60                       // In seconds
@@ -41,7 +40,6 @@ func main() {
 	flag.BoolVar(&debug, "debug", false, "Enable debug logging")
 	flag.BoolVar(&autoTag, "auto-tag", true, "Auto tag based on server details")
 	flag.StringVar(&seedUri, "seed", "", "Seed URI")
-	flag.StringVar(&secureToken, "secure-token", "", "Secure token")
 	flag.IntVar(&serverPort, "server-port", 897, "Server port")
 	flag.IntVar(&clientPort, "client-port", 898, "Client port")
 	flag.Parse()
@@ -62,16 +60,9 @@ func main() {
 		seedUri = conf.Seed
 	}
 
-	// Secure token override?
-	if len(secureToken) > 0 {
-		conf.SecureToken = secureToken
-	} else {
-		secureToken = conf.SecureToken
-	}
-
 	// Must have token
 	minLen := 32
-	if len(strings.TrimSpace(secureToken)) < minLen {
+	if len(strings.TrimSpace(conf.SecureToken)) < minLen {
 		log.Fatal(fmt.Sprintf("Must have secure token with minimum length of %d", minLen))
 	}
 

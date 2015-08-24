@@ -143,6 +143,7 @@ func (s *Client) _reqUnsafe(method string, uri string, data []byte) ([]byte, err
 	// Signed token
 	hasher := sha256.New()
 	hasher.Write([]byte(uri))
+	hasher.Write([]byte(conf.SecureToken))
 	signedToken := base64.URLEncoding.EncodeToString(hasher.Sum(nil))
 
 	// Auth token
