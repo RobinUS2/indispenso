@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"github.com/nu7hatch/gouuid"
 	"io/ioutil"
+	"net/url"
 	"os"
 	"os/exec"
 	"time"
@@ -21,11 +22,26 @@ type Cmd struct {
 	Id        string
 	Signature string // makes this only valid from the server to the client based on the preshared token and this is a signature with the command and id
 	Timeout   int    // in seconds
+	State     string
 }
 
 // Sign the command on the server
 func (c *Cmd) Sign(client *RegisteredClient) {
 	c.Signature = c.ComputeHmac(client.AuthToken)
+}
+
+// Set local state
+func (c *Cmd) SetState(state string) {
+	c.State = state
+}
+
+// Notify state to server
+func (c *Cmd) NotifyServer(state string) {
+	// Update local client state
+	c.SetState(state)
+
+	// Update server state
+	client._req("PUT", fmt.Sprintf("client/%s/cmd/%s/state?state=%s", url.QueryEscape(client.Id), url.QueryEscape(c.Id), url.QueryEscape(state)), nil)
 }
 
 // Sign the command
@@ -57,6 +73,9 @@ func (c *Cmd) Execute(client *Client) {
 		log.Printf("Executing insecure command, unable to validate HMAC of %s", c.Id)
 	}
 
+	// Start
+	c.NotifyServer("starting")
+
 	// File contents
 	var fileBytes bytes.Buffer
 	fileBytes.WriteString("#!/bin/bash\n")
@@ -73,9 +92,11 @@ func (c *Cmd) Execute(client *Client) {
 	cmd := exec.Command("bash", tmpFileName)
 	err := cmd.Start()
 	if err != nil {
+		c.NotifyServer("failed")
 		log.Printf("Failed to start command: %s", err)
 		return
 	}
+	c.NotifyServer("started")
 
 	// Timeout mechanism
 	done := make(chan error, 1)
@@ -89,11 +110,14 @@ func (c *Cmd) Execute(client *Client) {
 			return
 		}
 		<-done // allow goroutine to exit
+		c.NotifyServer("killed")
 		log.Printf("Process %s killed", c.Id)
 	case err := <-done:
 		if err != nil {
+			c.NotifyServer("failed")
 			log.Printf("Process %s done with error = %v", c.Id, err)
 		} else {
+			c.NotifyServer("finished")
 			log.Printf("Finished %s", c.Id)
 		}
 	}

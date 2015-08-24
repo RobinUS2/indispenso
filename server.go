@@ -66,14 +66,37 @@ func (s *Server) CleanupClients() {
 	s.clientsMux.Unlock()
 }
 
+// Submit command to registered client using channel notify system
+func (client *RegisteredClient) Submit(cmd *Cmd) {
+	client.mux.Lock()
+
+	// Command in pending list, this will be polled of within milliseconds
+	client.Cmds[cmd.Id] = cmd
+
+	// Signal for work
+	client.CmdChan <- true
+
+	// Keep track of command status
+	client.DispatchedCmds[cmd.Id] = cmd
+
+	client.mux.Unlock()
+}
+
 type RegisteredClient struct {
 	mux       sync.RWMutex
 	ClientId  string
 	AuthToken string
 	LastPing  time.Time
 	Tags      []string
-	Cmds      map[string]*Cmd
-	CmdChan   chan bool `json:"-"`
+
+	// Dispatched commands to the client
+	DispatchedCmds map[string]*Cmd
+
+	// Pending commands
+	Cmds map[string]*Cmd
+
+	// Channel used to trigger the long poll to fire a command to the client
+	CmdChan chan bool `json:"-"`
 }
 
 func (c *RegisteredClient) HasTag(s string) bool {
@@ -124,6 +147,7 @@ func (s *Server) Start() bool {
 		router.GET("/tags", GetTags)
 		router.GET("/client/:clientId/ping", ClientPing)
 		router.GET("/client/:clientId/cmds", ClientCmds)
+		router.PUT("/client/:clientId/cmd/:cmd/state", PutClientCmdState)
 		router.POST("/client/:clientId/auth", PostClientAuth)
 		router.POST("/auth", PostAuth)
 		router.GET("/templates", GetTemplate)
@@ -748,6 +772,44 @@ func PostClientAuth(w http.ResponseWriter, r *http.Request, ps httprouter.Params
 	fmt.Fprint(w, jr.ToString(debug))
 }
 
+// Set command state
+func PutClientCmdState(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+	jr := jresp.NewJsonResp()
+	if !auth(r) {
+		jr.Error("Not authorized")
+		fmt.Fprint(w, jr.ToString(debug))
+		return
+	}
+
+	// Get client
+	registeredClient := server.GetClient(ps.ByName("clientId"))
+	if registeredClient == nil {
+		jr.Error("Client not registered")
+		fmt.Fprint(w, jr.ToString(debug))
+		return
+	}
+
+	// Command
+	cmdId := ps.ByName("cmd")
+	registeredClient.mux.RLock()
+	cmd := registeredClient.DispatchedCmds[cmdId]
+	registeredClient.mux.RUnlock()
+	if cmd == nil {
+		jr.Error("Command not found")
+		fmt.Fprint(w, jr.ToString(debug))
+		return
+	}
+
+	// State
+	state := r.URL.Query().Get("state")
+
+	// Save state in local server
+	cmd.SetState(state)
+
+	jr.OK()
+	fmt.Fprint(w, jr.ToString(debug))
+}
+
 // Commands
 func ClientCmds(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	jr := jresp.NewJsonResp()
@@ -853,8 +915,9 @@ func newServer() *Server {
 // New registered client
 func newRegisteredClient(clientId string) *RegisteredClient {
 	return &RegisteredClient{
-		ClientId: clientId,
-		Cmds:     make(map[string]*Cmd),
-		CmdChan:  make(chan bool),
+		ClientId:       clientId,
+		Cmds:           make(map[string]*Cmd),
+		CmdChan:        make(chan bool),
+		DispatchedCmds: make(map[string]*Cmd),
 	}
 }

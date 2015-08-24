@@ -73,11 +73,8 @@ func (c *ConsensusRequest) start() bool {
 		cmd := newCmd(template.Command, DEFAULT_COMMAND_TIMEOUT)
 		cmd.Sign(client)
 
-		// Submit command
-		client.mux.Lock()
-		client.Cmds[cmd.Id] = cmd
-		client.CmdChan <- true // Signal for work
-		client.mux.Unlock()
+		// Start
+		client.Submit(cmd)
 	}
 
 	return true

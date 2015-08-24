@@ -139,6 +139,9 @@ func (s *Client) _req(method string, uri string, data []byte) ([]byte, error) {
 		var sleep float64 = 25 + float64(rand.Intn(50)) + (math.Pow(float64(i), 2) * 10000)
 		time.Sleep(time.Duration(sleep) * time.Millisecond)
 	}
+	if err != nil {
+		log.Printf("Failed request after retries to %s with error: %s", uri, err)
+	}
 	return bytes, err
 }
 
