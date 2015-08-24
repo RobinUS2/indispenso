@@ -442,7 +442,7 @@ var app = {
 							tags.push('<span class="label label-success">ANY</span>');
 						}
 						lines.push('<td>' + tags.join(" ") + '</td>');
-						lines.push('<td><div class="btn-group btn-group-xs pull-right"><a class="btn btn-default" data-nav="request-execution?id=' + template.Id + '" href="#">Execute</a> <span class="btn btn-default delete-template" data-roles="admin" data-id="' + template.Id + '">Delete</span></div></td>');
+						lines.push('<td><div class="btn-group btn-group-xs pull-right"><a class="btn btn-default" data-nav="request-execution?id=' + template.Id + '" data-roles="requester" href="#">Execute</a> <span class="btn btn-default delete-template" data-roles="admin" data-id="' + template.Id + '">Delete</span></div></td>');
 						lines.push('</tr>');
 						templatesHtml.push(lines.join("\n"));
 					}
