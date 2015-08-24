@@ -71,6 +71,7 @@ func (c *ConsensusRequest) start() bool {
 
 		// Create command instance
 		cmd := newCmd(template.Command, DEFAULT_COMMAND_TIMEOUT)
+		cmd.TemplateId = c.Template().Id
 		cmd.Sign(client)
 
 		// Start

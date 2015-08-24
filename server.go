@@ -234,9 +234,10 @@ func GetDispatched(w http.ResponseWriter, r *http.Request, ps httprouter.Params)
 
 	// Create structure of dispatched jobs
 	type DispatchedCmd struct {
-		Id       string // Cmd id
-		ClientId string // Client id
-		State    string
+		Id         string // Cmd id
+		ClientId   string // Client id
+		TemplateId string // Template Id
+		State      string // Current command state
 	}
 
 	// List
@@ -250,6 +251,7 @@ func GetDispatched(w http.ResponseWriter, r *http.Request, ps httprouter.Params)
 			elm["Id"] = d.Id
 			elm["ClientId"] = client.ClientId
 			elm["State"] = d.State
+			elm["TemplateId"] = d.TemplateId
 			list = append(list, elm)
 		}
 	}
