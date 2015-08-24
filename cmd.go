@@ -90,6 +90,14 @@ func (c *Cmd) Execute(client *Client) {
 
 	// Run file
 	cmd := exec.Command("bash", tmpFileName)
+
+	// Attach to output
+	var out bytes.Buffer
+	var stderr bytes.Buffer
+	cmd.Stdout = &out
+	cmd.Stderr = &stderr
+
+	// Start
 	err := cmd.Start()
 	if err != nil {
 		c.NotifyServer("failed")
@@ -118,6 +126,8 @@ func (c *Cmd) Execute(client *Client) {
 			log.Printf("Process %s done with error = %v", c.Id, err)
 		} else {
 			c.NotifyServer("finished")
+			log.Println(out.String())
+			log.Println(stderr.String())
 			log.Printf("Finished %s", c.Id)
 		}
 	}
