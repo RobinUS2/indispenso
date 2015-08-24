@@ -14,6 +14,7 @@ if [ ! -f $SECURE_TOKEN_FILE ]; then
 	# Update conf file
 	cat /etc/indispenso/indispenso.conf | grep -v "secure_token" > /etc/indispenso/indispenso.conf.bak
 	echo "secure_token: $TOKEN" >> /etc/indispenso/indispenso.conf.bak
+	echo "server: true" >> /etc/indispenso/indispenso.conf.bak
 	mv /etc/indispenso/indispenso.conf.bak /etc/indispenso/indispenso.conf
 fi
 
