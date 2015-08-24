@@ -1,7 +1,7 @@
 package main
 
 import (
-	"bufio"
+	// "bufio"
 	"bytes"
 	"crypto/hmac"
 	"crypto/sha256"
@@ -13,6 +13,7 @@ import (
 	"net/url"
 	"os"
 	"os/exec"
+	"strings"
 	"time"
 )
 
@@ -147,38 +148,48 @@ func (c *Cmd) Execute(client *Client) {
 
 	// Run file
 	cmd := exec.Command("bash", tmpFileName)
+	var out bytes.Buffer
+	var outerr bytes.Buffer
+	cmd.Stdout = &out
+	cmd.Stderr = &outerr
 
 	// Consume streams
-	go func() {
-		p, pe := cmd.StdoutPipe()
-		if pe != nil {
-			log.Printf("Pipe error: %s", pe)
-			return
-		}
-		scanner := bufio.NewScanner(p)
-		for scanner.Scan() {
-			txt := scanner.Text()
-			c.LogOutput(txt)
-			if debug {
-				log.Println(scanner.Text())
-			}
-		}
-	}()
-	go func() {
-		p, pe := cmd.StderrPipe()
-		if pe != nil {
-			log.Printf("Pipe error: %s", pe)
-			return
-		}
-		scanner := bufio.NewScanner(p)
-		for scanner.Scan() {
-			txt := scanner.Text()
-			c.LogError(txt)
-			if debug {
-				log.Println(scanner.Text())
-			}
-		}
-	}()
+	// go func() {
+	// 	p, pe := cmd.StdoutPipe()
+	// 	if pe != nil {
+	// 		log.Printf("Pipe error: %s", pe)
+	// 		return
+	// 	}
+	// 	scanner := bufio.NewScanner(p)
+	// 	for scanner.Scan() {
+	// 		txt := scanner.Text()
+	// 		c.LogOutput(txt)
+	// 		if debug {
+	// 			log.Println(scanner.Text())
+	// 		}
+	// 	}
+	// 	if err := scanner.Err(); err != nil {
+	// 		fmt.Fprintln(os.Stderr, "reading standard input:", err)
+	// 	}
+	// }()
+	// go func() {
+	// 	p, pe := cmd.StderrPipe()
+	// 	if pe != nil {
+	// 		log.Printf("Pipe error: %s", pe)
+	// 		return
+	// 	}
+	// 	scanner := bufio.NewScanner(p)
+	// 	for scanner.Scan() {
+	// 		txt := scanner.Text()
+	// 		c.LogError(txt)
+	// 		if debug {
+	// 			log.Println(scanner.Text())
+	// 		}
+	// 	}
+	// 	if err := scanner.Err(); err != nil {
+	// 		fmt.Fprintln(os.Stderr, "reading standard input:", err)
+	// 	}
+	// }()
 
 	// Start
 	err := cmd.Start()
@@ -211,6 +222,14 @@ func (c *Cmd) Execute(client *Client) {
 			c.NotifyServer("finished")
 			log.Printf("Finished %s", c.Id)
 		}
+	}
+
+	// Logs
+	for _, line := range strings.Split(out.String(), "\n") {
+		c.LogOutput(line)
+	}
+	for _, line := range strings.Split(outerr.String(), "\n") {
+		c.LogError(line)
 	}
 }
 

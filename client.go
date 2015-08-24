@@ -25,7 +25,6 @@ type Client struct {
 	Hostname  string
 	AuthToken string
 	mux       sync.RWMutex
-	reqMux    sync.RWMutex
 }
 
 // Start client
@@ -149,8 +148,6 @@ func (s *Client) _req(method string, uri string, data []byte) ([]byte, error) {
 
 // Generic request method
 func (s *Client) _reqUnsafe(method string, uri string, data []byte) ([]byte, error) {
-	s.reqMux.Lock()
-	defer s.reqMux.Unlock()
 	// Log
 	if debug {
 		log.Printf("%s %s (bytes %d)", method, uri, len(data))

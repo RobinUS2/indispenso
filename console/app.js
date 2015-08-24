@@ -655,6 +655,53 @@ var app = {
 			}
 		},
 
+		logs : {
+			load : function() {
+				var id = app.getParam('id');
+				var client = app.getParam('client');
+				app.ajax('/client/' + client + '/cmd/' + id + '/logs').done(function(resp) { 
+					var resp = app.handleResponse(resp);
+					if (resp.status !== 'OK') {
+						app.showPage('history');
+						return;
+					}
+
+					var lis = [];
+					$(resp.log_output).each(function(i, line) {
+						lis.push(line);
+					});
+					app.bindData('out', lis.join("\n"));
+
+					var lis = [];
+					$(resp.log_error).each(function(i, line) {
+						lis.push(line);
+					});
+					app.bindData('err', lis.join("\n"));
+				});
+			}
+		},
+
+		history : {
+			load : function() {
+				app.ajax('/templates').done(function(resp) { 
+					var resp = app.handleResponse(resp);
+					var templates = resp.templates;
+					app.ajax('/dispatched').done(function(resp) { 
+						var dispatched = resp.dispatched;
+
+						// Print template
+						var html = [];
+						$(dispatched).each(function(i, elm) {
+							var template = templates[elm.TemplateId];
+							html.push('<tr><td>' + template.Title + '</td><td>' + elm.Id + '</td><td>' + elm.State + '</td><td><div class="btn-group btn-group-xs pull-right"><a class="btn btn-default" data-nav="logs?id=' + elm.Id + '&client=' + elm.ClientId + '" href="#">Logs</a></div></td></tr>');
+						});
+						app.bindData('dispatched', html.join("\n"));
+						app.initNav(); // Bind logs button
+					});
+				});
+			}
+		},
+
 		logout : {
 			load : function() {
 				app.logout();
