@@ -176,7 +176,7 @@ func (u *User) StartSession() string {
 	u.mux.Lock()
 	defer u.mux.Unlock()
 	u.SessionToken, _ = secureRandomString(32)
-	audit.Log(u, "Login")
+	audit.Log(u, "Login", "")
 	return u.SessionToken
 }
 

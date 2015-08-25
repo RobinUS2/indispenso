@@ -400,7 +400,7 @@ func PostConsensusRequest(w http.ResponseWriter, r *http.Request, ps httprouter.
 	clientIds := strings.Split(strings.TrimSpace(r.PostFormValue("clients")), ",")
 
 	// Create request
-	server.consensus.AddRequest(templateId, clientIds, user.Id)
+	server.consensus.AddRequest(templateId, clientIds, user)
 	server.consensus.save()
 
 	jr.OK()
