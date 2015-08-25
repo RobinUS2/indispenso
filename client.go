@@ -118,7 +118,18 @@ func (s *Client) AuthServer() {
 
 // Ping server
 func (s *Client) PingServer() {
-	s._get(fmt.Sprintf("client/%s/ping?tags=%s&hostname=%s", url.QueryEscape(s.Id), url.QueryEscape(strings.Join(conf.Tags(), ",")), url.QueryEscape(s.Hostname)))
+	bytes, e := s._get(fmt.Sprintf("client/%s/ping?tags=%s&hostname=%s", url.QueryEscape(s.Id), url.QueryEscape(strings.Join(conf.Tags(), ",")), url.QueryEscape(s.Hostname)))
+	if e == nil {
+		obj, jerr := jason.NewObjectFromBytes(bytes)
+		if jerr == nil {
+			status, statusE := obj.GetString("status")
+
+			// Ping failed, re-authenticate
+			if statusE != nil || status != "OK" {
+				s.AuthServer()
+			}
+		}
+	}
 }
 
 // Get
