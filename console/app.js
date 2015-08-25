@@ -545,12 +545,14 @@ var app = {
 
 				var id = app.getParam('id');
 				if (id === null || id.length < 1) {
+					console.log('No id');
 					return app.showPage('templates');
 				}
 				app.ajax('/templates').done(function(resp) {
 					var resp = app.handleResponse(resp);
 					var template = resp.templates[id];
 					if (typeof template === 'undefined' || template === null) {
+						console.log('Template not found');
 						return app.showPage('templates');
 					}
 
