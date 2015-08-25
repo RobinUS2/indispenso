@@ -5,6 +5,8 @@ import (
 	"errors"
 	"github.com/nu7hatch/gouuid"
 	"io/ioutil"
+	"sort"
+	"strings"
 	"sync"
 )
 
@@ -80,6 +82,24 @@ func (s *TemplateStore) save() {
 		log.Printf("Failed to write templates: %s", err)
 		return
 	}
+}
+
+// Returns a sorted list
+func (s *TemplateStore) List() []*Template {
+	list := newSortableSlice()
+	s.templateMux.RLock()
+	for _, t := range s.Templates {
+		list = append(list, &sortData{obj: t, val: strings.ToLower(t.Title)})
+	}
+	s.templateMux.RUnlock()
+	sort.Sort(list)
+
+	res := make([]*Template, 0)
+	for _, data := range list {
+		res = append(res, data.obj.(*Template))
+	}
+
+	return res
 }
 
 func (s *TemplateStore) load() {
