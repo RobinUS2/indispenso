@@ -127,6 +127,8 @@ func (s *Client) PingServer() {
 			// Ping failed, re-authenticate
 			if statusE != nil || status != "OK" {
 				s.AuthServer()
+			} else {
+				log.Println("Client registered with server")
 			}
 		}
 	}
