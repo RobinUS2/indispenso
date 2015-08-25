@@ -9,7 +9,11 @@ type Audit struct {
 }
 
 func (a *Audit) Log(usr *User, title string, msg string) {
-	log.Printf("%s %s %s", usr.Username, title, msg)
+	username := ""
+	if usr != nil {
+		username = usr.Username
+	}
+	log.Printf("%s %s %s", username, title, msg)
 }
 
 func newAudit() *Audit {

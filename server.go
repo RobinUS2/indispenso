@@ -75,6 +75,9 @@ func (client *RegisteredClient) Submit(cmd *Cmd) {
 	// Command in pending list, this will be polled of within milliseconds
 	client.Cmds[cmd.Id] = cmd
 
+	// Log
+	audit.Log(nil, "Execute", fmt.Sprintf("Command '%s' on client %s with id %s", cmd.Command, client.ClientId, cmd.Id))
+
 	// Signal for work
 	client.CmdChan <- true
 
