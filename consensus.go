@@ -2,10 +2,10 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"github.com/nu7hatch/gouuid"
 	"io/ioutil"
 	"sync"
-	"fmt"
 )
 
 // @author Robin Verlangen
