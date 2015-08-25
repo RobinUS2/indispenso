@@ -124,10 +124,12 @@ func (c *Cmd) Execute(client *Client) {
 	log.Printf("Executing %s: %s", c.Id, c.Command)
 
 	// Validate HMAC
+	c.NotifyServer("validating")
 	if client != nil {
 		// Compute mac
 		expectedMac := c.ComputeHmac(client.AuthToken)
 		if expectedMac != c.Signature || len(c.Signature) < 1 {
+			c.NotifyServer("invalid_signature")
 			log.Printf("ERROR! Invalid command signature, communication between server and client might be tampered with")
 			return
 		}

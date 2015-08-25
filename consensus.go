@@ -5,6 +5,7 @@ import (
 	"github.com/nu7hatch/gouuid"
 	"io/ioutil"
 	"sync"
+	"fmt"
 )
 
 // @author Robin Verlangen
@@ -35,6 +36,7 @@ func (c *Consensus) Get(id string) *ConsensusRequest {
 func (c *ConsensusRequest) Cancel(user *User) bool {
 	server.consensus.pendingMux.Lock()
 	defer server.consensus.pendingMux.Unlock()
+	audit.Log(user, "Consensus", fmt.Sprintf("Cancel %s", c.Id))
 	delete(server.consensus.Pending, c.Id)
 	return true
 }
@@ -63,11 +65,14 @@ func (c *ConsensusRequest) start() bool {
 	c.Executed = true
 
 	for _, clientId := range c.ClientIds {
+		// Get client
 		client := server.GetClient(clientId)
 		if client == nil {
 			log.Printf("Client %s not found for request %s", clientId, c.Id)
 			continue
 		}
+
+		// We do not check whether we have an auth token here so the client can pickup commands after registration
 
 		// Create command instance
 		cmd := newCmd(template.Command, template.Timeout)
@@ -119,6 +124,8 @@ func (c *ConsensusRequest) Approve(user *User) bool {
 	}
 	c.ApproveUserIds[user.Id] = true
 
+	audit.Log(user, "Consensus", fmt.Sprintf("Approve %s", c.Id))
+
 	c.check()
 
 	return true
@@ -155,11 +162,13 @@ func (c *Consensus) load() {
 	}
 }
 
-func (c *Consensus) AddRequest(templateId string, clientIds []string, requestUserId string) {
+func (c *Consensus) AddRequest(templateId string, clientIds []string, user *User) {
 	cr := newConsensusRequest()
 	cr.TemplateId = templateId
 	cr.ClientIds = clientIds
-	cr.RequestUserId = requestUserId
+	cr.RequestUserId = user.Id
+
+	audit.Log(user, "Consensus", fmt.Sprintf("Request %s", cr.Id))
 
 	c.pendingMux.Lock()
 	c.Pending[cr.Id] = cr

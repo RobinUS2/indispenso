@@ -80,6 +80,16 @@ func (s *Client) PollCmds() {
 	if err == nil {
 		obj, jerr := jason.NewObjectFromBytes(bytes)
 		if jerr == nil {
+			status, statusE := obj.GetString("status")
+			// Re-auth
+			if statusE != nil || status != "OK" {
+				log.Println(string(bytes))
+				log.Println("Re-authenticate with server")
+				s.AuthServer()
+				return
+			}
+
+			// List commands
 			cmds, _ := obj.GetObjectArray("cmds")
 			for _, cmd := range cmds {
 				id, _ := cmd.GetString("Id")
@@ -104,10 +114,31 @@ func (s *Client) AuthServer() {
 	if e == nil {
 		obj, jerr := jason.NewObjectFromBytes(b)
 		if jerr == nil {
+			// Get signature
 			token, et := obj.GetString("token")
 			if et != nil || len(token) < 1 {
 				return
 			}
+
+			// Get token signatur
+			tokenSignature, ets := obj.GetString("token_signature")
+			if ets != nil || len(tokenSignature) < 1 {
+				return
+			}
+
+			// Verify token signature with our secure token
+			hasher := sha256.New()
+			hasher.Write([]byte(token))
+			hasher.Write([]byte(conf.SecureToken))
+			expectedTokenSignature := base64.URLEncoding.EncodeToString(hasher.Sum(nil))
+
+			// The same?
+			if tokenSignature != expectedTokenSignature {
+				log.Println("ERROR! Token signature from server is invalid, communication between server and client might be tampered with")
+				return
+			}
+
+			// Store token if it is valid
 			s.mux.Lock()
 			s.AuthToken = token
 			s.mux.Unlock()
@@ -118,7 +149,22 @@ func (s *Client) AuthServer() {
 
 // Ping server
 func (s *Client) PingServer() {
-	s._get(fmt.Sprintf("client/%s/ping?tags=%s&hostname=%s", url.QueryEscape(s.Id), url.QueryEscape(strings.Join(conf.Tags(), ",")), url.QueryEscape(s.Hostname)))
+	bytes, e := s._get(fmt.Sprintf("client/%s/ping?tags=%s&hostname=%s", url.QueryEscape(s.Id), url.QueryEscape(strings.Join(conf.Tags(), ",")), url.QueryEscape(s.Hostname)))
+	if e == nil {
+		obj, jerr := jason.NewObjectFromBytes(bytes)
+		if jerr == nil {
+			status, statusE := obj.GetString("status")
+
+			// Ping failed, re-authenticate
+			if statusE != nil || status != "OK" {
+				log.Println(string(bytes))
+				log.Println("Re-authenticate with server")
+				s.AuthServer()
+			} else {
+				log.Println("Client registered with server")
+			}
+		}
+	}
 }
 
 // Get

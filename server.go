@@ -75,6 +75,9 @@ func (client *RegisteredClient) Submit(cmd *Cmd) {
 	// Command in pending list, this will be polled of within milliseconds
 	client.Cmds[cmd.Id] = cmd
 
+	// Log
+	audit.Log(nil, "Execute", fmt.Sprintf("Command '%s' on client %s with id %s", cmd.Command, client.ClientId, cmd.Id))
+
 	// Signal for work
 	client.CmdChan <- true
 
@@ -87,7 +90,7 @@ func (client *RegisteredClient) Submit(cmd *Cmd) {
 type RegisteredClient struct {
 	mux       sync.RWMutex
 	ClientId  string
-	AuthToken string
+	AuthToken string `json:"-"` // Do not add to JSON
 	LastPing  time.Time
 	Tags      []string
 
@@ -400,7 +403,7 @@ func PostConsensusRequest(w http.ResponseWriter, r *http.Request, ps httprouter.
 	clientIds := strings.Split(strings.TrimSpace(r.PostFormValue("clients")), ",")
 
 	// Create request
-	server.consensus.AddRequest(templateId, clientIds, user.Id)
+	server.consensus.AddRequest(templateId, clientIds, user)
 	server.consensus.save()
 
 	jr.OK()
@@ -860,12 +863,22 @@ func PostClientAuth(w http.ResponseWriter, r *http.Request, ps httprouter.Params
 		fmt.Fprint(w, jr.ToString(debug))
 		return
 	}
+
+	// Store token
+	log.Printf(fmt.Sprintf("Client %s authenticated", registeredClient.ClientId))
 	registeredClient.mux.Lock()
 	registeredClient.AuthToken = token
 	registeredClient.mux.Unlock()
 
+	// Sign token based of our secure token
+	hasher := sha256.New()
+	hasher.Write([]byte(token))
+	hasher.Write([]byte(conf.SecureToken))
+	tokenSignature := base64.URLEncoding.EncodeToString(hasher.Sum(nil))
+
 	// Return token
 	jr.Set("token", token)
+	jr.Set("token_signature", tokenSignature)
 	jr.OK()
 	fmt.Fprint(w, jr.ToString(debug))
 }
@@ -985,14 +998,22 @@ func ClientCmds(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	}
 
 	// Get client
-	registeredClient := server.GetClient(ps.ByName("clientId"))
+	clientId := ps.ByName("clientId")
+	registeredClient := server.GetClient(clientId)
 	if registeredClient == nil {
-		jr.Error("Client not registered")
+		jr.Error(fmt.Sprintf("Client %s not registered", clientId))
 		fmt.Fprint(w, jr.ToString(debug))
 		return
 	}
 
-	// @todo Read from channel flag and dispatch before timeout
+	// Do we have a token? If not, ignore as the client will discard the commands without hmac signatures
+	if len(registeredClient.AuthToken) < 1 {
+		jr.Error(fmt.Sprintf("Client %s auth token not available", registeredClient.ClientId))
+		fmt.Fprint(w, jr.ToString(debug))
+		return
+	}
+
+	// Read from channel and dispatch before timeout
 	select {
 	case <-registeredClient.CmdChan:
 		cmds := make([]*Cmd, 0)

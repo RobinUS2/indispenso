@@ -13,7 +13,7 @@ import (
 // Configuration
 type Conf struct {
 	Seed        string
-	SecureToken string
+	SecureToken string // Pre-shared token in configuration, never via the wire
 	IsServer    bool
 	tagsMux     sync.RWMutex
 	tags        map[string]bool
