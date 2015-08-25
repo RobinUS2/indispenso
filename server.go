@@ -87,7 +87,7 @@ func (client *RegisteredClient) Submit(cmd *Cmd) {
 type RegisteredClient struct {
 	mux       sync.RWMutex
 	ClientId  string
-	AuthToken string
+	AuthToken string `json:"-"` // Do not add to JSON
 	LastPing  time.Time
 	Tags      []string
 
@@ -975,7 +975,7 @@ func ClientCmds(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 
 	// Do we have a token? If not, ignore as the client will discard the commands without hmac signatures
 	if len(registeredClient.AuthToken) < 1 {
-		jr.Error("Client auth token not available")
+		jr.Error(fmt.Sprintf("Client %s auth token not available", registeredClient.ClientId))
 		fmt.Fprint(w, jr.ToString(debug))
 		return
 	}
