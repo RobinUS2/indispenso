@@ -419,8 +419,10 @@ func GetTemplate(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 		return
 	}
 	server.templateStore.templateMux.RLock()
-	jr.Set("templates", server.templateStore.Templates)
+	templates := server.templateStore.Templates
 	server.templateStore.templateMux.RUnlock()
+
+	jr.Set("templates", templates)
 	jr.OK()
 	fmt.Fprint(w, jr.ToString(debug))
 }

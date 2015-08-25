@@ -30,7 +30,7 @@ const DEFAULT_COMMAND_TIMEOUT int = 300                   // In seconds
 
 func main() {
 	log.Println("Starting indinspenso")
-	
+
 	// Log
 	log = newLog()
 
