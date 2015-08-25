@@ -841,6 +841,9 @@ func PostClientAuth(w http.ResponseWriter, r *http.Request, ps httprouter.Params
 		fmt.Fprint(w, jr.ToString(debug))
 		return
 	}
+
+	// Store token
+	log.Printf(fmt.Sprintf("Client %s authenticated", registeredClient.ClientId))
 	registeredClient.mux.Lock()
 	registeredClient.AuthToken = token
 	registeredClient.mux.Unlock()
