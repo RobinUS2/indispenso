@@ -851,8 +851,15 @@ func PostClientAuth(w http.ResponseWriter, r *http.Request, ps httprouter.Params
 	registeredClient.AuthToken = token
 	registeredClient.mux.Unlock()
 
+	// Sign token based of our secure token
+	hasher := sha256.New()
+	hasher.Write([]byte(token))
+	hasher.Write([]byte(conf.SecureToken))
+	tokenSignature := base64.URLEncoding.EncodeToString(hasher.Sum(nil))
+
 	// Return token
 	jr.Set("token", token)
+	jr.Set("token_signature", tokenSignature)
 	jr.OK()
 	fmt.Fprint(w, jr.ToString(debug))
 }
