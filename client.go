@@ -82,7 +82,9 @@ func (s *Client) PollCmds() {
 		if jerr == nil {
 			status, statusE := obj.GetString("status")
 			// Re-auth
-			if statusE == nil || status != "OK" {
+			if statusE != nil || status != "OK" {
+				log.Println(string(bytes))
+				log.Println("Re-authenticate with server")
 				s.AuthServer()
 				return
 			}
@@ -134,6 +136,8 @@ func (s *Client) PingServer() {
 
 			// Ping failed, re-authenticate
 			if statusE != nil || status != "OK" {
+				log.Println(string(bytes))
+				log.Println("Re-authenticate with server")
 				s.AuthServer()
 			} else {
 				log.Println("Client registered with server")
