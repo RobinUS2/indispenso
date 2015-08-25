@@ -80,6 +80,14 @@ func (s *Client) PollCmds() {
 	if err == nil {
 		obj, jerr := jason.NewObjectFromBytes(bytes)
 		if jerr == nil {
+			status, statusE := obj.GetString("status")
+			// Re-auth
+			if statusE == nil || status != "OK" {
+				s.AuthServer()
+				return
+			}
+
+			// List commands
 			cmds, _ := obj.GetObjectArray("cmds")
 			for _, cmd := range cmds {
 				id, _ := cmd.GetString("Id")

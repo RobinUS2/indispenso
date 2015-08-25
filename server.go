@@ -966,9 +966,10 @@ func ClientCmds(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	}
 
 	// Get client
-	registeredClient := server.GetClient(ps.ByName("clientId"))
+	clientId := ps.ByName("clientId")
+	registeredClient := server.GetClient(clientId)
 	if registeredClient == nil {
-		jr.Error("Client not registered")
+		jr.Error(fmt.Sprintf("Client %s not registered", clientId))
 		fmt.Fprint(w, jr.ToString(debug))
 		return
 	}
