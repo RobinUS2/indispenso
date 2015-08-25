@@ -973,7 +973,14 @@ func ClientCmds(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 		return
 	}
 
-	// @todo Read from channel flag and dispatch before timeout
+	// Do we have a token? If not, ignore as the client will discard the commands without hmac signatures
+	if len(registeredClient.AuthToken) < 1 {
+		jr.Error("Client auth token not available")
+		fmt.Fprint(w, jr.ToString(debug))
+		return
+	}
+
+	// Read from channel and dispatch before timeout
 	select {
 	case <-registeredClient.CmdChan:
 		cmds := make([]*Cmd, 0)

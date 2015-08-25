@@ -63,11 +63,14 @@ func (c *ConsensusRequest) start() bool {
 	c.Executed = true
 
 	for _, clientId := range c.ClientIds {
+		// Get client
 		client := server.GetClient(clientId)
 		if client == nil {
 			log.Printf("Client %s not found for request %s", clientId, c.Id)
 			continue
 		}
+
+		// We do not check whether we have an auth token here so the client can pickup commands after registration
 
 		// Create command instance
 		cmd := newCmd(template.Command, DEFAULT_COMMAND_TIMEOUT)
