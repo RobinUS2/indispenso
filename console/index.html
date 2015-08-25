@@ -353,6 +353,11 @@ Indispenso: https://github.com/RobinUS2/indispenso
 					    <input type="text" name="minAuth" class="form-control" id="minAuth" placeholder="Minimum amount of authorizations">
 					    <span id="helpBlock" class="help-block">The requester of this command will count as the first. So a number of 3 in this field will require 2 more users to approve the request.</span>
 					  </div>
+					  <div class="form-group">
+					    <label for="timeout">Maximum execution time</label>
+					    <input type="text" name="timeout" class="form-control" id="timeout" placeholder="Maximum execution time" value="60">
+					    <span id="helpBlock" class="help-block">Number of seconds before the command is terminated and will fail.</span>
+					  </div>
 					  <button type="submit" class="btn btn-primary">Create</button>
 					</form>
 				</div>

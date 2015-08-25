@@ -20,15 +20,17 @@ import (
 // @author Robin Verlangen
 
 type Cmd struct {
-	Command      string
-	Pending      bool
-	Id           string
-	TemplateId   string
-	Signature    string // makes this only valid from the server to the client based on the preshared token and this is a signature with the command and id
-	Timeout      int    // in seconds
-	State        string
-	BufOutput    []string
-	BufOutputErr []string
+	Command       string
+	Pending       bool
+	Id            string
+	TemplateId    string
+	Signature     string // makes this only valid from the server to the client based on the preshared token and this is a signature with the command and id
+	Timeout       int    // in seconds
+	State         string
+	RequestUserId string // User ID of the user that initiated this command
+	Created       int64  // Unix timestamp created
+	BufOutput     []string
+	BufOutputErr  []string
 }
 
 // Sign the command on the server
@@ -238,12 +240,21 @@ func (c *Cmd) Execute(client *Client) {
 }
 
 func newCmd(command string, timeout int) *Cmd {
+	// Default timeout if not valid
+	if timeout < 1 {
+		timeout = DEFAULT_COMMAND_TIMEOUT
+	}
+
+	// Id
 	id, _ := uuid.NewV4()
+
+	// Create instance
 	return &Cmd{
 		Id:           id.String(),
 		Command:      command,
 		Pending:      true,
 		Timeout:      timeout,
+		Created:      time.Now().Unix(),
 		BufOutput:    make([]string, 0),
 		BufOutputErr: make([]string, 0),
 	}

@@ -16,6 +16,7 @@ type Template struct {
 	Description string // Full description that explains in layman's terms what this does, so everyone can help as part of the authorization process
 	Command     string // Command to be executed
 	Enabled     bool   // Is this available for running?
+	Timeout     int    // Seconds of execution before the command is killed
 	Acl         *TemplateACL
 }
 
@@ -113,7 +114,7 @@ func newTemplateAcl() *TemplateACL {
 	}
 }
 
-func newTemplate(title string, description string, command string, enabled bool, includedTags []string, excludedTags []string, minAuth uint) *Template {
+func newTemplate(title string, description string, command string, enabled bool, includedTags []string, excludedTags []string, minAuth uint, timeout int) *Template {
 	id, _ := uuid.NewV4()
 	acl := newTemplateAcl()
 	acl.IncludedTags = includedTags
@@ -134,5 +135,6 @@ func newTemplate(title string, description string, command string, enabled bool,
 		Command:     command,
 		Enabled:     enabled,
 		Acl:         acl,
+		Timeout:     timeout,
 	}
 }

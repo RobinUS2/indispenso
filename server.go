@@ -443,6 +443,8 @@ func PostTemplate(w http.ResponseWriter, r *http.Request, ps httprouter.Params) 
 	command := r.PostFormValue("command")
 	includedTags := r.PostFormValue("includedTags")
 	excludedTags := r.PostFormValue("excludedTags")
+
+	// Minimum authorizations
 	minAuthStr := strings.TrimSpace(r.PostFormValue("minAuth"))
 	minAuth, minAuthE := strconv.ParseInt(minAuthStr, 10, 0)
 	if len(minAuthStr) < 1 {
@@ -459,8 +461,25 @@ func PostTemplate(w http.ResponseWriter, r *http.Request, ps httprouter.Params) 
 		return
 	}
 
+	// Timeout
+	timeoutStr := strings.TrimSpace(r.PostFormValue("timeout"))
+	timeout, timeoutE := strconv.ParseInt(timeoutStr, 10, 0)
+	if len(timeoutStr) < 1 {
+		jr.Error("Fill in timeout")
+		fmt.Fprint(w, jr.ToString(debug))
+		return
+	} else if timeoutE != nil {
+		jr.Error(fmt.Sprintf("%s", timeoutE))
+		fmt.Fprint(w, jr.ToString(debug))
+		return
+	} else if timeout < 1 {
+		jr.Error("Timeout must be at least 1 second")
+		fmt.Fprint(w, jr.ToString(debug))
+		return
+	}
+
 	// Validate template
-	template := newTemplate(title, description, command, true, strings.Split(includedTags, ","), strings.Split(excludedTags, ","), uint(minAuth))
+	template := newTemplate(title, description, command, true, strings.Split(includedTags, ","), strings.Split(excludedTags, ","), uint(minAuth), int(timeout))
 	valid, err := template.IsValid()
 	if !valid {
 		jr.Error(fmt.Sprintf("%s", err))

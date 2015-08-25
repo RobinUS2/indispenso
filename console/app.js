@@ -85,6 +85,9 @@ var app = {
 	},
 
 	updateRolesDom : function() {
+		if (app.userRoles().length === 0) {
+			return;
+		}
 		$('[data-roles]').each(function(i, elm) {
 			var roles = $(elm).attr('data-roles').split(',');
 			var hasAll = true;
