@@ -284,6 +284,7 @@ var app = {
 						rows.push('<tr class="client"><td>' + client.ClientId + '</td><td>' + tags.join("\n") + '</td><td>' + lastTime + '</td></tr>');
 					});
 					app.bindData('clients', rows.join("\n"));
+					$('table', app.pageInstance()).DataTable();
 
 					// List of tags
 					var listTagsHtml = [];
@@ -417,6 +418,7 @@ var app = {
 									workHtml.push(lines.join(''));
 								});
 								app.bindData('pending', workHtml.join("\n"));
+								$('table', app.pageInstance()).DataTable();
 								$('.cancel-request', app.pageInstance()).click(function() {
 									var id = $(this).attr('data-id');
 									app.ajax('/consensus/request?id=' + id, { method: 'DELETE' }).done(function(resp) {
@@ -452,6 +454,7 @@ var app = {
 						html.push(lines.join("\n"));
 					}
 					app.bindData('users', html.join("\n"));
+					$('table', app.pageInstance()).DataTable();
 
 					$('.delete-user').click(function() {
 						var username = $(this).attr('data-username');
@@ -520,6 +523,7 @@ var app = {
 						templatesHtml.push(lines.join("\n"));
 					}
 					app.bindData('templates', templatesHtml.join("\n"));
+					$('table', app.pageInstance()).DataTable();
 					app.initNav();
 					app.updateRolesDom();
 					$('.delete-template').click(function() {
@@ -574,6 +578,7 @@ var app = {
 							rows.push('<tr class="client"><td><input type="checkbox" class="select-client" data-id="' + client.ClientId + '" value="1"></td><td>' + client.ClientId + '</td><td>' + tags.join("\n") + '</td><td>' + client.LastPing + '</td></tr>');
 						});
 						app.bindData('clients', rows.join("\n"));
+						$('table', app.pageInstance()).DataTable();
 
 						// Make button active
 						$('.request-execution > .btn', app.pageInstance()).unbind('click');
@@ -701,6 +706,7 @@ var app = {
 							html.push('<tr><td>' + template.Title + '</td><td>' + elm.Id + '</td><td>' + elm.State + '</td><td><div class="btn-group btn-group-xs pull-right"><a class="btn btn-default" data-nav="logs?id=' + elm.Id + '&client=' + elm.ClientId + '" href="#">Logs</a></div></td></tr>');
 						});
 						app.bindData('dispatched', html.join("\n"));
+						$('table', app.pageInstance()).DataTable();
 						app.initNav(); // Bind logs button
 					});
 				});
