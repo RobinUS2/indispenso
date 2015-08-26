@@ -297,6 +297,8 @@ var app = {
 					});
 					app.bindData('tags', listTagsHtml.join("\n"));
 
+					app.initTables();
+
 					// Filter based on tags
 					$('span.filter-tag', app.pageInstance()).click(function() {
 						var included = $(this).attr('data-included') === '1';
@@ -422,6 +424,8 @@ var app = {
 									workHtml.push(lines.join(''));
 								});
 								app.bindData('pending', workHtml.join("\n"));
+
+								app.initTables();
 								
 								$('.cancel-request', app.pageInstance()).click(function() {
 									var id = $(this).attr('data-id');
@@ -528,6 +532,8 @@ var app = {
 						templatesHtml.push(lines.join("\n"));
 					}
 					app.bindData('templates', templatesHtml.join("\n"));
+
+					app.initTables();
 					
 					app.initNav();
 					app.updateRolesDom();
@@ -711,6 +717,8 @@ var app = {
 							html.push('<tr><td>' + template.Title + '</td><td>' + elm.Id + '</td><td>' + elm.State + '</td><td><div class="btn-group btn-group-xs pull-right"><a class="btn btn-default" data-nav="logs?id=' + elm.Id + '&client=' + elm.ClientId + '" href="#">Logs</a></div></td></tr>');
 						});
 						app.bindData('dispatched', html.join("\n"));
+
+						app.initTables();
 						
 						app.initNav(); // Bind logs button
 					});
