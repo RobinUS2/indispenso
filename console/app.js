@@ -592,6 +592,47 @@ var app = {
 
 						app.initTables();
 						
+						// Select helpers
+						$('.select-client-helper', app.pageInstance()).unbind('click');
+						$('.select-client-helper', app.pageInstance()).click(function() {
+							var selection = $(this).attr('data-selection');
+							var trs = $('tbody[data-bind="clients"] > tr', app.pageInstance());
+							var hostCount = trs.length;
+
+							var getRandomHost = function() {
+								return $(trs[Math.floor(Math.random()*hostCount)]);
+							};
+
+							var targetSelectCount;
+							if (selection === '1-random') {
+								// Random one
+								targetSelectCount = 1;
+							} else if (selection.indexOf('percent') !== -1) {
+								// Random percentage
+								var split = selection.split('-');
+								var percentage = parseInt(split[0], 10) / 100; // range 0 - 1
+								targetSelectCount = Math.max(1, Math.round(hostCount * percentage));
+							}
+
+							var maxIter = hostCount * 2;
+							var selectedCount = 0;
+							for (i = 0; i < maxIter; i++) {
+								var host = getRandomHost();
+								var cb = getRandomHost().find('.select-client');
+								var isChecked = cb.is(':checked');
+								if (isChecked) {
+									// Already selected, continue search
+									continue;
+								}
+								cb.prop("checked", true);
+								selectedCount++;
+								if (selectedCount >= targetSelectCount) {
+									break;
+								}
+							}
+
+							return false;
+						});
 
 						// Make button active
 						$('.request-execution > .btn', app.pageInstance()).unbind('click');
