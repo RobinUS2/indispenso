@@ -61,6 +61,7 @@ var app = {
 		if (typeof app.pages[currentPageName] !== 'undefined' && typeof app.pages[currentPageName]['unload'] === 'function') {
 			app.pages[currentPageName]['unload']();
 		}
+		$('table.dataTable', app.pageInstance()).DataTable().destroy();
 
 		// New page
 		history.pushState(null, null, '#!' + input);
