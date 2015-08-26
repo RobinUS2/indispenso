@@ -589,6 +589,8 @@ var app = {
 							rows.push('<tr class="client"><td><input type="checkbox" class="select-client" data-id="' + client.ClientId + '" value="1"></td><td>' + client.ClientId + '</td><td>' + tags.join("\n") + '</td><td>' + client.LastPing + '</td></tr>');
 						});
 						app.bindData('clients', rows.join("\n"));
+
+						app.initTables();
 						
 
 						// Make button active
