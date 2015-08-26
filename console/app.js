@@ -82,6 +82,13 @@ var app = {
 
 		// Hide elements that are not visible to your role
 		app.updateRolesDom();
+
+		// Init datatables
+		app.initTables();
+	},
+
+	initTables : function() {
+		$('table:not(.nodatatable)', app.pageInstance()).DataTable().destroy(); $('table:not(.nodatatable)', app.pageInstance()).DataTable({ bPaginate : false, order: [[ 0, "asc" ]] });
 	},
 
 	updateRolesDom : function() {
