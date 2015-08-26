@@ -82,9 +82,6 @@ var app = {
 
 		// Hide elements that are not visible to your role
 		app.updateRolesDom();
-
-		// Init datatables
-		app.initTables();
 	},
 
 	initTables : function() {
@@ -461,6 +458,7 @@ var app = {
 						html.push(lines.join("\n"));
 					}
 					app.bindData('users', html.join("\n"));
+					app.initTables();
 					
 
 					$('.delete-user').click(function() {
