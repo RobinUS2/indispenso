@@ -80,19 +80,20 @@ func (s *TemplateStore) Add(template *Template) {
 	s.Templates[template.Id] = template
 }
 
-func (s *TemplateStore) save() {
+func (s *TemplateStore) save() bool {
 	s.templateMux.Lock()
 	defer s.templateMux.Unlock()
 	bytes, je := json.Marshal(s.Templates)
 	if je != nil {
 		log.Printf("Failed to write templates: %s", je)
-		return
+		return false
 	}
 	err := ioutil.WriteFile(s.ConfFile, bytes, 0644)
 	if err != nil {
 		log.Printf("Failed to write templates: %s", err)
-		return
+		return false
 	}
+	return true
 }
 
 func (s *TemplateStore) load() {

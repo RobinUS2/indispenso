@@ -166,6 +166,7 @@ func (s *Server) Start() bool {
 		router.POST("/client/:clientId/auth", PostClientAuth)
 		router.POST("/auth", PostAuth)
 		router.GET("/templates", GetTemplate)
+		router.POST("/template/:id/validation", PostTemplateValidation)
 		router.POST("/template", PostTemplate)
 		router.DELETE("/template", DeleteTemplate)
 		router.PUT("/user/password", PutUserPassword)
@@ -414,6 +415,52 @@ func PostConsensusRequest(w http.ResponseWriter, r *http.Request, ps httprouter.
 	server.consensus.AddRequest(templateId, clientIds, user)
 	server.consensus.save()
 
+	jr.OK()
+	fmt.Fprint(w, jr.ToString(debug))
+}
+
+// Create validation rule for templates
+func PostTemplateValidation(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+	jr := jresp.NewJsonResp()
+	if !authUser(r) {
+		jr.Error("Not authorized")
+		fmt.Fprint(w, jr.ToString(debug))
+		return
+	}
+
+	// Get template
+	id := ps.ByName("id")
+	template := server.templateStore.Get(id)
+	if template == nil {
+		jr.Error("Template not found")
+		fmt.Fprint(w, jr.ToString(debug))
+		return
+	}
+
+	// Input
+	txt := r.PostFormValue("text")
+	isFatal := r.PostFormValue("fatal") == "1"
+	mustContain := r.PostFormValue("must_contain") == "1"
+	streamId := 1 // Default process output stream only
+
+	// Text must have length
+	if len(strings.TrimSpace(txt)) < 1 {
+		jr.Error("Text can not be empty")
+		fmt.Fprint(w, jr.ToString(debug))
+		return
+	}
+
+	// Create rule
+	rule := newExecutionValidation(txt, isFatal, mustContain, streamId)
+
+	// Add rule
+	template.AddValidationRule(rule)
+
+	// Save
+	res := server.templateStore.save()
+
+	// Done
+	jr.Set("saved", res)
 	jr.OK()
 	fmt.Fprint(w, jr.ToString(debug))
 }
