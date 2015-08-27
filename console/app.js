@@ -679,7 +679,13 @@ var app = {
 							app.ajax('/consensus/request', { method: 'POST', data : { template : template.Id, clients : clientIds.join(',') } }).done(function(resp) {
 								var resp = app.handleResponse(resp);
 								if (resp.status === 'OK') {
-									app.showPage('pending');
+									if (template.Acl.MinAuth > 1) {
+										// Other people have to sign, go to pending page
+										app.showPage('pending');
+									} else {
+										// Will start right now, go to history
+										app.showPage('history');
+									}
 								}
 							});
 
