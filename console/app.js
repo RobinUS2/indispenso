@@ -763,6 +763,11 @@ var app = {
 						var html = [];
 						$(dispatched).each(function(i, elm) {
 							var template = templates[elm.TemplateId];
+							if (typeof template === 'undefined') {
+								template = {
+									Title: '-',
+								};
+							}
 							html.push('<tr><td>' + template.Title + '</td><td>' + elm.Id + '</td><td>' + elm.State + '</td><td><div class="btn-group btn-group-xs pull-right"><a class="btn btn-default" data-nav="logs?id=' + elm.Id + '&client=' + elm.ClientId + '" href="#">Logs</a></div></td></tr>');
 						});
 						app.bindData('dispatched', html.join("\n"));
