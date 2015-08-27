@@ -133,7 +133,8 @@ var app = {
 				app.ajax('/consensus/pending').done(function(resp) {
 					var resp = app.handleResponse(resp);
 					if (resp.status === 'OK') {
-						if (Object.keys(resp.work).length > 0) {
+						var keys = Object.keys(resp.work);
+						if (keys.length > 0) {
 							// New work, notify
 							if (!app._openNotification) {
 								app.showDesktopNotification('Pending Approval', '', 'pending');
