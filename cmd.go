@@ -30,8 +30,8 @@ type Cmd struct {
 	State         string   // Textual representation of the current state, e.g. finished, failed, etc.
 	RequestUserId string   // User ID of the user that initiated this command
 	Created       int64    // Unix timestamp created
-	BufOutput     []string // In memory temporary buffer of standard output before being flushed to the server
-	BufOutputErr  []string // In memory temporary buffer of error output before being flushed to the server
+	BufOutput     []string // Standard output
+	BufOutputErr  []string // Error output
 }
 
 // Sign the command on the server
@@ -63,16 +63,33 @@ func (c *Cmd) _validate() {
 		return
 	}
 
-	// Get the results
-	client := server.GetClient(c.ClientId)
-	if client == nil {
-		log.Printf("Unable to find client %s for validation of cmd %s", c.ClientId, c.Id)
-		return
-	}
-
 	// Iterate and run on templates
 	for _, v := range template.ValidationRules {
-		log.Printf("%v", v)
+		// Select stream
+		var stream []string
+		if v.OutputStream == 1 {
+			stream = c.BufOutput
+		} else {
+			stream = c.BufOutputErr
+		}
+
+		// Match on line
+		var matched bool = false
+		for _, line := range stream {
+			if strings.Contains(line, v.Text) {
+				matched = true
+				break
+			}
+		}
+
+		// Did we match?
+		if v.MustContain == true && matched == false {
+			// Should BE there, but is NOT
+			c.SetState("failed_validation")
+		} else if v.MustContain == false && matched == true {
+			// Should NOT be there, but IS
+			c.SetState("failed_validation")
+		}
 	}
 }
 
