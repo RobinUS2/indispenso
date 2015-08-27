@@ -714,6 +714,11 @@ var app = {
 					app.ajax('/template', { method: 'POST', data : d }).done(function(resp) {
 						var resp = app.handleResponse(resp);
 						if (resp.status === 'OK') {
+							// Validation rule to create?
+							if (typeof d['standardOutputMustContain'] !== 'undefined' && d['standardOutputMustContain'].length > 0) {
+								app.ajax('/template/' + resp.template.Id + '/validation', { method : 'POST', data : { text : d['standardOutputMustContain'], fatal: '1', must_contain: '1' } }).done(function(resp) { });
+							}
+
 							app.showPage('templates');
 						}
 					}, 'json');

@@ -582,7 +582,7 @@ func PostTemplate(w http.ResponseWriter, r *http.Request, ps httprouter.Params) 
 
 	server.templateStore.Add(template)
 	server.templateStore.save()
-
+	jr.Set("template", template)
 	jr.Set("saved", true)
 	jr.OK()
 	fmt.Fprint(w, jr.ToString(debug))

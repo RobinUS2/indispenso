@@ -370,6 +370,11 @@ Indispenso: https://github.com/RobinUS2/indispenso
 					    <input type="text" name="timeout" class="form-control" id="timeout" placeholder="Maximum execution time" value="60">
 					    <span id="helpBlock" class="help-block">Number of seconds before the command is terminated and will fail.</span>
 					  </div>
+					  <div class="form-group">
+					    <label for="timeout">Check for string (optional)</label>
+					    <input type="text" name="standardOutputMustContain" class="form-control" id="timeout" placeholder="Check for string" value="">
+					    <span id="helpBlock" class="help-block">This will check for a specific string in the output to validate the result.</span>
+					  </div>
 					  <button type="submit" class="btn btn-primary">Create</button>
 					</form>
 				</div>
