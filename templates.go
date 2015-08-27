@@ -136,12 +136,13 @@ func newTemplate(title string, description string, command string, enabled bool,
 	}
 
 	return &Template{
-		Id:          id.String(),
-		Title:       title,
-		Description: description,
-		Command:     command,
-		Enabled:     enabled,
-		Acl:         acl,
-		Timeout:     timeout,
+		Id:              id.String(),
+		Title:           title,
+		Description:     description,
+		Command:         command,
+		Enabled:         enabled,
+		Acl:             acl,
+		Timeout:         timeout,
+		ValidationRules: make([]*ExecutionValidation, 0),
 	}
 }
