@@ -19,6 +19,7 @@ type Template struct {
 	Timeout         int    // Seconds of execution before the command is killed
 	Acl             *TemplateACL
 	ValidationRules []*ExecutionValidation // Validation rules
+	mux             sync.RWMutex
 }
 
 type TemplateACL struct {
@@ -36,6 +37,20 @@ type TemplateStore struct {
 // Add a validation rule
 func (s *Template) AddValidationRule(r *ExecutionValidation) {
 	s.ValidationRules = append(s.ValidationRules, r)
+}
+
+// Delete a validation rule
+func (s *Template) DeleteValidationRule(id string) {
+	s.mux.Lock()
+	defer s.mux.Unlock()
+	var tmp = make([]*ExecutionValidation, 0)
+	for _, r := range s.ValidationRules {
+		if r.Id == id {
+			continue
+		}
+		tmp = append(tmp, r)
+	}
+	s.ValidationRules = tmp
 }
 
 // Validate the setup of a template

@@ -166,7 +166,8 @@ func (s *Server) Start() bool {
 		router.POST("/client/:clientId/auth", PostClientAuth)
 		router.POST("/auth", PostAuth)
 		router.GET("/templates", GetTemplate)
-		router.POST("/template/:id/validation", PostTemplateValidation)
+		router.POST("/template/:templateid/validation", PostTemplateValidation)
+		router.DELETE("/template/:templateid/validation/:id", DeleteTemplateValidation)
 		router.POST("/template", PostTemplate)
 		router.DELETE("/template", DeleteTemplate)
 		router.PUT("/user/password", PutUserPassword)
@@ -429,7 +430,7 @@ func PostTemplateValidation(w http.ResponseWriter, r *http.Request, ps httproute
 	}
 
 	// Get template
-	id := ps.ByName("id")
+	id := ps.ByName("templateid")
 	template := server.templateStore.Get(id)
 	if template == nil {
 		jr.Error("Template not found")
@@ -455,6 +456,39 @@ func PostTemplateValidation(w http.ResponseWriter, r *http.Request, ps httproute
 
 	// Add rule
 	template.AddValidationRule(rule)
+
+	// Save
+	res := server.templateStore.save()
+
+	// Done
+	jr.Set("saved", res)
+	jr.OK()
+	fmt.Fprint(w, jr.ToString(debug))
+}
+
+// Delete validation rule from template
+func DeleteTemplateValidation(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+	jr := jresp.NewJsonResp()
+	if !authUser(r) {
+		jr.Error("Not authorized")
+		fmt.Fprint(w, jr.ToString(debug))
+		return
+	}
+
+	// Get template
+	templateId := ps.ByName("templateid")
+	template := server.templateStore.Get(templateId)
+	if template == nil {
+		jr.Error("Template not found")
+		fmt.Fprint(w, jr.ToString(debug))
+		return
+	}
+
+	// Validaton rule id
+	id := ps.ByName("id")
+
+	// Delete rule
+	template.DeleteValidationRule(id)
 
 	// Save
 	res := server.templateStore.save()
