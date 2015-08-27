@@ -95,8 +95,11 @@ func (s *Client) PollCmds() {
 				id, _ := cmd.GetString("Id")
 				command, _ := cmd.GetString("Command")
 				signature, _ := cmd.GetString("Signature")
+				templateId, _ := cmd.GetString("TemplateId")
 				timeout, _ := cmd.GetInt64("Timeout")
 				cmd := newCmd(command, int(timeout))
+				cmd.ClientId = client.Id
+				cmd.TemplateId = templateId
 				cmd.Id = id
 				cmd.Signature = signature
 				cmd.Execute(s)
