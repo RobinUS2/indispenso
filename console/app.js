@@ -707,7 +707,7 @@ var app = {
 					var d = {};
 					for (var k in data) {
 						var v = data[k];
-						d[k['name']] = v['value'];
+						d[v['name']] = v['value'];
 					}
 					try { d['includedTags'] = $('#includedTags', app.pageInstance()).val().join(','); } catch (e) {}
 					try { d['excludedTags'] = $('#excludedTags', app.pageInstance()).val().join(','); } catch (e) {}

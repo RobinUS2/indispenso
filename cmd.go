@@ -41,10 +41,14 @@ func (c *Cmd) Sign(client *RegisteredClient) {
 
 // Set local state
 func (c *Cmd) SetState(state string) {
+	// Old state for change detection
+	oldState := c.State
+
+	// Update
 	c.State = state
 
 	// Run validation
-	if c.State == "finished" {
+	if oldState == "finished_execution" && c.State == "flushed_logs" {
 		c._validate()
 	}
 }
@@ -64,6 +68,7 @@ func (c *Cmd) _validate() {
 	}
 
 	// Iterate and run on templates
+	var failedValidation = false
 	for _, v := range template.ValidationRules {
 		// Select stream
 		var stream []string
@@ -86,10 +91,20 @@ func (c *Cmd) _validate() {
 		if v.MustContain == true && matched == false {
 			// Should BE there, but is NOT
 			c.SetState("failed_validation")
+			failedValidation = true
+			break
 		} else if v.MustContain == false && matched == true {
 			// Should NOT be there, but IS
 			c.SetState("failed_validation")
+			failedValidation = true
+			break
 		}
+	}
+
+	// Done and passed validation
+	if failedValidation == false {
+		c.SetState("finished")
+		log.Printf("Validation passed for %s", c.Id)
 	}
 }
 
@@ -250,11 +265,11 @@ func (c *Cmd) Execute(client *Client) {
 	// Start
 	err := cmd.Start()
 	if err != nil {
-		c.NotifyServer("failed")
+		c.NotifyServer("failed_execution")
 		log.Printf("Failed to start command: %s", err)
 		return
 	}
-	c.NotifyServer("started")
+	c.NotifyServer("started_execution")
 
 	// Timeout mechanism
 	done := make(chan error, 1)
@@ -268,14 +283,14 @@ func (c *Cmd) Execute(client *Client) {
 			return
 		}
 		<-done // allow goroutine to exit
-		c.NotifyServer("killed")
+		c.NotifyServer("killed_execution")
 		log.Printf("Process %s killed", c.Id)
 	case err := <-done:
 		if err != nil {
-			c.NotifyServer("failed")
+			c.NotifyServer("failed_execution")
 			log.Printf("Process %s done with error = %v", c.Id, err)
 		} else {
-			c.NotifyServer("finished")
+			c.NotifyServer("finished_execution")
 			log.Printf("Finished %s", c.Id)
 		}
 	}
@@ -289,6 +304,7 @@ func (c *Cmd) Execute(client *Client) {
 	}
 	// Final flush
 	c._flushLogs()
+	c.NotifyServer("flushed_logs")
 }
 
 func newCmd(command string, timeout int) *Cmd {

@@ -33,6 +33,12 @@ type TemplateStore struct {
 	templateMux sync.RWMutex
 }
 
+// Add a validation rule
+func (s *Template) AddValidationRule(r *ExecutionValidation) {
+	s.ValidationRules = append(s.ValidationRules, r)
+}
+
+// Validate the setup of a template
 func (s *Template) IsValid() (bool, error) {
 	if len(s.Title) < 1 {
 		return false, errors.New("Fill in a title")
@@ -64,7 +70,7 @@ func (s *TemplateStore) Remove(templateId string) {
 
 func (s *TemplateStore) Get(templateId string) *Template {
 	s.templateMux.RLock()
-	defer s.templateMux.RLock()
+	defer s.templateMux.RUnlock()
 	return s.Templates[templateId]
 }
 
@@ -122,12 +128,16 @@ func newTemplateAcl() *TemplateACL {
 }
 
 func newTemplate(title string, description string, command string, enabled bool, includedTags []string, excludedTags []string, minAuth uint, timeout int) *Template {
+	// Unique ID
 	id, _ := uuid.NewV4()
+
+	// ACL
 	acl := newTemplateAcl()
 	acl.IncludedTags = includedTags
 	acl.ExcludedTags = excludedTags
 	acl.MinAuth = minAuth
 
+	// Tags
 	if len(acl.IncludedTags) == 1 && acl.IncludedTags[0] == "" {
 		acl.IncludedTags = make([]string, 0)
 	}
@@ -135,7 +145,8 @@ func newTemplate(title string, description string, command string, enabled bool,
 		acl.ExcludedTags = make([]string, 0)
 	}
 
-	return &Template{
+	// Instantiate
+	t := &Template{
 		Id:              id.String(),
 		Title:           title,
 		Description:     description,
@@ -145,4 +156,6 @@ func newTemplate(title string, description string, command string, enabled bool,
 		Timeout:         timeout,
 		ValidationRules: make([]*ExecutionValidation, 0),
 	}
+
+	return t
 }
