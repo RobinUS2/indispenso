@@ -20,17 +20,18 @@ import (
 // @author Robin Verlangen
 
 type Cmd struct {
-	Command       string
-	Pending       bool
-	Id            string
-	TemplateId    string
-	Signature     string // makes this only valid from the server to the client based on the preshared token and this is a signature with the command and id
-	Timeout       int    // in seconds
-	State         string
-	RequestUserId string // User ID of the user that initiated this command
-	Created       int64  // Unix timestamp created
-	BufOutput     []string
-	BufOutputErr  []string
+	Command       string   // Commands to execute
+	Pending       bool     // Did we dispatch it to the client?
+	Id            string   // Unique ID for this command
+	ClientId      string   // Client ID on which the command is executed
+	TemplateId    string   // Reference to the template id
+	Signature     string   // makes this only valid from the server to the client based on the preshared token and this is a signature with the command and id
+	Timeout       int      // in seconds
+	State         string   // Textual representation of the current state, e.g. finished, failed, etc.
+	RequestUserId string   // User ID of the user that initiated this command
+	Created       int64    // Unix timestamp created
+	BufOutput     []string // In memory temporary buffer of standard output before being flushed to the server
+	BufOutputErr  []string // In memory temporary buffer of error output before being flushed to the server
 }
 
 // Sign the command on the server
@@ -59,6 +60,13 @@ func (c *Cmd) _validate() {
 	template := server.templateStore.Get(c.TemplateId)
 	if template == nil {
 		log.Printf("Unable to find template %s for validation of cmd %s", c.TemplateId, c.Id)
+		return
+	}
+
+	// Get the results
+	client := server.GetClient(c.ClientId)
+	if client == nil {
+		log.Printf("Unable to find client %s for validation of cmd %s", c.ClientId, c.Id)
 		return
 	}
 
