@@ -30,16 +30,24 @@ type Server struct {
 
 // Register client
 func (s *Server) RegisterClient(clientId string, tags []string) {
-	s.clientsMux.Lock()
+	s.clientsMux.RLock()
 	if s.clients[clientId] == nil {
+		s.clientsMux.RUnlock()
+
+		// Write lock
+		s.clientsMux.Lock()
 		s.clients[clientId] = newRegisteredClient(clientId)
+		s.clientsMux.Unlock()
 		log.Printf("Client %s registered with tags %s", clientId, tags)
+	} else {
+		s.clientsMux.RUnlock()
 	}
+
+	// Update client
 	s.clients[clientId].mux.Lock()
 	s.clients[clientId].LastPing = time.Now()
 	s.clients[clientId].Tags = tags
 	s.clients[clientId].mux.Unlock()
-	s.clientsMux.Unlock()
 
 	// Update tags
 	s.tagsMux.Lock()
