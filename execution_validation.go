@@ -10,7 +10,17 @@ type ExecutionValidation struct {
 }
 
 // Must contain XYZ
-func newExecutionValidationStandardOutputMustContain(txt string) *ExecutionValidation {
+func newExecutionValidation(txt string, fatal bool, mustContain bool, outputStream int) *ExecutionValidation {
+	// Validate stream
+	if outputStream != 1 && outputStream != 2 {
+		return nil
+	}
+
+	// Must have text
+	if len(txt) < 1 {
+		return nil
+	}
+
 	return &ExecutionValidation{
 		Fatal:        true,
 		MustContain:  true,
