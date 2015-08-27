@@ -840,7 +840,6 @@ outer:
 			continue
 		}
 
-
 		// Deref, so we can modify the object without modifying the real one
 		client := *clientPtr
 

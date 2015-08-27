@@ -11,13 +11,14 @@ import (
 // Templates used to be executed on hosts
 
 type Template struct {
-	Id          string
-	Title       string // Short title
-	Description string // Full description that explains in layman's terms what this does, so everyone can help as part of the authorization process
-	Command     string // Command to be executed
-	Enabled     bool   // Is this available for running?
-	Timeout     int    // Seconds of execution before the command is killed
-	Acl         *TemplateACL
+	Id              string
+	Title           string // Short title
+	Description     string // Full description that explains in layman's terms what this does, so everyone can help as part of the authorization process
+	Command         string // Command to be executed
+	Enabled         bool   // Is this available for running?
+	Timeout         int    // Seconds of execution before the command is killed
+	Acl             *TemplateACL
+	ValidationRules []*ExecutionValidation // Validation rules
 }
 
 type TemplateACL struct {
@@ -59,6 +60,12 @@ func (s *TemplateStore) Remove(templateId string) {
 	s.templateMux.Lock()
 	defer s.templateMux.Unlock()
 	delete(s.Templates, templateId)
+}
+
+func (s *TemplateStore) Get(templateId string) *Template {
+	s.templateMux.RLock()
+	defer s.templateMux.RLock()
+	return s.Templates[templateId]
 }
 
 func (s *TemplateStore) Add(template *Template) {

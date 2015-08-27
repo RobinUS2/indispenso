@@ -41,6 +41,31 @@ func (c *Cmd) Sign(client *RegisteredClient) {
 // Set local state
 func (c *Cmd) SetState(state string) {
 	c.State = state
+
+	// Run validation
+	if c.State == "finished" {
+		c._validate()
+	}
+}
+
+// Validate the execution of a command, only on the server
+func (c *Cmd) _validate() {
+	// Only on the server
+	if conf.IsServer == false {
+		return
+	}
+
+	// Get template
+	template := server.templateStore.Get(c.TemplateId)
+	if template == nil {
+		log.Printf("Unable to find template %s for validation of cmd %s", c.TemplateId, c.Id)
+		return
+	}
+
+	// Iterate and run on templates
+	for _, v := range template.ValidationRules {
+		log.Printf("%v", v)
+	}
 }
 
 // Notify state to server
