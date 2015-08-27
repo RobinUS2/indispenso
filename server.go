@@ -815,14 +815,14 @@ func GetClients(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 		tagsExclude = make([]string, 0)
 	}
 
-	clients := make([]*RegisteredClient, 0)
+	clients := make([]RegisteredClient, 0)
 	server.clientsMux.RLock()
 outer:
-	for _, client := range server.clients {
+	for _, clientPtr := range server.clients {
 		// Excluded?
 		if len(tagsExclude) > 0 {
 			for _, exclude := range tagsExclude {
-				if client.HasTag(exclude) {
+				if clientPtr.HasTag(exclude) {
 					continue outer
 				}
 			}
@@ -831,7 +831,7 @@ outer:
 		// Included?
 		var match bool = false
 		for _, include := range tagsInclude {
-			if client.HasTag(include) {
+			if clientPtr.HasTag(include) {
 				match = true
 				break
 			}
@@ -840,6 +840,14 @@ outer:
 			continue
 		}
 
+
+		// Deref, so we can modify the object without modifying the real one
+		client := *clientPtr
+
+		// Clear out the dispatched commands history (massive logs etc)
+		client.DispatchedCmds = nil
+
+		// Add to list
 		clients = append(clients, client)
 	}
 	server.clientsMux.RUnlock()
