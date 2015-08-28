@@ -920,6 +920,7 @@ outer:
 
 		// Clear out the dispatched commands history (massive logs etc)
 		client.DispatchedCmds = nil
+		client.Cmds = nil
 
 		// Add to list
 		clients = append(clients, client)
