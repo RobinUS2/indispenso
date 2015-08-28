@@ -254,16 +254,18 @@ func GetDispatched(w http.ResponseWriter, r *http.Request, ps httprouter.Params)
 	}
 
 	// List
-	list := make([]map[string]string, 0)
+	list := make([]map[string]interface{}, 0)
 
 	// Fetch and create
 	server.clientsMux.RLock()
 	for _, client := range server.clients {
 		for _, d := range client.DispatchedCmds {
-			elm := make(map[string]string)
+			elm := make(map[string]interface{})
 			elm["Id"] = d.Id
 			elm["ClientId"] = client.ClientId
 			elm["State"] = d.State
+			elm["Created"] = d.Created
+			elm["RequestUserId"] = d.RequestUserId
 			elm["TemplateId"] = d.TemplateId
 			list = append(list, elm)
 		}

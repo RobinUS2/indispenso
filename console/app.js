@@ -765,28 +765,42 @@ var app = {
 
 		history : {
 			load : function() {
-				app.ajax('/templates').done(function(resp) { 
+				app.ajax('/clients').done(function(resp) { 
 					var resp = app.handleResponse(resp);
-					var templates = resp.templates;
-					app.ajax('/dispatched').done(function(resp) { 
-						var dispatched = resp.dispatched;
+					var clients = resp.clients;
+					app.ajax('/templates').done(function(resp) { 
+						var resp = app.handleResponse(resp);
+						var templates = resp.templates;
+						app.ajax('/dispatched').done(function(resp) { 
+							var dispatched = resp.dispatched;
+							// Print template
+							var html = [];
+							$(dispatched).each(function(i, elm) {
+								var template = templates[elm.TemplateId];
+								if (typeof template === 'undefined') {
+									template = {
+										Title: '-',
+									};
+								}
 
-						// Print template
-						var html = [];
-						$(dispatched).each(function(i, elm) {
-							var template = templates[elm.TemplateId];
-							if (typeof template === 'undefined') {
-								template = {
-									Title: '-',
+								// Find client
+								var client = {
+									ClientId : '-'
 								};
-							}
-							html.push('<tr><td>' + template.Title + '</td><td>' + elm.Id + '</td><td>' + elm.State + '</td><td><div class="btn-group btn-group-xs pull-right"><a class="btn btn-default" data-nav="logs?id=' + elm.Id + '&client=' + elm.ClientId + '" href="#">Logs</a></div></td></tr>');
-						});
-						app.bindData('dispatched', html.join("\n"));
+								$(clients).each(function(j, c) {
+									if (c.ClientId === elm.ClientId) {
+										client = c;
+									}
+								});
 
-						app.initTables();
-						
-						app.initNav(); // Bind logs button
+								html.push('<tr><td>' + template.Title + '</td><td>' + client.ClientId + '</td><td>' + elm.Id + '</td><td>' + elm.State + '</td><td><div class="btn-group btn-group-xs pull-right"><a class="btn btn-default" data-nav="logs?id=' + elm.Id + '&client=' + elm.ClientId + '" href="#">Logs</a></div></td></tr>');
+							});
+							app.bindData('dispatched', html.join("\n"));
+
+							app.initTables();
+							
+							app.initNav(); // Bind logs button
+						});
 					});
 				});
 			}
