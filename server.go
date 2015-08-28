@@ -900,7 +900,7 @@ func GetClients(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	server.clientsMux.RLock()
 outer:
 	for _, clientPtr := range server.clients {
-		// Excluded?
+		// Excluded? One match is enough to skip this one
 		if len(tagsExclude) > 0 {
 			for _, exclude := range tagsExclude {
 				if clientPtr.HasTag(exclude) {
@@ -909,11 +909,11 @@ outer:
 			}
 		}
 
-		// Included?
-		var match bool = false
+		// Included? Must have all
+		var match bool = true
 		for _, include := range tagsInclude {
-			if clientPtr.HasTag(include) {
-				match = true
+			if !clientPtr.HasTag(include) {
+				match = false
 				break
 			}
 		}
