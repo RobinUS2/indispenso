@@ -771,35 +771,50 @@ var app = {
 					app.ajax('/templates').done(function(resp) { 
 						var resp = app.handleResponse(resp);
 						var templates = resp.templates;
-						app.ajax('/dispatched').done(function(resp) { 
-							var dispatched = resp.dispatched;
-							// Print template
-							var html = [];
-							$(dispatched).each(function(i, elm) {
-								var template = templates[elm.TemplateId];
-								if (typeof template === 'undefined') {
-									template = {
-										Title: '-',
-									};
-								}
-
-								// Find client
-								var client = {
-									ClientId : '-'
-								};
-								$(clients).each(function(j, c) {
-									if (c.ClientId === elm.ClientId) {
-										client = c;
-									}
-								});
-
-								html.push('<tr><td>' + template.Title + '</td><td>' + client.ClientId + '</td><td>' + elm.Id + '</td><td>' + elm.State + '</td><td><div class="btn-group btn-group-xs pull-right"><a class="btn btn-default" data-nav="logs?id=' + elm.Id + '&client=' + elm.ClientId + '" href="#">Logs</a></div></td></tr>');
+						app.ajax('/users/names').done(function(resp) {
+							var resp = app.handleResponse(resp);
+							var userNames = resp.users;
+							var userMap = {};
+							$(userNames).each(function(i, user) {
+								userMap[user.Id] = user;
 							});
-							app.bindData('dispatched', html.join("\n"));
 
-							app.initTables();
-							
-							app.initNav(); // Bind logs button
+							app.ajax('/dispatched').done(function(resp) { 
+								var dispatched = resp.dispatched;
+								// Print template
+								var html = [];
+								$(dispatched).each(function(i, elm) {
+									var template = templates[elm.TemplateId];
+									if (typeof template === 'undefined') {
+										template = {
+											Title: '-',
+										};
+									}
+
+									// Find client
+									var client = {
+										ClientId : '-'
+									};
+									$(clients).each(function(j, c) {
+										if (c.ClientId === elm.ClientId) {
+											client = c;
+										}
+									});
+									var user = {
+										Username : '-'
+									};
+									if (typeof userNames[elm.RequestUserId] !== 'undefined') {
+										user = userNames[elm.RequestUserId];
+									}
+
+									html.push('<tr><td>' + new Date(elm.Created * 1000).toString() + '</td><td>' + template.Title + '</td><td>' + user.Username + '</td><td>' + client.ClientId + '</td><td>' + elm.Id + '</td><td>' + elm.State + '</td><td><div class="btn-group btn-group-xs pull-right"><a class="btn btn-default" data-nav="logs?id=' + elm.Id + '&client=' + elm.ClientId + '" href="#">Logs</a></div></td></tr>');
+								});
+								app.bindData('dispatched', html.join("\n"));
+
+								app.initTables();
+								
+								app.initNav(); // Bind logs button
+							});
 						});
 					});
 				});

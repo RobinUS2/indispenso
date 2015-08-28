@@ -245,14 +245,6 @@ func GetDispatched(w http.ResponseWriter, r *http.Request, ps httprouter.Params)
 		return
 	}
 
-	// Create structure of dispatched jobs
-	type DispatchedCmd struct {
-		Id         string // Cmd id
-		ClientId   string // Client id
-		TemplateId string // Template Id
-		State      string // Current command state
-	}
-
 	// List
 	list := make([]map[string]interface{}, 0)
 
