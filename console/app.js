@@ -85,8 +85,16 @@ var app = {
 		app.updateRolesDom();
 	},
 
-	initTables : function() {
-		$('table:not(.nodatatable)', app.pageInstance()).DataTable().destroy(); $('table:not(.nodatatable)', app.pageInstance()).DataTable({ bPaginate : false, order: [[ 0, "asc" ]] });
+	initTables : function(optsExtend) {
+		var baseOpts = { 
+			bPaginate : false, 
+			order: [[ 0, "asc" ]]
+		};
+		var opts = baseOpts;
+		if (typeof optsExtend === 'object') {
+			opts = $.extend(true, opts, optsExtend);
+		}
+		$('table:not(.nodatatable)', app.pageInstance()).DataTable().destroy(); $('table:not(.nodatatable)', app.pageInstance()).DataTable(opts);
 	},
 
 	updateRolesDom : function() {
@@ -810,7 +818,7 @@ var app = {
 								});
 								app.bindData('dispatched', html.join("\n"));
 
-								app.initTables();
+								app.initTables({ order: [[ 0, "desc" ]] });
 								
 								app.initNav(); // Bind logs button
 							});
