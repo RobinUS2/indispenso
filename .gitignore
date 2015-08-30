@@ -28,6 +28,7 @@ indispenso
 # Deps
 src/**
 pkg/**
+tests/src/**
 
 # Keys
 private_key
