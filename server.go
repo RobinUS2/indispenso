@@ -152,6 +152,9 @@ func (s *Server) Start() bool {
 	// Consensus handler
 	s.consensus = newConsensus()
 
+	// Coordinator
+	s.executionCoordinator = newExecutionCoordinator()
+
 	// Print info
 	log.Printf("Starting server at https://localhost:%d/", serverPort)
 
