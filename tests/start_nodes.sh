@@ -13,8 +13,8 @@ echo "Token from file $TOKEN"
 sleep 1
 
 # Start another few clients
-../indispenso --seed="https://localhost:897/" --hostname=client-one &
-../indispenso --seed="https://localhost:897/" --hostname=client-two &
+../indispenso --seed="https://127.0.0.1:897/" --hostname=client-one &
+../indispenso --seed="https://127.0.0.1:897/" --hostname=client-two &
 
 # Make sure we wait (without wasting cpu cycles), we read "nothing" :)
 cat
