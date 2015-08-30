@@ -10,9 +10,6 @@ RUN yum install -y git
 RUN git clone https://github.com/RobinUS2/indispenso.git
 WORKDIR /indispenso
 
-# Build from source
-RUN ./build.sh
-
-# Start server
+# Start tests
 WORKDIR /indispenso/tests
 CMD ["./start_nodes.sh"] 
