@@ -65,32 +65,14 @@ func (c *ConsensusRequest) start() bool {
 	c.Executed = true
 
 	// Currently we only support one execution strategy
-	if c.Template().GetExecutionStrategy() == nil || c.Template().GetExecutionStrategy().Strategy != SimpleExecutionStrategy {
+	strategy := c.Template().GetExecutionStrategy()
+	if strategy == nil || strategy.Strategy != SimpleExecutionStrategy {
 		log.Printf("Execution strategy not found for request %s", c.Id)
 		return false
 	}
 
-	// Get all clients
-	for _, clientId := range c.ClientIds {
-		// Get client
-		client := server.GetClient(clientId)
-		if client == nil {
-			log.Printf("Client %s not found for request %s", clientId, c.Id)
-			continue
-		}
-
-		// We do not check whether we have an auth token here so the client can pickup commands after registration
-
-		// Create command instance
-		cmd := newCmd(template.Command, template.Timeout)
-		cmd.TemplateId = c.Template().Id
-		cmd.ClientId = client.ClientId
-		cmd.RequestUserId = c.RequestUserId
-		cmd.Sign(client)
-
-		// Start
-		client.Submit(cmd)
-	}
+	// Execute
+	strategy.Execute(c)
 
 	return true
 }
