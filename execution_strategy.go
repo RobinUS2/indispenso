@@ -33,6 +33,7 @@ func (e *ExecutionStrategy) Execute(c *ConsensusRequest) bool {
 
 		// Create command instance
 		cmd := newCmd(template.Command, template.Timeout)
+		cmd.ConsensusRequestId = c.Id
 		cmd.TemplateId = c.Template().Id
 		cmd.ClientId = client.ClientId
 		cmd.RequestUserId = c.RequestUserId
@@ -49,8 +50,15 @@ func (e *ExecutionStrategy) Execute(c *ConsensusRequest) bool {
 	// Based on strategy
 	var res bool = false
 	switch e.Strategy {
+
 	case SimpleExecutionStrategy:
 		res = e._executeSimple(c, clientCmds)
+		break
+
+	case OneTestExecutionStrategy:
+	case RollingUpgradeExecutionStrategy:
+	case ExponentialRollingUpgradeExecutionStrategy:
+		res = e._executePhased(c, clientCmds)
 		break
 	default:
 		panic("Not supported")
@@ -65,6 +73,16 @@ func (e *ExecutionStrategy) _executeSimple(c *ConsensusRequest, cmds []*ClientCm
 		// Start
 		cmd.Client.Submit(cmd.Cmd)
 	}
+
+	// Done
+	return true
+}
+
+// This will all start with a single one, and then perform more on completion
+func (e *ExecutionStrategy) _executePhased(c *ConsensusRequest, cmds []*ClientCmd) bool {
+	// Start one
+	log.Println("one test")
+	cmds[0].Client.Submit(cmds[0].Cmd)
 
 	// Done
 	return true

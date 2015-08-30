@@ -183,7 +183,7 @@ func newTemplate(title string, description string, command string, enabled bool,
 		Enabled:           enabled,
 		Acl:               acl,
 		Timeout:           timeout,
-		ExecutionStrategy: newExecutionStrategy(SimpleExecutionStrategy), // @todo Configure
+		ExecutionStrategy: newExecutionStrategy(OneTestExecutionStrategy), // @todo Configure
 		ValidationRules:   make([]*ExecutionValidation, 0),
 	}
 

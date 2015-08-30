@@ -20,18 +20,19 @@ import (
 // @author Robin Verlangen
 
 type Cmd struct {
-	Command       string   // Commands to execute
-	Pending       bool     // Did we dispatch it to the client?
-	Id            string   // Unique ID for this command
-	ClientId      string   // Client ID on which the command is executed
-	TemplateId    string   // Reference to the template id
-	Signature     string   // makes this only valid from the server to the client based on the preshared token and this is a signature with the command and id
-	Timeout       int      // in seconds
-	State         string   // Textual representation of the current state, e.g. finished, failed, etc.
-	RequestUserId string   // User ID of the user that initiated this command
-	Created       int64    // Unix timestamp created
-	BufOutput     []string // Standard output
-	BufOutputErr  []string // Error output
+	Command            string   // Commands to execute
+	Pending            bool     // Did we dispatch it to the client?
+	Id                 string   // Unique ID for this command
+	ClientId           string   // Client ID on which the command is executed
+	TemplateId         string   // Reference to the template id
+	ConsensusRequestId string   // Reference to the request id
+	Signature          string   // makes this only valid from the server to the client based on the preshared token and this is a signature with the command and id
+	Timeout            int      // in seconds
+	State              string   // Textual representation of the current state, e.g. finished, failed, etc.
+	RequestUserId      string   // User ID of the user that initiated this command
+	Created            int64    // Unix timestamp created
+	BufOutput          []string // Standard output
+	BufOutputErr       []string // Error output
 }
 
 // Sign the command on the server
