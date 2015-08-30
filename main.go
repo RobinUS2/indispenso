@@ -20,6 +20,7 @@ var server *Server
 var client *Client
 var log *Log
 var hostname string
+var hostnameOverride string
 var debug bool
 var autoTag bool
 var shutdown chan bool = make(chan bool)
@@ -43,13 +44,18 @@ func main() {
 	flag.BoolVar(&debug, "debug", false, "Enable debug logging")
 	flag.BoolVar(&autoTag, "auto-tag", true, "Auto tag based on server details")
 	flag.StringVar(&seedUri, "seed", "", "Seed URI")
+	flag.StringVar(&hostnameOverride, "hostname", "", "Hostname")
 	flag.IntVar(&serverPort, "server-port", 897, "Server port")
 	flag.IntVar(&clientPort, "client-port", 898, "Client port")
 	flag.Parse()
 
 	// Hostname
-	hostname, _ = os.Hostname()
-	hostname = strings.ToLower(hostname)
+	if len(hostnameOverride) < 1 {
+		hostname, _ = os.Hostname()
+		hostname = strings.ToLower(hostname)
+	} else {
+		hostname = hostnameOverride
+	}
 
 	// Auto tag
 	if autoTag {
