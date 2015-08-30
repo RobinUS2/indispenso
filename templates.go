@@ -135,7 +135,7 @@ func (t *Template) GetExecutionStrategy() *ExecutionStrategy {
 
 	// Default strategy
 	if t.ExecutionStrategy == nil {
-		return newExecutionStrategy(OneTestExecutionStrategy)
+		return newExecutionStrategy(RollingUpgradeExecutionStrategy)
 	}
 	return t.ExecutionStrategy
 }

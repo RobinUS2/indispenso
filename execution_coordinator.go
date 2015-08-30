@@ -71,7 +71,9 @@ func (ece *ExecutionCoordinatorEntry) Next() {
 		// All at once
 		cmdsToStart = len(ece.cmds)
 		break
+
 	case OneTestExecutionStrategy:
+		// One then the rest
 		if ece.iteration == 0 {
 			// One to start
 			cmdsToStart = 1
@@ -79,6 +81,13 @@ func (ece *ExecutionCoordinatorEntry) Next() {
 			// The rest
 			cmdsToStart = len(ece.cmds)
 		}
+		break
+
+	case RollingUpgradeExecutionStrategy:
+		// One by one
+		cmdsToStart = 1
+		break
+
 	default:
 		panic("Not yet supported")
 	}
