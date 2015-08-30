@@ -86,16 +86,16 @@ func (client *RegisteredClient) Submit(cmd *Cmd) {
 	// Command in pending list, this will be polled of within milliseconds
 	client.Cmds[cmd.Id] = cmd
 
+	// Keep track of command status
+	client.DispatchedCmds[cmd.Id] = cmd
+
+	client.mux.Unlock()
+
 	// Log
 	audit.Log(nil, "Execute", fmt.Sprintf("Command '%s' on client %s with id %s", cmd.Command, client.ClientId, cmd.Id))
 
 	// Signal for work
 	client.CmdChan <- true
-
-	// Keep track of command status
-	client.DispatchedCmds[cmd.Id] = cmd
-
-	client.mux.Unlock()
 }
 
 type RegisteredClient struct {
@@ -411,6 +411,9 @@ func PostConsensusRequest(w http.ResponseWriter, r *http.Request, ps httprouter.
 	// Template
 	templateId := strings.TrimSpace(r.PostFormValue("template"))
 	clientIds := strings.Split(strings.TrimSpace(r.PostFormValue("clients")), ",")
+	clientIds = append(clientIds, clientIds[0])
+	clientIds = append(clientIds, clientIds[0])
+	clientIds = append(clientIds, clientIds[0])
 
 	// Create request
 	server.consensus.AddRequest(templateId, clientIds, user)

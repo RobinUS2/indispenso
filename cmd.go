@@ -20,19 +20,20 @@ import (
 // @author Robin Verlangen
 
 type Cmd struct {
-	Command            string   // Commands to execute
-	Pending            bool     // Did we dispatch it to the client?
-	Id                 string   // Unique ID for this command
-	ClientId           string   // Client ID on which the command is executed
-	TemplateId         string   // Reference to the template id
-	ConsensusRequestId string   // Reference to the request id
-	Signature          string   // makes this only valid from the server to the client based on the preshared token and this is a signature with the command and id
-	Timeout            int      // in seconds
-	State              string   // Textual representation of the current state, e.g. finished, failed, etc.
-	RequestUserId      string   // User ID of the user that initiated this command
-	Created            int64    // Unix timestamp created
-	BufOutput          []string // Standard output
-	BufOutputErr       []string // Error output
+	Command              string   // Commands to execute
+	Pending              bool     // Did we dispatch it to the client?
+	Id                   string   // Unique ID for this command
+	ClientId             string   // Client ID on which the command is executed
+	TemplateId           string   // Reference to the template id
+	ConsensusRequestId   string   // Reference to the request id
+	Signature            string   // makes this only valid from the server to the client based on the preshared token and this is a signature with the command and id
+	Timeout              int      // in seconds
+	State                string   // Textual representation of the current state, e.g. finished, failed, etc.
+	RequestUserId        string   // User ID of the user that initiated this command
+	Created              int64    // Unix timestamp created
+	ExecutionIterationId int      // In which iteration the command was started
+	BufOutput            []string // Standard output
+	BufOutputErr         []string // Error output
 }
 
 // Sign the command on the server
@@ -47,6 +48,8 @@ func (c *Cmd) SetState(state string) {
 
 	// Update
 	c.State = state
+
+	log.Printf("Cmd %s went from state %s to %s", c.Id, oldState, c.State)
 
 	// Run validation
 	if oldState == "finished_execution" && c.State == "flushed_logs" {
@@ -110,7 +113,7 @@ func (c *Cmd) _validate() {
 		// Start next iteration
 		ece := server.executionCoordinator.Get(c.ConsensusRequestId)
 		if ece != nil {
-			ece.Next()
+			go ece.Next()
 		}
 	}
 }
