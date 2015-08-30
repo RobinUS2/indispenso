@@ -11,15 +11,16 @@ import (
 // Templates used to be executed on hosts
 
 type Template struct {
-	Id              string
-	Title           string // Short title
-	Description     string // Full description that explains in layman's terms what this does, so everyone can help as part of the authorization process
-	Command         string // Command to be executed
-	Enabled         bool   // Is this available for running?
-	Timeout         int    // Seconds of execution before the command is killed
-	Acl             *TemplateACL
-	ValidationRules []*ExecutionValidation // Validation rules
-	mux             sync.RWMutex
+	Id                string
+	Title             string // Short title
+	Description       string // Full description that explains in layman's terms what this does, so everyone can help as part of the authorization process
+	Command           string // Command to be executed
+	Enabled           bool   // Is this available for running?
+	Timeout           int    // Seconds of execution before the command is killed
+	Acl               *TemplateACL
+	ExecutionStrategy *ExecutionStrategy
+	ValidationRules   []*ExecutionValidation // Validation rules
+	mux               sync.RWMutex
 }
 
 type TemplateACL struct {
@@ -163,14 +164,15 @@ func newTemplate(title string, description string, command string, enabled bool,
 
 	// Instantiate
 	t := &Template{
-		Id:              id.String(),
-		Title:           title,
-		Description:     description,
-		Command:         command,
-		Enabled:         enabled,
-		Acl:             acl,
-		Timeout:         timeout,
-		ValidationRules: make([]*ExecutionValidation, 0),
+		Id:                id.String(),
+		Title:             title,
+		Description:       description,
+		Command:           command,
+		Enabled:           enabled,
+		Acl:               acl,
+		Timeout:           timeout,
+		ExecutionStrategy: newExecutionStrategy(SimpleExecutionStrategy), // @todo Configure
+		ValidationRules:   make([]*ExecutionValidation, 0),
 	}
 
 	return t
