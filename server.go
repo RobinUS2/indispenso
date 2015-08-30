@@ -411,9 +411,6 @@ func PostConsensusRequest(w http.ResponseWriter, r *http.Request, ps httprouter.
 	// Template
 	templateId := strings.TrimSpace(r.PostFormValue("template"))
 	clientIds := strings.Split(strings.TrimSpace(r.PostFormValue("clients")), ",")
-	clientIds = append(clientIds, clientIds[0])
-	clientIds = append(clientIds, clientIds[0])
-	clientIds = append(clientIds, clientIds[0])
 
 	// Create request
 	server.consensus.AddRequest(templateId, clientIds, user)

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"math"
 	"sync"
 )
 
@@ -43,15 +44,16 @@ func (ece *ExecutionCoordinatorEntry) Next() {
 	}
 	server.clientsMux.RLock()
 	var allFinished bool = true
+outer:
 	for _, client := range server.clients {
 		for _, cmd := range client.DispatchedCmds {
 			if cmd.ConsensusRequestId == ece.Id && cmd.ExecutionIterationId == ece.iteration {
 				if debug {
 					log.Printf("%s was started in the previous iteration %v", cmd.Id, cmd)
-					if cmd.State != "finisehd" {
-						allFinished = false
-						break
-					}
+				}
+				if cmd.State != "finished" {
+					allFinished = false
+					break outer
 				}
 			}
 		}
@@ -88,11 +90,22 @@ func (ece *ExecutionCoordinatorEntry) Next() {
 		cmdsToStart = 1
 		break
 
+	case ExponentialRollingUpgradeExecutionStrategy:
+		// 1, 2, 4, 8, 16, 32 etc
+		cmdsToStart = int(math.Pow(2, float64(ece.iteration)))
+		if cmdsToStart > len(ece.cmds) {
+			cmdsToStart = len(ece.cmds)
+		}
+		break
+
 	default:
 		panic("Not yet supported")
 	}
 
 	// Start command(s)
+	if debug {
+		log.Printf("Starting %d cmds for consensus request %s", cmdsToStart, ece.Id)
+	}
 	for i := 0; i < cmdsToStart; i++ {
 		// Get element
 		var cmd PendingClientCmd = *ece.cmds[len(ece.cmds)-1]
