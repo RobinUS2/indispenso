@@ -197,11 +197,6 @@ func (s *Client) _req(method string, uri string, data []byte) ([]byte, error) {
 
 // Generic request method
 func (s *Client) _reqUnsafe(method string, uri string, data []byte) ([]byte, error) {
-	// Log
-	if debug {
-		log.Printf("%s %s (bytes %d)", method, uri, len(data))
-	}
-
 	// Transport
 	tr := &http.Transport{
 		TLSClientConfig: &tls.Config{
@@ -227,6 +222,11 @@ func (s *Client) _reqUnsafe(method string, uri string, data []byte) ([]byte, err
 		uri = fmt.Sprintf("%s&_rand=%s", uri, randStr)
 	}
 	url := fmt.Sprintf("%s%s", strings.TrimRight(seedUri, "/"), uri)
+
+	// Log
+	if debug {
+		log.Printf("%s %s (req bytes %d)", method, url, len(data))
+	}
 
 	// Req
 	var buf *bytes.Buffer
