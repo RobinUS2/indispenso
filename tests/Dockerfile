@@ -14,4 +14,5 @@ WORKDIR /indispenso
 RUN ./build.sh
 
 # Start server
-CMD ["./tests/start_nodes.sh"] 
+WORKDIR /indispenso/tests
+CMD ["./start_nodes.sh"] 
