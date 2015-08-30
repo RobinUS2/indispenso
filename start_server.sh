@@ -1,4 +1,5 @@
 #!/bin/bash
+DIR=$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )
 # Auto create foldder
 mkdir -p /etc/indispenso
 
@@ -18,4 +19,4 @@ if [ ! -f "/etc/indispenso/indispenso.conf" ]; then
 fi
 
 # Start server
-./indispenso --debug=false
+$DIR/indispenso --debug=false
