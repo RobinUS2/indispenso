@@ -15,4 +15,5 @@ sleep 3
 ../indispenso --seed="https://127.0.0.1:897/" --hostname="client-two" --debug=true &
 
 # Make sure we wait (without wasting cpu cycles), we read "nothing" :)
+echo "Going to wait"
 cat
