@@ -128,6 +128,18 @@ func (s *TemplateStore) load() {
 	}
 }
 
+// Execution strategy of the template
+func (t *Template) GetExecutionStrategy() *ExecutionStrategy {
+	t.mux.RLock()
+	defer t.mux.RUnlock()
+
+	// Default strategy
+	if t.ExecutionStrategy == nil {
+		return newExecutionStrategy(SimpleExecutionStrategy)
+	}
+	return t.ExecutionStrategy
+}
+
 func newTemplateStore() *TemplateStore {
 	s := &TemplateStore{
 		ConfFile:  "/etc/indispenso/templates.conf",

@@ -64,6 +64,13 @@ func (c *ConsensusRequest) start() bool {
 	}
 	c.Executed = true
 
+	// Currently we only support one execution strategy
+	if c.Template().GetExecutionStrategy() == nil || c.Template().GetExecutionStrategy().Strategy != SimpleExecutionStrategy {
+		log.Printf("Execution strategy not found for request %s", c.Id)
+		return false
+	}
+
+	// Get all clients
 	for _, clientId := range c.ClientIds {
 		// Get client
 		client := server.GetClient(clientId)
