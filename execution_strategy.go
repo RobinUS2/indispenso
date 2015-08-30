@@ -9,10 +9,25 @@ type ExecutionStrategy struct {
 	Strategy ExecutionStrategyType
 }
 
+// Execute a request
 func (e *ExecutionStrategy) Execute(c *ConsensusRequest) bool {
 	// Template
 	template := c.Template()
 
+	// Based on strategy
+	var res bool = false
+	switch e.Strategy {
+	case SimpleExecutionStrategy:
+		res = e._executeSimple(c, template)
+		break
+	default:
+		panic("Not supported")
+	}
+	return res
+}
+
+// Simple: all at once
+func (e *ExecutionStrategy) _executeSimple(c *ConsensusRequest, template *Template) bool {
 	// Get all clients
 	for _, clientId := range c.ClientIds {
 		// Get client

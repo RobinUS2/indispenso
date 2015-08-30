@@ -19,13 +19,16 @@ import (
 // Server methods (you probably only need one or two in HA failover mode)
 
 type Server struct {
-	clientsMux    sync.RWMutex
-	clients       map[string]*RegisteredClient
-	tagsMux       sync.RWMutex
-	Tags          map[string]bool
-	userStore     *UserStore
-	templateStore *TemplateStore
-	consensus     *Consensus
+	clientsMux sync.RWMutex
+	clients    map[string]*RegisteredClient
+
+	Tags    map[string]bool
+	tagsMux sync.RWMutex
+
+	userStore            *UserStore
+	templateStore        *TemplateStore
+	consensus            *Consensus
+	executionCoordinator *ExecutionCoordinator
 }
 
 // Register client

@@ -66,7 +66,7 @@ func (c *ConsensusRequest) start() bool {
 
 	// Currently we only support one execution strategy
 	strategy := c.Template().GetExecutionStrategy()
-	if strategy == nil || strategy.Strategy != SimpleExecutionStrategy {
+	if strategy == nil {
 		log.Printf("Execution strategy not found for request %s", c.Id)
 		return false
 	}
