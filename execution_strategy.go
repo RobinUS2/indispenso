@@ -50,7 +50,6 @@ func (e *ExecutionStrategy) Execute(c *ConsensusRequest) bool {
 	// Based on strategy
 	var res bool = false
 	switch e.Strategy {
-
 	case SimpleExecutionStrategy:
 		res = e._executeSimple(c, clientCmds)
 		break
@@ -58,6 +57,7 @@ func (e *ExecutionStrategy) Execute(c *ConsensusRequest) bool {
 	case OneTestExecutionStrategy:
 	case RollingUpgradeExecutionStrategy:
 	case ExponentialRollingUpgradeExecutionStrategy:
+		// @todo register with execution coordinator
 		res = e._executePhased(c, clientCmds)
 		break
 	default:
