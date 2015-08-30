@@ -9,18 +9,13 @@ type ExecutionStrategy struct {
 	Strategy ExecutionStrategyType
 }
 
-type ClientCmd struct {
-	Client *RegisteredClient
-	Cmd    *Cmd
-}
-
 // Execute a request
 func (e *ExecutionStrategy) Execute(c *ConsensusRequest) bool {
 	// Template
 	template := c.Template()
 
 	// Create list of commands for clients
-	var clientCmds []*ClientCmd = make([]*ClientCmd, 0)
+	var clientCmds []*PendingClientCmd = make([]*PendingClientCmd, 0)
 
 	// Assemble commands
 	for _, clientId := range c.ClientIds {
@@ -38,7 +33,7 @@ func (e *ExecutionStrategy) Execute(c *ConsensusRequest) bool {
 		cmd.ClientId = client.ClientId
 		cmd.RequestUserId = c.RequestUserId
 		cmd.Sign(client)
-		clientCmd := &ClientCmd{
+		clientCmd := &PendingClientCmd{
 			Client: client,
 			Cmd:    cmd,
 		}
@@ -47,44 +42,12 @@ func (e *ExecutionStrategy) Execute(c *ConsensusRequest) bool {
 		clientCmds = append(clientCmds, clientCmd)
 	}
 
-	// Based on strategy
-	var res bool = false
-	switch e.Strategy {
-	case SimpleExecutionStrategy:
-		res = e._executeSimple(c, clientCmds)
-		break
+	// Register with execution coordinator
+	server.executionCoordinator.Add(c.Id, e, clientCmds)
 
-	case OneTestExecutionStrategy:
-	case RollingUpgradeExecutionStrategy:
-	case ExponentialRollingUpgradeExecutionStrategy:
-		// @todo register with execution coordinator
-		res = e._executePhased(c, clientCmds)
-		break
-	default:
-		panic("Not supported")
-	}
-	return res
-}
+	// Next step
+	server.executionCoordinator.Get(c.Id).Next()
 
-// Simple: all at once
-func (e *ExecutionStrategy) _executeSimple(c *ConsensusRequest, cmds []*ClientCmd) bool {
-	// Get all clients
-	for _, cmd := range cmds {
-		// Start
-		cmd.Client.Submit(cmd.Cmd)
-	}
-
-	// Done
-	return true
-}
-
-// This will all start with a single one, and then perform more on completion
-func (e *ExecutionStrategy) _executePhased(c *ConsensusRequest, cmds []*ClientCmd) bool {
-	// Start one
-	log.Println("one test")
-	cmds[0].Client.Submit(cmds[0].Cmd)
-
-	// Done
 	return true
 }
 

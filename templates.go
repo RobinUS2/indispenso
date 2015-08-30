@@ -135,7 +135,7 @@ func (t *Template) GetExecutionStrategy() *ExecutionStrategy {
 
 	// Default strategy
 	if t.ExecutionStrategy == nil {
-		return newExecutionStrategy(SimpleExecutionStrategy)
+		return newExecutionStrategy(OneTestExecutionStrategy)
 	}
 	return t.ExecutionStrategy
 }
@@ -183,7 +183,7 @@ func newTemplate(title string, description string, command string, enabled bool,
 		Enabled:           enabled,
 		Acl:               acl,
 		Timeout:           timeout,
-		ExecutionStrategy: newExecutionStrategy(OneTestExecutionStrategy), // @todo Configure
+		ExecutionStrategy: newExecutionStrategy(SimpleExecutionStrategy), // @todo Configure
 		ValidationRules:   make([]*ExecutionValidation, 0),
 	}
 
