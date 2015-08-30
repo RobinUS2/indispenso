@@ -129,6 +129,11 @@ func (c *Cmd) _checkFlushLogs() {
 
 // Write logs to server
 func (c *Cmd) _flushLogs() {
+	// Only if this has a signature, else it is local
+	if len(c.Signature) < 1 {
+		return
+	}
+
 	// To JSON
 	m := make(map[string][]string)
 	m["output"] = c.BufOutput
