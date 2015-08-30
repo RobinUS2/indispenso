@@ -23,6 +23,7 @@ var hostname string
 var hostnameOverride string
 var debug bool
 var autoTag bool
+var disableServer bool
 var shutdown chan bool = make(chan bool)
 
 const CLIENT_PING_INTERVAL int = 60                       // In seconds
@@ -42,6 +43,7 @@ func main() {
 
 	// Read flags
 	flag.BoolVar(&debug, "debug", false, "Enable debug logging")
+	flag.BoolVar(&disableServer, "disable-server", false, "Disable server")
 	flag.BoolVar(&autoTag, "auto-tag", true, "Auto tag based on server details")
 	flag.StringVar(&seedUri, "seed", "", "Seed URI")
 	flag.StringVar(&hostnameOverride, "hostname", "", "Hostname")
@@ -77,6 +79,9 @@ func main() {
 	}
 
 	// Server
+	if disableServer {
+		conf.IsServer = false
+	}
 	if conf.IsServer {
 		server = newServer()
 		server.Start()
