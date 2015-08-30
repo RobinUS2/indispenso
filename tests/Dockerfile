@@ -1,4 +1,17 @@
 FROM centos:6
 MAINTAINER "Robin Verlangen"
 
-CMD ["sleep", "10"] 
+# Install golang
+RUN yum install -y epel-release
+RUN yum install -y golang
+
+# Git for downloading source
+RUN yum install -y git
+RUN git clone https://github.com/RobinUS2/indispenso.git
+WORKDIR /indispenso
+
+# Build from source
+RUN ./build.sh
+
+# Start server
+CMD ["./tests/start_nodes.sh"] 
