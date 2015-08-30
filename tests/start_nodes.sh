@@ -7,4 +7,7 @@ git pull
 ../build.sh
 
 # Start the server
-../start_server.sh
+../start_server.sh &
+
+# Make sure we wait (without wasting cpu cycles), we read "nothing" :)
+cat
