@@ -9,26 +9,20 @@ type ExecutionStrategy struct {
 	Strategy ExecutionStrategyType
 }
 
+type ClientCmd struct {
+	Client *RegisteredClient
+	Cmd    *Cmd
+}
+
 // Execute a request
 func (e *ExecutionStrategy) Execute(c *ConsensusRequest) bool {
 	// Template
 	template := c.Template()
 
-	// Based on strategy
-	var res bool = false
-	switch e.Strategy {
-	case SimpleExecutionStrategy:
-		res = e._executeSimple(c, template)
-		break
-	default:
-		panic("Not supported")
-	}
-	return res
-}
+	// Create list of commands for clients
+	var clientCmds []*ClientCmd = make([]*ClientCmd, 0)
 
-// Simple: all at once
-func (e *ExecutionStrategy) _executeSimple(c *ConsensusRequest, template *Template) bool {
-	// Get all clients
+	// Assemble commands
 	for _, clientId := range c.ClientIds {
 		// Get client
 		client := server.GetClient(clientId)
@@ -37,17 +31,39 @@ func (e *ExecutionStrategy) _executeSimple(c *ConsensusRequest, template *Templa
 			continue
 		}
 
-		// We do not check whether we have an auth token here so the client can pickup commands after registration
-
 		// Create command instance
 		cmd := newCmd(template.Command, template.Timeout)
 		cmd.TemplateId = c.Template().Id
 		cmd.ClientId = client.ClientId
 		cmd.RequestUserId = c.RequestUserId
 		cmd.Sign(client)
+		clientCmd := &ClientCmd{
+			Client: client,
+			Cmd:    cmd,
+		}
 
+		// Add to list
+		clientCmds = append(clientCmds, clientCmd)
+	}
+
+	// Based on strategy
+	var res bool = false
+	switch e.Strategy {
+	case SimpleExecutionStrategy:
+		res = e._executeSimple(c, clientCmds)
+		break
+	default:
+		panic("Not supported")
+	}
+	return res
+}
+
+// Simple: all at once
+func (e *ExecutionStrategy) _executeSimple(c *ConsensusRequest, cmds []*ClientCmd) bool {
+	// Get all clients
+	for _, cmd := range cmds {
 		// Start
-		client.Submit(cmd)
+		cmd.Client.Submit(cmd.Cmd)
 	}
 
 	// Done
