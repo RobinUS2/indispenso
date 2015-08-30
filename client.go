@@ -29,7 +29,7 @@ type Client struct {
 
 // Start client
 func (s *Client) Start() bool {
-	log.Printf("Starting client from seed %s with tags %v", conf.Seed, conf.tags)
+	log.Printf("Starting client %s from seed %s with tags %v", s.Id, conf.Seed, conf.tags)
 
 	// Ping server to register
 	s.PingServer()
