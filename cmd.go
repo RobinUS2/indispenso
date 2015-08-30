@@ -113,8 +113,10 @@ func (c *Cmd) NotifyServer(state string) {
 	// Update local client state
 	c.SetState(state)
 
-	// Update server state
-	client._req("PUT", fmt.Sprintf("client/%s/cmd/%s/state?state=%s", url.QueryEscape(client.Id), url.QueryEscape(c.Id), url.QueryEscape(state)), nil)
+	// Update server state, only if this has a signature, else it is local
+	if len(c.Signature) > 0 {
+		client._req("PUT", fmt.Sprintf("client/%s/cmd/%s/state?state=%s", url.QueryEscape(client.Id), url.QueryEscape(c.Id), url.QueryEscape(state)), nil)
+	}
 }
 
 // Should we flush the local buffer? After X milliseconds or Y lines
