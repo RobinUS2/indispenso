@@ -30,7 +30,7 @@ const LONG_POLL_TIMEOUT time.Duration = time.Duration(30) // In seconds
 const DEFAULT_COMMAND_TIMEOUT int = 300                   // In seconds
 
 func main() {
-	log.Println("Starting indinspenso")
+	log.Println("Starting indispenso")
 
 	// Log
 	log = newLog()
@@ -56,6 +56,7 @@ func main() {
 	} else {
 		hostname = hostnameOverride
 	}
+	log.Printf("Hostname %s", hostname)
 
 	// Auto tag
 	if autoTag {
