@@ -112,8 +112,10 @@ func (c *Cmd) _validate() {
 
 	// Done and passed validation
 	if failedValidation == false {
+		if debug {
+			log.Printf("Validation passed for %s", c.Id)
+		}
 		c.SetState("finished")
-		log.Printf("Validation passed for %s", c.Id)
 
 		// Start next iteration
 		ece := server.executionCoordinator.Get(c.ConsensusRequestId)

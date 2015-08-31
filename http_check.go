@@ -11,6 +11,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"sync"
+	"time"
 )
 
 // Http checks
@@ -51,13 +52,23 @@ func GetHttpCheck(w http.ResponseWriter, r *http.Request, ps httprouter.Params) 
 	}
 
 	// Register callback
+	done := make(chan bool, 1)
 	cb := func(cr *ConsensusRequest) {
-		log.Println("Finished!!!")
+		done <- true
 	}
 	cr.Callbacks = append(cr.Callbacks, cb)
 
 	// Trigger execution
 	cr.check()
+
+	// Wait for success (or failure..)
+	select {
+	case <-time.After(30 * time.Second):
+		jr.Error("Timeout")
+		fmt.Fprint(w, jr.ToString(debug))
+		return
+	case <-done:
+	}
 
 	// Print results
 	jr.OK()
