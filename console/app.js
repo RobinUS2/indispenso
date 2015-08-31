@@ -62,6 +62,7 @@ var app = {
 			app.pages[currentPageName]['unload']();
 		}
 		$('table.dataTable', app.pageInstance()).DataTable().destroy();
+		$('form', app.pageInstance()).trigger('reset');
 
 		// New page
 		history.pushState(null, null, '#!' + input);
