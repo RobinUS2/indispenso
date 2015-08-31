@@ -768,8 +768,11 @@ var app = {
 								return;
 							}
 
+							// Totp challenge
+							var totp = prompt("Please enter your two factor token to authorize the request for execution of this command", "");
+
 							// Request
-							app.ajax('/consensus/request', { method: 'POST', data : { template : template.Id, clients : clientIds.join(','), reason : reason } }).done(function(resp) {
+							app.ajax('/consensus/request', { method: 'POST', data : { template : template.Id, clients : clientIds.join(','), reason : reason, totp : totp } }).done(function(resp) {
 								var resp = app.handleResponse(resp);
 								if (resp.status === 'OK') {
 									if (template.Acl.MinAuth > 1) {

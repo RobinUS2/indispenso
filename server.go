@@ -497,9 +497,17 @@ func PostConsensusRequest(w http.ResponseWriter, r *http.Request, ps httprouter.
 		return
 	}
 
+	// Are we allow to request execution?
 	user := getUser(r)
 	if !user.HasRole("requester") {
 		jr.Error("Not authorized")
+		fmt.Fprint(w, jr.ToString(debug))
+		return
+	}
+
+	// Verify two factor for, so that a hacked account can not request or execute anything without getting access to the 2fa device
+	if user.ValidateTotp(r.PostFormValue("totp")) == false {
+		jr.Error("Invalid two factor token")
 		fmt.Fprint(w, jr.ToString(debug))
 		return
 	}
