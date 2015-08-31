@@ -85,12 +85,12 @@ outer:
 		}
 		break
 
-	case RollingUpgradeExecutionStrategy:
+	case RollingExecutionStrategy:
 		// One by one
 		cmdsToStart = 1
 		break
 
-	case ExponentialRollingUpgradeExecutionStrategy:
+	case ExponentialRollingExecutionStrategy:
 		// 1, 2, 4, 8, 16, 32 etc
 		cmdsToStart = int(math.Pow(2, float64(ece.iteration)))
 		if cmdsToStart > len(ece.cmds) {

@@ -156,7 +156,7 @@ func newTemplateAcl() *TemplateACL {
 	}
 }
 
-func newTemplate(title string, description string, command string, enabled bool, includedTags []string, excludedTags []string, minAuth uint, timeout int) *Template {
+func newTemplate(title string, description string, command string, enabled bool, includedTags []string, excludedTags []string, minAuth uint, timeout int, executionStrategy *ExecutionStrategy) *Template {
 	// Unique ID
 	id, _ := uuid.NewV4()
 
@@ -183,7 +183,7 @@ func newTemplate(title string, description string, command string, enabled bool,
 		Enabled:           enabled,
 		Acl:               acl,
 		Timeout:           timeout,
-		ExecutionStrategy: newExecutionStrategy(SimpleExecutionStrategy), // @todo Configure
+		ExecutionStrategy: executionStrategy,
 		ValidationRules:   make([]*ExecutionValidation, 0),
 	}
 

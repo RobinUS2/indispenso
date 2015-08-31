@@ -544,6 +544,28 @@ func PostTemplate(w http.ResponseWriter, r *http.Request, ps httprouter.Params) 
 	command := r.PostFormValue("command")
 	includedTags := r.PostFormValue("includedTags")
 	excludedTags := r.PostFormValue("excludedTags")
+	executionStrategyStr := r.PostFormValue("executionStrategy")
+
+	// Create strategy
+	var executionStrategy *ExecutionStrategy
+	switch executionStrategyStr {
+	case "simple":
+		executionStrategy = newExecutionStrategy(SimpleExecutionStrategy)
+		break
+	case "one-test":
+		executionStrategy = newExecutionStrategy(OneTestExecutionStrategy)
+		break
+	case "rolling":
+		executionStrategy = newExecutionStrategy(RollingExecutionStrategy)
+		break
+	case "exponential-rolling":
+		executionStrategy = newExecutionStrategy(ExponentialRollingExecutionStrategy)
+		break
+	default:
+		jr.Error("Strategy not found")
+		fmt.Fprint(w, jr.ToString(debug))
+		return
+	}
 
 	// Minimum authorizations
 	minAuthStr := strings.TrimSpace(r.PostFormValue("minAuth"))
@@ -580,7 +602,7 @@ func PostTemplate(w http.ResponseWriter, r *http.Request, ps httprouter.Params) 
 	}
 
 	// Validate template
-	template := newTemplate(title, description, command, true, strings.Split(includedTags, ","), strings.Split(excludedTags, ","), uint(minAuth), int(timeout))
+	template := newTemplate(title, description, command, true, strings.Split(includedTags, ","), strings.Split(excludedTags, ","), uint(minAuth), int(timeout), executionStrategy)
 	valid, err := template.IsValid()
 	if !valid {
 		jr.Error(fmt.Sprintf("%s", err))
