@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/base64"
 	"encoding/json"
+	"github.com/dgryski/dgoogauth"
 	"github.com/nu7hatch/gouuid"
 	"golang.org/x/crypto/bcrypt"
 	"io/ioutil"
@@ -10,6 +11,8 @@ import (
 	"sync"
 	"time"
 )
+
+const TOTP_MAX_WINDOWS = 3
 
 // Users
 
@@ -150,9 +153,27 @@ type User struct {
 	Enabled              bool
 	SessionToken         string
 	TotpSecret           string // Secret for time based 2-factor
+	TotpSecretValidated  bool   // Did we verify the token?
 	SessionLastTimestamp time.Time
 	Roles                map[string]bool
 	mux                  sync.RWMutex
+}
+
+// Two factor setup?
+func (u *User) HasTwoFactor() bool {
+	u.mux.RLock()
+	defer u.mux.RUnlock()
+	return len(u.TotpSecret) > 0 && u.TotpSecretValidated == true
+}
+
+// Validate totp token
+func (u *User) ValidateTotp(t string) bool {
+	cotp := dgoogauth.OTPConfig{
+		Secret:     u.TotpSecret,
+		WindowSize: TOTP_MAX_WINDOWS,
+	}
+	res, _ := cotp.Authenticate(t)
+	return res
 }
 
 func (u *User) HasRole(r string) bool {

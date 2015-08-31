@@ -190,6 +190,7 @@ func (s *Server) Start() bool {
 		router.GET("/dispatched", GetDispatched)
 		router.DELETE("/user", DeleteUser)
 		router.GET("/user/2fa", GetUser2fa)
+		router.PUT("/user/2fa", PutUser2fa)
 		router.ServeFiles("/console/*filepath", http.Dir("console"))
 
 		// Auto generate key
@@ -245,6 +246,44 @@ func GetClientCmdLogs(w http.ResponseWriter, r *http.Request, ps httprouter.Para
 	fmt.Fprint(w, jr.ToString(debug))
 }
 
+// Enable user two factor
+func PutUser2fa(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+	jr := jresp.NewJsonResp()
+	if !authUser(r) {
+		jr.Error("Not authorized")
+		fmt.Fprint(w, jr.ToString(debug))
+		return
+	}
+
+	// User
+	user := getUser(r)
+	if len(user.TotpSecret) < 1 {
+		jr.Error("Two factor authentication not setup")
+		fmt.Fprint(w, jr.ToString(debug))
+		return
+	}
+	if user.HasTwoFactor() {
+		jr.Error("Two factor authentication already setup")
+		fmt.Fprint(w, jr.ToString(debug))
+		return
+	}
+
+	// Validate
+	valid1 := user.ValidateTotp(r.PostFormValue("token_1"))
+	valid2 := user.ValidateTotp(r.PostFormValue("token_2"))
+	res := valid1 && valid2 // Both must match
+
+	// Enable
+	if res {
+		user.TotpSecretValidated = true
+		server.userStore.save()
+	}
+
+	jr.Set("Enabled", res)
+	jr.OK()
+	fmt.Fprint(w, jr.ToString(debug))
+}
+
 // Get user two factor data
 func GetUser2fa(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	jr := jresp.NewJsonResp()
@@ -256,7 +295,7 @@ func GetUser2fa(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 
 	// User
 	user := getUser(r)
-	if len(user.TotpSecret) > 0 {
+	if user.HasTwoFactor() {
 		jr.Error("Two factor authentication already setup")
 		fmt.Fprint(w, jr.ToString(debug))
 		return
@@ -266,7 +305,7 @@ func GetUser2fa(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	secret := TotpSecret()
 	cotp := dgoogauth.OTPConfig{
 		Secret:     secret,
-		WindowSize: 2,
+		WindowSize: TOTP_MAX_WINDOWS,
 	}
 
 	// Image uri
@@ -280,10 +319,9 @@ func GetUser2fa(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 		return
 	}
 
-	// Save user
-	// @todo enable
-	// user.TotpSecret = user.TotpSecret
-	//server.userStore.save()
+	// Save user, not yet enabled
+	user.TotpSecret = secret
+	server.userStore.save()
 
 	jr.Set("Secret", user.TotpSecret)
 	jr.Set("Png", qrCode.PNG())
