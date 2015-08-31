@@ -8,7 +8,6 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	"github.com/nu7hatch/gouuid"
 	"io/ioutil"
 	"net/url"
 	"os"
@@ -338,12 +337,9 @@ func newCmd(command string, timeout int) *Cmd {
 		timeout = DEFAULT_COMMAND_TIMEOUT
 	}
 
-	// Id
-	id, _ := uuid.NewV4()
-
 	// Create instance
 	return &Cmd{
-		Id:           id.String(),
+		Id:           uuidStr(),
 		Command:      command,
 		Pending:      true,
 		Timeout:      timeout,

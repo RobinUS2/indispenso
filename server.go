@@ -196,6 +196,7 @@ func (s *Server) Start() bool {
 		router.GET("/consensus/pending", GetConsensusPending)
 		router.GET("/dispatched", GetDispatched)
 		router.GET("/http-check/:id", GetHttpCheck)
+		router.POST("/http-check", PostHttpCheck)
 		router.DELETE("/user", DeleteUser)
 		router.GET("/user/2fa", GetUser2fa)
 		router.PUT("/user/2fa", PutUser2fa)

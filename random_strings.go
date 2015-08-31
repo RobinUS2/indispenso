@@ -3,6 +3,7 @@ package main
 import (
 	crand "crypto/rand"
 	"encoding/base64"
+	"github.com/nu7hatch/gouuid"
 	"math/rand"
 )
 
@@ -29,4 +30,9 @@ func TotpSecret() string {
 		b[i] = totpChars[rand.Intn(len(totpChars))]
 	}
 	return string(b)
+}
+
+func uuidStr() string {
+	id, _ := uuid.NewV4()
+	return id.String()
 }

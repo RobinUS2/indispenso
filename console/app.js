@@ -751,22 +751,23 @@ var app = {
 							}
 						});
 
-						// Execute
-						$('.do-request', app.pageInstance()).unbind('click');
-						$('.do-request', app.pageInstance()).click(function() {
-							// Confirm
-							if (!confirm('Are you sure you want to continue?')) {
-								return false;
-							}
-
-							// Reason
-							var reason = $('input[name="reason"]', app.pageInstance()).val();
-
-							// List clients
+						// Get client ids
+						var getClientIds = function() {
 							var clientIds = [];
 							$('.select-client:checked').each(function(i, cb) {
 								clientIds.push($(cb).attr('data-id'));
 							});
+							return clientIds;
+						}
+
+						// Execute
+						$('.do-request', app.pageInstance()).unbind('click');
+						$('.do-request', app.pageInstance()).click(function() {
+							// Reason
+							var reason = $('input[name="reason"]', app.pageInstance()).val();
+
+							// List clients
+							var clientIds = getClientIds();
 							if (clientIds.length < 1) {
 								app.alert('warning', 'No clients', 'You need to select at least one target client');
 								return;
@@ -786,6 +787,30 @@ var app = {
 										// Will start right now, go to history
 										app.showPage('history');
 									}
+								}
+							});
+
+							return false;
+						});
+
+						// Create HTTP Check
+						$('.create-http-check', app.pageInstance()).unbind('click');
+						$('.create-http-check', app.pageInstance()).click(function() {
+							// List clients
+							var clientIds = getClientIds();
+							if (clientIds.length < 1) {
+								app.alert('warning', 'No clients', 'You need to select at least one target client');
+								return;
+							}
+
+							// Totp challenge
+							var totp = prompt("Please enter your two factor token to create a new http check", "");
+
+							// Request
+							app.ajax('/http-check', { method: 'POST', data : { template : template.Id, clients : clientIds.join(','), totp : totp } }).done(function(resp) {
+								var resp = app.handleResponse(resp);
+								if (resp.status === 'OK') {
+									app.showPage('http-checks');
 								}
 							});
 

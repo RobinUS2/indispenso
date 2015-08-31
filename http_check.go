@@ -10,6 +10,7 @@ import (
 	"github.com/julienschmidt/httprouter"
 	"io/ioutil"
 	"net/http"
+	"strings"
 	"sync"
 	"time"
 )
@@ -86,6 +87,13 @@ func (s *HttpCheckStore) Get(id string) *HttpCheckConfiguration {
 	return s.Checks[id]
 }
 
+// Add item
+func (s *HttpCheckStore) Add(e *HttpCheckConfiguration) {
+	s.mux.Lock()
+	defer s.mux.Unlock()
+	s.Checks[e.Id] = e
+}
+
 // Save to disk
 func (s *HttpCheckStore) save() bool {
 	s.mux.Lock()
@@ -101,6 +109,58 @@ func (s *HttpCheckStore) save() bool {
 		return false
 	}
 	return true
+}
+
+// Create HTTP Check
+func PostHttpCheck(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+	jr := jresp.NewJsonResp()
+	if !authUser(r) {
+		jr.Error("Not authorized")
+		fmt.Fprint(w, jr.ToString(debug))
+		return
+	}
+
+	// Must be admin
+	user := getUser(r)
+	if !user.HasRole("admin") {
+		jr.Error("Not authorized")
+		fmt.Fprint(w, jr.ToString(debug))
+		return
+	}
+
+	// Verify two factor for, so that a hacked account can not request or execute anything without getting access to the 2fa device
+	if user.ValidateTotp(r.PostFormValue("totp")) == false {
+		jr.Error("Invalid two factor token")
+		fmt.Fprint(w, jr.ToString(debug))
+		return
+	}
+
+	// Template
+	templateId := strings.TrimSpace(r.PostFormValue("template"))
+	template := server.templateStore.Get(templateId)
+	if template == nil {
+		jr.Error("Template not found")
+		fmt.Fprint(w, jr.ToString(debug))
+		return
+	}
+
+	// Client IDs
+	clientIds := strings.Split(strings.TrimSpace(r.PostFormValue("clients")), ",")
+
+	// Create
+	hc := newHttpCheckConfiguration()
+	hc.ClientIds = clientIds
+	hc.TemplateId = templateId
+	hc.Enabled = true
+	hc.Timeout = 30
+
+	// Add and save
+	server.httpCheckStore.Add(hc)
+	server.httpCheckStore.save()
+
+	// Done
+	jr.OK()
+	fmt.Fprint(w, jr.ToString(debug))
 }
 
 // Load from disk
@@ -136,6 +196,7 @@ func newHttpCheckStore() *HttpCheckStore {
 // New check
 func newHttpCheckConfiguration() *HttpCheckConfiguration {
 	return &HttpCheckConfiguration{
+		Id:      uuidStr(),
 		Timeout: 30,
 		Enabled: true,
 	}
