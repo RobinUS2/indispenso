@@ -20,7 +20,7 @@ func secureRandomString(c int) (string, error) {
 	return randStr, nil
 }
 
-const totpChars = "ABCDEF0123456789"
+const totpChars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567" // base32 set
 
 func TotpSecret() string {
 	n := 16
