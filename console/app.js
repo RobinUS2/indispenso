@@ -413,6 +413,7 @@ var app = {
 									lines.push('<tr>');
 									lines.push('<td>' + template.Title + '</td>');
 									lines.push('<td>' + user.Username + '</td>');
+									lines.push('<td>' + work.ClientIds.join(', ') + '</td>');
 									lines.push('<td>' + work.Reason + '</td>');
 									lines.push('<td><div class="btn-group btn-group-xs pull-right"><span class="btn btn-success approve-request" data-roles="approver" data-id="' + work.Id + '">Approve</span> <span class="btn btn-default cancel-request" data-id="' + work.Id + '">Cancel</span></div></td>');
 									lines.push('</tr>');
@@ -446,6 +447,7 @@ var app = {
 									lines.push('<tr>');
 									lines.push('<td>' + template.Title + '</td>');
 									lines.push('<td>' + user.Username + '</td>');
+									lines.push('<td>' + request.ClientIds.join(', ') + '</td>');
 									lines.push('<td>' + request.Reason + '</td>');
 									lines.push('<td>');
 									if (user.Id === app.userId() || app.userRoles().indexOf('admin') !== -1) {
