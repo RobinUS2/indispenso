@@ -598,6 +598,42 @@ var app = {
 			}
 		},
 
+		'http-checks' : {
+			load : function() {
+				// Templates for mapping
+				app.ajax('/templates').done(function(resp) {
+					var resp = app.handleResponse(resp);
+					var templates = resp.templates;
+
+					// Checks
+					app.ajax('/http-checks').done(function(resp) {
+						var resp = app.handleResponse(resp);
+						var checks = resp.checks;
+						var trs = [];
+						for (var k in checks) {
+							var check = checks[k];
+							var template = {
+								Title: '='
+							};
+							if (typeof templates[check.TemplateId] !== 'undefined') {
+								template = templates[check.TemplateId];
+							}
+							var uri = document.location.origin + '/http-check/' + check.Id + '?token=' + check.SecureToken;
+							var lines = [];
+							lines.push('<tr>');
+							lines.push('<td>' + template.Title + '</td>');
+							lines.push('<td>' + check.ClientIds.join(', ') + '</td>');
+							lines.push('<td><a href="' + uri + '" target="_blank">open</a></td>');
+							lines.push('</tr>');
+							trs.push(lines.join(''));
+								
+						}
+						app.bindData('checks', trs.join("\n"));
+					});
+				});
+			}
+		},
+
 		templates : {
 			load : function() {
 				app.ajax('/templates').done(function(resp) {

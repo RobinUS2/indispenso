@@ -25,15 +25,17 @@ type HttpCheckStore struct {
 
 // An HTTP check consist of a template and a set of hosts to run on
 type HttpCheckConfiguration struct {
-	Id         string
-	Enabled    bool
-	TemplateId string
-	Timeout    int
-	ClientIds  []string
+	Id          string
+	Enabled     bool
+	TemplateId  string
+	SecureToken string
+	Timeout     int
+	ClientIds   []string
 }
 
 // Http handler for the server
 func GetHttpCheck(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+	// No auth for the user / server, this is accessible externally
 	jr := jresp.NewJsonResp()
 	id := ps.ByName("id")
 
@@ -41,6 +43,14 @@ func GetHttpCheck(w http.ResponseWriter, r *http.Request, ps httprouter.Params) 
 	c := server.httpCheckStore.Get(id)
 	if c == nil || c.Enabled == false {
 		jr.Error("Check not found")
+		fmt.Fprint(w, jr.ToString(debug))
+		return
+	}
+
+	// Validate token
+	token := r.URL.Query().Get("token")
+	if len(token) < 1 || token != c.SecureToken {
+		jr.Error("Secure token invalid")
 		fmt.Fprint(w, jr.ToString(debug))
 		return
 	}
@@ -109,6 +119,29 @@ func (s *HttpCheckStore) save() bool {
 		return false
 	}
 	return true
+}
+
+// List HTTP Checks
+func GetHttpChecks(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+	jr := jresp.NewJsonResp()
+	if !authUser(r) {
+		jr.Error("Not authorized")
+		fmt.Fprint(w, jr.ToString(debug))
+		return
+	}
+
+	// Must be admin
+	user := getUser(r)
+	if !user.HasRole("admin") {
+		jr.Error("Not authorized")
+		fmt.Fprint(w, jr.ToString(debug))
+		return
+	}
+	server.httpCheckStore.mux.RLock()
+	jr.Set("checks", server.httpCheckStore.Checks)
+	server.httpCheckStore.mux.RUnlock()
+	jr.OK()
+	fmt.Fprint(w, jr.ToString(debug))
 }
 
 // Create HTTP Check
@@ -195,9 +228,11 @@ func newHttpCheckStore() *HttpCheckStore {
 
 // New check
 func newHttpCheckConfiguration() *HttpCheckConfiguration {
+	token, _ := secureRandomString(32)
 	return &HttpCheckConfiguration{
-		Id:      uuidStr(),
-		Timeout: 30,
-		Enabled: true,
+		Id:          uuidStr(),
+		Timeout:     30,
+		Enabled:     true,
+		SecureToken: token,
 	}
 }
