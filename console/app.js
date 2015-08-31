@@ -545,7 +545,11 @@ var app = {
 						if (!confirm('Are you sure you want to delete "' + username + '"?')) {
 							return;
 						}
-						app.ajax('/user?username=' + username, { method: 'DELETE' }).done(function(resp) {
+
+						// Admin totp challenge
+						var adminTotp = prompt("Please enter your own two factor token to authorize the deletion of a user", "");
+
+						app.ajax('/user?username=' + username + '&admin_totp=' + adminTotp, { method: 'DELETE' }).done(function(resp) {
 							var resp = app.handleResponse(resp);
 							if (resp.status === 'OK') {
 								app.showPage('users');

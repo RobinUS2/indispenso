@@ -905,6 +905,13 @@ func DeleteUser(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 		return
 	}
 
+	// Verify two factor for deletion of a user
+	if usr.ValidateTotp(r.URL.Query().Get("admin_totp")) == false {
+		jr.Error("Invalid two factor token")
+		fmt.Fprint(w, jr.ToString(debug))
+		return
+	}
+
 	// Username
 	username := strings.TrimSpace(r.URL.Query().Get("username"))
 
