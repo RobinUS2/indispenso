@@ -22,6 +22,7 @@ type ConsensusRequest struct {
 	TemplateId     string
 	ClientIds      []string
 	RequestUserId  string
+	Reason         string
 	ApproveUserIds map[string]bool
 	executeMux     sync.RWMutex
 	Executed       bool
@@ -157,8 +158,9 @@ func (c *Consensus) AddRequest(templateId string, clientIds []string, user *User
 	cr.TemplateId = templateId
 	cr.ClientIds = clientIds
 	cr.RequestUserId = user.Id
+	cr.Reason = reason
 
-	audit.Log(user, "Consensus", fmt.Sprintf("Request %s, reason: %s", cr.Id, reason))
+	audit.Log(user, "Consensus", fmt.Sprintf("Request %s, reason: %s", cr.Id, cr.Reason))
 
 	c.pendingMux.Lock()
 	c.Pending[cr.Id] = cr
