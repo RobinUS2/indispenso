@@ -170,18 +170,18 @@ var app = {
 			}
 		}
 
-		/** Login */
-		if (typeof app.token() !== 'undefined' && app.token() !== null && app.token().length > 0) {
-			app.showPage('home');
-		} else {
-			app.showPage('login');
-		}
-
 		/** Init route based of location */
 		var h = document.location.hash.substr(2);
 		if (h.length > 0) {
 			app.showPage(h);
 			return;
+		}
+
+		/** Login */
+		if (typeof app.token() !== 'undefined' && app.token() !== null && app.token().length > 0) {
+			app.showPage('home');
+		} else {
+			app.showPage('login');
 		}
 	},
 
@@ -689,6 +689,9 @@ var app = {
 								return false;
 							}
 
+							// Reason
+							var reason = $('input[name="reason"]', app.pageInstance()).val();
+
 							// List clients
 							var clientIds = [];
 							$('.select-client:checked').each(function(i, cb) {
@@ -700,7 +703,7 @@ var app = {
 							}
 
 							// Request
-							app.ajax('/consensus/request', { method: 'POST', data : { template : template.Id, clients : clientIds.join(',') } }).done(function(resp) {
+							app.ajax('/consensus/request', { method: 'POST', data : { template : template.Id, clients : clientIds.join(','), reason : reason } }).done(function(resp) {
 								var resp = app.handleResponse(resp);
 								if (resp.status === 'OK') {
 									if (template.Acl.MinAuth > 1) {

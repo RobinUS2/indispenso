@@ -152,13 +152,13 @@ func (c *Consensus) load() {
 	}
 }
 
-func (c *Consensus) AddRequest(templateId string, clientIds []string, user *User) {
+func (c *Consensus) AddRequest(templateId string, clientIds []string, user *User, reason string) {
 	cr := newConsensusRequest()
 	cr.TemplateId = templateId
 	cr.ClientIds = clientIds
 	cr.RequestUserId = user.Id
 
-	audit.Log(user, "Consensus", fmt.Sprintf("Request %s", cr.Id))
+	audit.Log(user, "Consensus", fmt.Sprintf("Request %s, reason: %s", cr.Id, reason))
 
 	c.pendingMux.Lock()
 	c.Pending[cr.Id] = cr

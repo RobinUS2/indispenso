@@ -408,12 +408,20 @@ func PostConsensusRequest(w http.ResponseWriter, r *http.Request, ps httprouter.
 		return
 	}
 
+	// Reason
+	reason := strings.TrimSpace(r.PostFormValue("reason"))
+	if len(reason) < 4 {
+		jr.Error("Please provide a valid reason")
+		fmt.Fprint(w, jr.ToString(debug))
+		return
+	}
+
 	// Template
 	templateId := strings.TrimSpace(r.PostFormValue("template"))
 	clientIds := strings.Split(strings.TrimSpace(r.PostFormValue("clients")), ",")
 
 	// Create request
-	server.consensus.AddRequest(templateId, clientIds, user)
+	server.consensus.AddRequest(templateId, clientIds, user, reason)
 	server.consensus.save()
 
 	jr.OK()
