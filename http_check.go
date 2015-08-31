@@ -27,6 +27,7 @@ type HttpCheckConfiguration struct {
 	Id         string
 	Enabled    bool
 	TemplateId string
+	Timeout    int
 	ClientIds  []string
 }
 
@@ -63,7 +64,7 @@ func GetHttpCheck(w http.ResponseWriter, r *http.Request, ps httprouter.Params) 
 
 	// Wait for success (or failure..)
 	select {
-	case <-time.After(30 * time.Second):
+	case <-time.After(time.Duration(c.Timeout) * time.Second):
 		jr.Error("Timeout")
 		fmt.Fprint(w, jr.ToString(debug))
 		return
@@ -116,6 +117,7 @@ func (s *HttpCheckStore) load() {
 	}
 }
 
+// New store
 func newHttpCheckStore() *HttpCheckStore {
 	systemUser := newUser()
 	systemUser.AddRole("requester")
@@ -126,4 +128,12 @@ func newHttpCheckStore() *HttpCheckStore {
 	}
 	s.load()
 	return s
+}
+
+// New check
+func newHttpCheckConfiguration() *HttpCheckConfiguration {
+	return &HttpCheckConfiguration{
+		Timeout: 30,
+		Enabled: true,
+	}
 }
