@@ -377,6 +377,16 @@ Indispenso: https://github.com/RobinUS2/indispenso
 					    <span id="helpBlock" class="help-block">Number of seconds before the command is terminated and will fail.</span>
 					  </div>
 					  <div class="form-group">
+					    <label for="executionStrategy">Execution strategy</label>
+					    <select class="form-control select2" name="executionStrategy" id="executionStrategy">
+					    	<option value="simple">Simple</option>
+					    	<option value="test-one">Test one</option>
+					    	<option value="rolling">Rolling</option>
+					    	<option value="exponential-rolling" selected="selected">Exponential Rolling</option>
+						</select>
+					    <span id="helpBlock" class="help-block">The execution strategy determines whether to start all at once, or to verify results and then start more. We recommend the usage of &quot;Exponential Rolling&quot; together with the &quot;Check for string&quot; functionality below.</span>
+					  </div>
+					  <div class="form-group">
 					    <label for="timeout">Check for string (optional)</label>
 					    <input type="text" name="standardOutputMustContain" class="form-control" id="timeout" placeholder="Check for string" value="">
 					    <span id="helpBlock" class="help-block">This will check for a specific string in the output to validate the result.</span>

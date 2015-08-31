@@ -511,6 +511,7 @@ var app = {
 
 		'create-user' : {
 			load : function() {
+				$('.select2', app.pageInstance()).select2();
 				$('form#create-user').submit(function() {
 					var d = $(this).serialize();
 					try { d['roles'] = $('#roles', app.pageInstance()).val().join(','); } catch (e) {}
