@@ -214,6 +214,26 @@ Indispenso: https://github.com/RobinUS2/indispenso
 				</div>
 			</div>
 
+			<!-- Two factor setup -->
+			<div class="page" data-name="setup-2fa">
+				<div class="col-md-12">
+					<h2>Two Factor Authentication</h2>
+					<p>Indispenso uses the Google Authenticator application to generate time-based two factor tokens. You can scan the QR code below to automatically configure it:</p>
+					<p id="qr"></p>
+					<form id="validate-2fa">
+					  <div class="form-group">
+					    <label for="token_1">First token</label>
+					    <input type="text" name="token_1" class="form-control" id="token_1" placeholder="Fill in your first token">
+					  </div>
+					  <div class="form-group">
+					    <label for="token_2">Second token</label>
+					    <input type="text" name="token_2" class="form-control" id="token_2" placeholder="Fill in your second token">
+					  </div>
+					  <button type="submit" class="btn btn-primary">Enable</button>
+					</form>
+				</div>
+			</div>
+
 			<!-- Request execution -->
 			<div class="page" data-name="request-execution" data-roles="requester">
 				<div class="col-md-12">

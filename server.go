@@ -272,6 +272,11 @@ func PutUser2fa(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	valid1 := user.ValidateTotp(r.PostFormValue("token_1"))
 	valid2 := user.ValidateTotp(r.PostFormValue("token_2"))
 	res := valid1 && valid2 // Both must match
+	if res == false {
+		jr.Error("The two tokens do not match. Make sure that the clock is set correctly on your mobile device and the Indispenso server.")
+		fmt.Fprint(w, jr.ToString(debug))
+		return
+	}
 
 	// Enable
 	if res {
@@ -279,7 +284,7 @@ func PutUser2fa(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 		server.userStore.save()
 	}
 
-	jr.Set("Enabled", res)
+	jr.Set("enabled", res)
 	jr.OK()
 	fmt.Fprint(w, jr.ToString(debug))
 }

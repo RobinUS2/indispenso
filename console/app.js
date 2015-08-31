@@ -871,6 +871,35 @@ var app = {
 			}
 		},
 
+		'setup-2fa' : {
+			load : function() {
+				app.ajax('/user/2fa').done(function(resp) {
+					var resp = app.handleResponse(resp);
+					if (resp.status === 'OK') {
+						var img = $('<img>');
+						img.attr('src', 'data:image/png;base64,' + resp.Png);
+						$('#qr', app.pageInstance()).html(img);
+
+						// Form submit
+						$('#validate-2fa', app.pageInstance()).unbind('submit');
+						$('#validate-2fa', app.pageInstance()).submit(function() {
+							var d = $(this).serialize();
+							app.ajax('/user/2fa', {method : 'PUT', data : d }).done(function(resp) { 
+								var resp = app.handleResponse(resp);
+								if (resp.status === 'OK' && resp.enabled === true) {
+									app.alert('info', 'Two Factor', 'Setup completed, next time you will be asked your two factor token on login.');
+									app.showPage('home');
+								}
+							});
+							return false;
+						});
+					} else {
+						app.showPage('home');
+					}
+				});
+			}
+		},
+
 		logout : {
 			load : function() {
 				app.logout();
