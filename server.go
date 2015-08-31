@@ -715,6 +715,7 @@ func PostAuth(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	jr := jresp.NewJsonResp()
 	usr := strings.TrimSpace(r.PostFormValue("username"))
 	pwd := strings.TrimSpace(r.PostFormValue("password"))
+	token2fa := strings.TrimSpace(r.PostFormValue("2fa"))
 
 	// Fetch user
 	user := server.userStore.ByName(usr)
@@ -727,16 +728,34 @@ func PostAuth(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 		// Fake password
 		hash = "JDJhJDExJDBnOVJ4cmo4OHhzeGliV2oucDFrLmUzQlYzN296OVBlU1JqNU1FVWNqVGVCZEEuaWtMS2oo"
 	}
+
+	// Error message
+	errMsg := "Username / password / two-factor combination invalid"
+
+	// Authenticate
 	authRes := server.userStore.Auth(hash, pwd)
 	if !authRes || len(usr) < 1 || len(pwd) < 1 || user == nil || user.Enabled == false {
-		jr.Error("Username / password invalid")
+		jr.Error(errMsg) // Message must be constant to not leak information
 		fmt.Fprint(w, jr.ToString(debug))
 		return
 	}
+
+	// Validate two factor token
+	if user.HasTwoFactor() && user.ValidateTotp(token2fa) == false {
+		jr.Error(errMsg) // Message must be constant to not leak information
+		fmt.Fprint(w, jr.ToString(debug))
+		return
+	}
+
+	// Start setssion
 	token := user.StartSession()
 	user.TouchSession()
 	server.userStore.save() // Call save to persist token
+
+	// Return token
 	jr.Set("session_token", token)
+
+	// User roles
 	roles := make([]string, 0)
 	for role := range user.Roles {
 		roles = append(roles, role)
