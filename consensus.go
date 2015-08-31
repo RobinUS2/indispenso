@@ -26,6 +26,7 @@ type ConsensusRequest struct {
 	ApproveUserIds map[string]bool
 	executeMux     sync.RWMutex
 	Executed       bool
+	Callbacks      []func(*ConsensusRequest) // Will be called on completions
 }
 
 func (c *Consensus) Get(id string) *ConsensusRequest {
@@ -153,7 +154,14 @@ func (c *Consensus) load() {
 	}
 }
 
-func (c *Consensus) AddRequest(templateId string, clientIds []string, user *User, reason string) {
+func (c *Consensus) AddRequest(templateId string, clientIds []string, user *User, reason string) *ConsensusRequest {
+	// Double check permissions
+	if !user.HasRole("requester") {
+		log.Printf("User %s (%s) does not have requester permissions", user.Username, user.Id)
+		return nil
+	}
+
+	// Create request
 	cr := newConsensusRequest()
 	cr.TemplateId = templateId
 	cr.ClientIds = clientIds
@@ -165,7 +173,8 @@ func (c *Consensus) AddRequest(templateId string, clientIds []string, user *User
 	c.pendingMux.Lock()
 	c.Pending[cr.Id] = cr
 	c.pendingMux.Unlock()
-	cr.check()
+
+	return cr
 }
 
 func newConsensus() *Consensus {
@@ -181,5 +190,6 @@ func newConsensusRequest() *ConsensusRequest {
 	return &ConsensusRequest{
 		Id:             id.String(),
 		ApproveUserIds: make(map[string]bool),
+		Callbacks:      make([]func(*ConsensusRequest), 0),
 	}
 }

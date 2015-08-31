@@ -20,7 +20,7 @@ func (a *Audit) Log(usr *User, title string, msg string) {
 	}
 	elms = append(elms, title)
 	elms = append(elms, msg)
-	log.Println(strings.Join(elms, " "))
+	log.Println(strings.TrimSpace(strings.Join(elms, " ")))
 }
 
 func newAudit() *Audit {

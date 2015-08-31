@@ -49,7 +49,10 @@ func (c *Cmd) SetState(state string) {
 	// Update
 	c.State = state
 
-	log.Printf("Cmd %s went from state %s to %s", c.Id, oldState, c.State)
+	// Debug logging
+	if debug {
+		log.Printf("Cmd %s went from state %s to %s", c.Id, oldState, c.State)
+	}
 
 	// Run validation
 	if oldState == "finished_execution" && c.State == "flushed_logs" {

@@ -32,6 +32,7 @@ type Server struct {
 	templateStore        *TemplateStore
 	consensus            *Consensus
 	executionCoordinator *ExecutionCoordinator
+	httpCheckStore       *HttpCheckStore
 
 	InstanceId string // Unique ID generated at startup of the server, used for re-authentication and client-side refresh after and update/restart
 }
@@ -160,6 +161,9 @@ func (s *Server) Start() bool {
 	// Coordinator
 	s.executionCoordinator = newExecutionCoordinator()
 
+	// HTTP checks
+	s.httpCheckStore = newHttpCheckStore()
+
 	// Print info
 	log.Printf("Starting server at https://localhost:%d/", serverPort)
 
@@ -191,6 +195,7 @@ func (s *Server) Start() bool {
 		router.POST("/consensus/approve", PostConsensusApprove)
 		router.GET("/consensus/pending", GetConsensusPending)
 		router.GET("/dispatched", GetDispatched)
+		router.GET("/http-check/:id", GetHttpCheck)
 		router.DELETE("/user", DeleteUser)
 		router.GET("/user/2fa", GetUser2fa)
 		router.PUT("/user/2fa", PutUser2fa)
@@ -525,7 +530,8 @@ func PostConsensusRequest(w http.ResponseWriter, r *http.Request, ps httprouter.
 	clientIds := strings.Split(strings.TrimSpace(r.PostFormValue("clients")), ",")
 
 	// Create request
-	server.consensus.AddRequest(templateId, clientIds, user, reason)
+	cr := server.consensus.AddRequest(templateId, clientIds, user, reason)
+	cr.check() // Check whether it can run straight away
 	server.consensus.save()
 
 	jr.OK()

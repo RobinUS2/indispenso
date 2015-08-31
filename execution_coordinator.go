@@ -14,7 +14,7 @@ type ExecutionCoordinator struct {
 }
 
 type ExecutionCoordinatorEntry struct {
-	Id        string
+	Id        string // Consensus request id
 	cmds      []*PendingClientCmd
 	strategy  *ExecutionStrategy
 	iteration int // starts at 0, first started iteration will update this to 1
@@ -26,17 +26,23 @@ type PendingClientCmd struct {
 	Cmd    *Cmd
 }
 
+// Execute the callbacks if the entire list of commands is
+func (ece *ExecutionCoordinatorEntry) ExecuteCallbacks() {
+	cr := server.consensus.Get(ece.Id)
+	for _, cb := range cr.Callbacks {
+		go cb(cr)
+	}
+}
+
+// Called after a command has finished, see if there is more work to start
 func (ece *ExecutionCoordinatorEntry) Next() {
-	log.Println("Next")
+	if debug {
+		log.Println("Next")
+	}
+
 	// Lock
 	ece.mux.Lock()
 	defer ece.mux.Unlock()
-
-	// Done? Do we have any work left?
-	if len(ece.cmds) == 0 {
-		log.Printf("Execution for consensus request %s is done, no more work", ece.Id)
-		return
-	}
 
 	// Is all work from this batch done?
 	if debug {
@@ -59,6 +65,20 @@ outer:
 		}
 	}
 	server.clientsMux.RUnlock()
+
+	// Done? Do we have any work left?
+	if len(ece.cmds) == 0 {
+		if allFinished {
+			// All is done, execute the callbacks
+			ece.ExecuteCallbacks()
+		}
+		if debug {
+			log.Printf("No additional work to start for consensus request %s", ece.Id)
+		}
+		return
+	}
+
+	// Can we start something new?
 	if allFinished == false {
 		if debug {
 			log.Printf("Still work being executed for request %s", ece.Id)
