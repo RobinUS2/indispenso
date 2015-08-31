@@ -563,8 +563,19 @@ var app = {
 			load : function() {
 				$('.select2', app.pageInstance()).select2();
 				$('form#create-user').submit(function() {
-					var d = $(this).serialize();
+					var data = $(this).serializeArray();
+					var d = {};
+					for (var k in data) {
+						var v = data[k];
+						d[v['name']] = v['value'];
+					}
 					try { d['roles'] = $('#roles', app.pageInstance()).val().join(','); } catch (e) {}
+
+					// Admin totp challenge
+					var adminTotp = prompt("Please enter your own two factor token to authorize the creation of a new user", "");
+					d['admin_totp'] = adminTotp;
+
+					// Post data
 					app.ajax('/user', { method: 'POST', data : d }).done(function(resp) {
 						var resp = app.handleResponse(resp);
 						if (resp.status === 'OK') {

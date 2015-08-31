@@ -168,6 +168,12 @@ func (u *User) HasTwoFactor() bool {
 
 // Validate totp token
 func (u *User) ValidateTotp(t string) bool {
+	// No token set / provided?
+	if len(u.TotpSecret) < 1 || len(strings.TrimSpace(t)) < 1 {
+		return false
+	}
+
+	// Validate
 	cotp := dgoogauth.OTPConfig{
 		Secret:     u.TotpSecret,
 		WindowSize: TOTP_MAX_WINDOWS,

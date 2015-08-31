@@ -939,6 +939,13 @@ func PostUser(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 		return
 	}
 
+	// Verify two factor for creation of new user, so that a hacked admin can not create a new user and use that to sign of for new commands
+	if usr.ValidateTotp(r.PostFormValue("admin_totp")) == false {
+		jr.Error("Invalid two factor token")
+		fmt.Fprint(w, jr.ToString(debug))
+		return
+	}
+
 	// Username
 	username := r.PostFormValue("username")
 	email := r.PostFormValue("email")
