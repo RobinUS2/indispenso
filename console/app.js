@@ -55,7 +55,7 @@ var app = {
 				var kv = part.split('=');
 				app._params[kv[0]] = decodeURIComponent(kv[1]);
 			});
-		}
+		}		
 
 		// Unload
 		if (typeof app.pages[currentPageName] !== 'undefined' && typeof app.pages[currentPageName]['unload'] === 'function') {
@@ -125,13 +125,13 @@ var app = {
 
 	initNav : function() {
 		$('a[data-nav]').unbind('click');
-		$('a[data-nav]').click(function() {
+		$('a[data-nav]').click(function(e) {
 			app.showPage($(this).attr('data-nav'));
 			// Hide nav on mobile
 			if ($('button.navbar-toggle').is(':visible') && $('.navbar-collapse').hasClass('in')) {
 				$('button.navbar-toggle').click();
 			}
-			return false;
+			e.preventDefault();
 		});
 	},
 
@@ -161,11 +161,13 @@ var app = {
 		/** Check for work notifications */
 		this.pollWork();
 
-		/** Init route based of location */
-		var h = document.location.hash.substr(2);
-		if (h.length > 0) {
-			app.showPage(h);
-			return;
+		/** State change */
+		window.onhashchange = function() {
+			var h = document.location.hash.substr(2);
+			if (h.length > 0) {
+				app.showPage(h);
+				return;
+			}
 		}
 
 		/** Login */
@@ -173,6 +175,13 @@ var app = {
 			app.showPage('home');
 		} else {
 			app.showPage('login');
+		}
+
+		/** Init route based of location */
+		var h = document.location.hash.substr(2);
+		if (h.length > 0) {
+			app.showPage(h);
+			return;
 		}
 	},
 
