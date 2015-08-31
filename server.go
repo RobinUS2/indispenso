@@ -8,6 +8,7 @@ import (
 	"github.com/RobinUS2/golang-jresp"
 	"github.com/dgryski/dgoogauth"
 	"github.com/julienschmidt/httprouter"
+	"github.com/nu7hatch/gouuid"
 	"github.com/petar/rsc/qr"
 	"io/ioutil"
 	"net/http"
@@ -31,6 +32,8 @@ type Server struct {
 	templateStore        *TemplateStore
 	consensus            *Consensus
 	executionCoordinator *ExecutionCoordinator
+
+	InstanceId string // Unique ID generated at startup of the server, used for re-authentication and client-side refresh after and update/restart
 }
 
 // Register client
@@ -1287,6 +1290,7 @@ func ClientPing(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	tags := strings.Split(r.URL.Query().Get("tags"), ",")
 	server.RegisterClient(ps.ByName("clientId"), tags)
 	jr.Set("ack", true)
+	jr.Set("server_instance_id", server.InstanceId)
 	jr.OK()
 	fmt.Fprint(w, jr.ToString(debug))
 }
@@ -1334,9 +1338,11 @@ func authUser(r *http.Request) bool {
 
 // Create new server
 func newServer() *Server {
+	id, _ := uuid.NewV4()
 	return &Server{
-		clients: make(map[string]*RegisteredClient),
-		Tags:    make(map[string]bool),
+		clients:    make(map[string]*RegisteredClient),
+		Tags:       make(map[string]bool),
+		InstanceId: id.String(),
 	}
 }
 

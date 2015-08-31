@@ -21,10 +21,11 @@ import (
 // Client methods (one per "slave", communicates with the server)
 
 type Client struct {
-	Id        string
-	Hostname  string
-	AuthToken string
-	mux       sync.RWMutex
+	Id                        string
+	Hostname                  string
+	AuthToken                 string
+	ConnectedServerInstanceId string // ID of the server to which it is connected
+	mux                       sync.RWMutex
 }
 
 // Start client
@@ -157,6 +158,7 @@ func (s *Client) PingServer() {
 		obj, jerr := jason.NewObjectFromBytes(bytes)
 		if jerr == nil {
 			status, statusE := obj.GetString("status")
+			serverInstanceId, _ := obj.GetString("server_instance_id")
 
 			// Ping failed, re-authenticate
 			if statusE != nil || status != "OK" {
@@ -164,7 +166,11 @@ func (s *Client) PingServer() {
 				log.Println("Re-authenticate with server")
 				s.AuthServer()
 			} else {
-				log.Println("Client registered with server")
+				// Only log a connect if the instance ID changed
+				if len(s.ConnectedServerInstanceId) == 0 || s.ConnectedServerInstanceId != serverInstanceId {
+					s.ConnectedServerInstanceId = serverInstanceId
+					log.Println(fmt.Sprintf("Client registered with server %s", s.ConnectedServerInstanceId))
+				}
 			}
 		}
 	}
