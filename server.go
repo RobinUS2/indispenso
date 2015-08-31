@@ -761,7 +761,7 @@ func PostAuth(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 
 	// Start setssion
 	token := user.StartSession()
-	user.TouchSession()
+	user.TouchSession(getIp(r))
 	server.userStore.save() // Call save to persist token
 
 	// Return token
@@ -1355,8 +1355,14 @@ func authUser(r *http.Request) bool {
 	if user == nil {
 		return false
 	}
-	user.TouchSession()
+
+	user.TouchSession(getIp(r))
 	return true
+}
+
+// Get ip
+func getIp(r *http.Request) string {
+	return r.RemoteAddr
 }
 
 // Create new server

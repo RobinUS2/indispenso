@@ -154,6 +154,7 @@ type User struct {
 	SessionToken         string
 	TotpSecret           string // Secret for time based 2-factor
 	TotpSecretValidated  bool   // Did we verify the token?
+	SessionIpAddress     string // Current session IP
 	SessionLastTimestamp time.Time
 	Roles                map[string]bool
 	mux                  sync.RWMutex
@@ -194,10 +195,11 @@ func (u *User) AddRole(r string) {
 	u.Roles[r] = true
 }
 
-func (u *User) TouchSession() {
+func (u *User) TouchSession(ip string) {
 	u.mux.Lock()
 	defer u.mux.Unlock()
 	u.SessionLastTimestamp = time.Now()
+	u.SessionIpAddress = ip
 }
 
 func (u *User) StartSession() string {

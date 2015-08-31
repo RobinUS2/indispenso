@@ -3,17 +3,24 @@ package main
 // @author Robin Verlangen
 // Audit log
 
+import (
+	"strings"
+)
+
 var audit *Audit = newAudit()
 
 type Audit struct {
 }
 
 func (a *Audit) Log(usr *User, title string, msg string) {
-	username := ""
+	elms := make([]string, 0)
 	if usr != nil {
-		username = usr.Username
+		elms = append(elms, usr.SessionIpAddress)
+		elms = append(elms, usr.Username)
 	}
-	log.Printf("%s %s %s", username, title, msg)
+	elms = append(elms, title)
+	elms = append(elms, msg)
+	log.Println(strings.Join(elms, " "))
 }
 
 func newAudit() *Audit {
