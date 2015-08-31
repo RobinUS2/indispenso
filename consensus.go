@@ -37,20 +37,23 @@ func (c *Consensus) Get(id string) *ConsensusRequest {
 
 // Delete
 func (c *ConsensusRequest) Delete() bool {
-	server.consensus.pendingMux.Lock()
-	defer server.consensus.pendingMux.Unlock()
-	delete(server.consensus.Pending, c.Id)
-
 	// Delete child commands
 	server.clientsMux.RLock()
 	for _, client := range server.clients {
 		client.mux.Lock()
-		for k, _ := range client.DispatchedCmds {
-			delete(client.DispatchedCmds, k)
+		for k, cmd := range client.DispatchedCmds {
+			if cmd.ConsensusRequestId == c.Id {
+				delete(client.DispatchedCmds, k)
+			}
 		}
 		client.mux.Unlock()
 	}
 	server.clientsMux.RUnlock()
+
+	// Delete request itself
+	server.consensus.pendingMux.Lock()
+	defer server.consensus.pendingMux.Unlock()
+	delete(server.consensus.Pending, c.Id)
 
 	return true
 }
