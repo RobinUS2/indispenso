@@ -1051,7 +1051,7 @@ func PutClientCmdLogs(w http.ResponseWriter, r *http.Request, ps httprouter.Para
 	// Decode json
 	type LogStruct struct {
 		Output []string `json:"output"`
-		Error  []string `json:"errors"`
+		Error  []string `json:"error"`
 	}
 	var m *LogStruct
 	je := json.Unmarshal(body, &m)

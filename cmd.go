@@ -54,6 +54,8 @@ func (c *Cmd) SetState(state string) {
 	// Run validation
 	if oldState == "finished_execution" && c.State == "flushed_logs" {
 		c._validate()
+	} else if oldState == "failed_execution" && c.State == "flushed_logs" {
+		c.State = "failed"
 	}
 }
 
@@ -305,6 +307,7 @@ func (c *Cmd) Execute(client *Client) {
 	case err := <-done:
 		if err != nil {
 			c.NotifyServer("failed_execution")
+			c.LogError(fmt.Sprintf("%v", err))
 			log.Printf("Process %s done with error = %v", c.Id, err)
 		} else {
 			c.NotifyServer("finished_execution")
@@ -339,6 +342,7 @@ func newCmd(command string, timeout int) *Cmd {
 		Command:      command,
 		Pending:      true,
 		Timeout:      timeout,
+		State:        "pending",
 		Created:      time.Now().Unix(),
 		BufOutput:    make([]string, 0),
 		BufOutputErr: make([]string, 0),

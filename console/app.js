@@ -140,6 +140,8 @@ var app = {
 		});
 	},
 
+	shownNotifications : [],
+
 	pollWork : function() {
 		setInterval(function() {
 			if (typeof app.token() !== 'undefined' && app.token() !== null && app.token().length > 0) {
@@ -147,10 +149,12 @@ var app = {
 					var resp = app.handleResponse(resp);
 					if (resp.status === 'OK') {
 						var keys = Object.keys(resp.work);
-						if (keys.length > 0) {
-							// New work, notify
-							if (!app._openNotification) {
-								app.showDesktopNotification('Pending Approval', '', 'pending');
+						for (var k in resp.work) {
+							var work = resp.work[k];
+							var notificationId = 'work_' + work.Id;
+							if (typeof app.shownNotifications[notificationId] !== 'object') {
+								var notification = app.showDesktopNotification('Pending Approval', '', 'pending');
+								app.shownNotifications[notificationId] = notification;
 							}
 						}
 					}
@@ -250,6 +254,8 @@ var app = {
 	      		app.showPage(targetPage);
 	    	}
 	    };
+
+	    return notification;
 	},
 
 	requestDesktopNotification : function() {
@@ -425,6 +431,15 @@ var app = {
 									app.ajax('/consensus/approve', { method: 'POST', data : { id : id } }).done(function(resp) {
 										var resp = app.handleResponse(resp);
 										if (resp.status === 'OK') {
+											// Cancel notification?
+											try {
+												var notificationId = 'work_' + id;
+												if (typeof app.shownNotifications[notificationId] === 'object') {
+													app.shownNotifications[notificationId].close();
+												}
+											} catch (e) {
+												console.error(e);
+											}
 											app.showPage('pending');
 										}
 									});
