@@ -64,10 +64,14 @@ var app = {
 		$('table.dataTable', app.pageInstance()).DataTable().destroy();
 		$('form', app.pageInstance()).trigger('reset');
 
-		// New page
-		history.pushState(null, null, '#!' + input);
+		// Current page
 		var currentPage = $('.page-visible');
 		var currentPageName = currentPage.attr('data-name');
+
+		// New page
+		if (currentPage != name) {
+			history.pushState(null, null, '#!' + input);
+		}
 		currentPage.removeClass('page-visible');
 		$('.page[data-name="' + name + '"]').addClass('page-visible');
 
