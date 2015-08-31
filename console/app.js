@@ -184,7 +184,13 @@ var app = {
 			opts["headers"] = {};
 		}
 		opts["headers"]["X-Auth-User"] = app.username();
-		opts["headers"]["X-Auth-Session"] = app.token();
+		var token = app.token();
+		if (typeof token === 'undefined' || token === null || token.length < 1) {
+			console.error('Token not set, unable to perform ajax request');
+			app.logout();
+			return;
+		}
+		opts["headers"]["X-Auth-Session"] = token;
 		opts["dataType"] = 'json';
 		var x = $.ajax(url, opts);
 		return x;
@@ -837,6 +843,7 @@ var app = {
 		login : {
 			load : function() {
 				$('.navbar-nav').hide();
+				$('form#login').unbind('submit');
 				$('form#login').submit(function() {
 					$.post('/auth', $(this).serialize(), function(resp) {
 						if (resp.status === 'OK') {
