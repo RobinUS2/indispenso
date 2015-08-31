@@ -738,6 +738,7 @@ func PostAuth(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	}
 	jr.Set("user_roles", roles)
 	jr.Set("user_id", user.Id)
+	jr.Set("two_factor_enabled", user.HasTwoFactor())
 	jr.OK()
 	fmt.Fprint(w, jr.ToString(debug))
 }

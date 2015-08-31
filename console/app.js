@@ -891,6 +891,11 @@ var app = {
 							app.alert('info', 'Login successful', 'Welcome back ' + localStorage['username']);
 							$('.navbar-nav').show();
 							app.showPage('home');
+
+							// Setup 2fa
+							if (resp.two_factor_enabled === false) {
+								app.showPage('setup-2fa');
+							}
 						} else {
 							app.apiErr(resp);
 						}
