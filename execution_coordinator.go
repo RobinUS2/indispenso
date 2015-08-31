@@ -55,6 +55,7 @@ func (ece *ExecutionCoordinatorEntry) Next() {
 outer:
 	for _, client := range server.clients {
 		client.mux.RLock()
+		defer client.mux.RUnlock()
 		for _, cmd := range client.DispatchedCmds {
 			if cmd.ConsensusRequestId == ece.Id && cmd.ExecutionIterationId == ece.iteration {
 				if debug {
@@ -66,7 +67,6 @@ outer:
 				}
 			}
 		}
-		client.mux.RUnlock()
 	}
 	server.clientsMux.RUnlock()
 
