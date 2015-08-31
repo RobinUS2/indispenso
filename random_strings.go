@@ -3,6 +3,7 @@ package main
 import (
 	crand "crypto/rand"
 	"encoding/base64"
+	"math/rand"
 )
 
 // Secure random strings implementation
@@ -17,4 +18,15 @@ func secureRandomString(c int) (string, error) {
 	}
 	randStr = base64.URLEncoding.EncodeToString(b)
 	return randStr, nil
+}
+
+const totpChars = "ABCDEF0123456789"
+
+func TotpSecret() string {
+	n := 16
+	b := make([]byte, n)
+	for i := range b {
+		b[i] = totpChars[rand.Intn(len(totpChars))]
+	}
+	return string(b)
 }

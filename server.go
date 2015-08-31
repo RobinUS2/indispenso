@@ -6,7 +6,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/RobinUS2/golang-jresp"
+	"github.com/dgryski/dgoogauth"
 	"github.com/julienschmidt/httprouter"
+	"github.com/petar/rsc/qr"
 	"io/ioutil"
 	"net/http"
 	"os"
@@ -187,6 +189,7 @@ func (s *Server) Start() bool {
 		router.GET("/consensus/pending", GetConsensusPending)
 		router.GET("/dispatched", GetDispatched)
 		router.DELETE("/user", DeleteUser)
+		router.GET("/user/2fa", GetUser2fa)
 		router.ServeFiles("/console/*filepath", http.Dir("console"))
 
 		// Auto generate key
@@ -238,6 +241,52 @@ func GetClientCmdLogs(w http.ResponseWriter, r *http.Request, ps httprouter.Para
 	jr.Set("log_output", cmd.BufOutput)
 	jr.Set("log_error", cmd.BufOutputErr)
 
+	jr.OK()
+	fmt.Fprint(w, jr.ToString(debug))
+}
+
+// Get user two factor data
+func GetUser2fa(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+	jr := jresp.NewJsonResp()
+	if !authUser(r) {
+		jr.Error("Not authorized")
+		fmt.Fprint(w, jr.ToString(debug))
+		return
+	}
+
+	// User
+	user := getUser(r)
+	if len(user.TotpSecret) > 0 {
+		jr.Error("Two factor authentication already setup")
+		fmt.Fprint(w, jr.ToString(debug))
+		return
+	}
+
+	// Create TOTP conf
+	secret := TotpSecret()
+	cotp := dgoogauth.OTPConfig{
+		Secret:     secret,
+		WindowSize: 2,
+	}
+
+	// Image uri
+	qrCodeImageUri := cotp.ProvisionURI(fmt.Sprintf("indispenso:%s", user.Username))
+
+	// QR code
+	qrCode, qrErr := qr.Encode(qrCodeImageUri, qr.H)
+	if qrErr != nil {
+		jr.Error("Failed to generate QR code")
+		fmt.Fprint(w, jr.ToString(debug))
+		return
+	}
+
+	// Save user
+	// @todo enable
+	// user.TotpSecret = user.TotpSecret
+	//server.userStore.save()
+
+	jr.Set("Secret", user.TotpSecret)
+	jr.Set("Png", qrCode.PNG())
 	jr.OK()
 	fmt.Fprint(w, jr.ToString(debug))
 }
@@ -899,6 +948,7 @@ func GetUsers(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 		// Hide sensitive fields
 		user.PasswordHash = ""
 		user.SessionToken = ""
+		user.TotpSecret = ""
 		users = append(users, user)
 	}
 	jr.Set("users", users)

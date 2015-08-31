@@ -149,6 +149,7 @@ type User struct {
 	PasswordHash         string
 	Enabled              bool
 	SessionToken         string
+	TotpSecret           string // Secret for time based 2-factor
 	SessionLastTimestamp time.Time
 	Roles                map[string]bool
 	mux                  sync.RWMutex
