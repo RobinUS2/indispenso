@@ -404,6 +404,7 @@ func GetConsensusPending(w http.ResponseWriter, r *http.Request, ps httprouter.P
 		work = append(work, req)
 	}
 	jr.Set("requests", pending)
+	jr.Set("server_instance_id", server.InstanceId)
 	jr.Set("work", work)
 	server.consensus.pendingMux.RUnlock()
 

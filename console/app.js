@@ -142,23 +142,48 @@ var app = {
 
 	shownNotifications : [],
 
+	_serverInstanceId: '', // Used to identify server restarts (which can indicate updates and thus need a client-side refresh)
+
 	pollWork : function() {
 		setInterval(function() {
-			if (typeof app.token() !== 'undefined' && app.token() !== null && app.token().length > 0) {
-				app.ajax('/consensus/pending').done(function(resp) {
-					var resp = app.handleResponse(resp);
-					if (resp.status === 'OK') {
-						var keys = Object.keys(resp.work);
-						for (var k in resp.work) {
-							var work = resp.work[k];
-							var notificationId = 'work_' + work.Id;
-							if (typeof app.shownNotifications[notificationId] !== 'object') {
-								var notification = app.showDesktopNotification('Pending Approval', '', 'pending');
-								app.shownNotifications[notificationId] = notification;
+			try {
+				if (typeof app.token() !== 'undefined' && app.token() !== null && app.token().length > 0) {
+					app.ajax('/consensus/pending').done(function(resp) {
+						var resp = app.handleResponse(resp);
+						if (resp.status === 'OK') {
+							// Server id
+							if (app._serverInstanceId.length < 1) {
+								// First connect
+								app._serverInstanceId = resp.server_instance_id;
+								console.log('Client connected to server ' + app._serverInstanceId);
+							} else if (app._serverInstanceId !== resp.server_instance_id) {
+								// Server ID changed
+								if (!document.hasFocus()) {
+									// No focus, refresh!
+									document.location.reload(true);
+								} else {
+									// Show confirm
+									if (confirm('The Indispenso server has restarted, please confirm to reload the page')) {
+										document.location.reload(true);
+									}
+								}
+							}
+
+							// Notifications
+							var keys = Object.keys(resp.work);
+							for (var k in resp.work) {
+								var work = resp.work[k];
+								var notificationId = 'work_' + work.Id;
+								if (typeof app.shownNotifications[notificationId] !== 'object') {
+									var notification = app.showDesktopNotification('Pending Approval', '', 'pending');
+									app.shownNotifications[notificationId] = notification;
+								}
 							}
 						}
-					}
-				});
+					});
+				}
+			} catch (e) {
+				console.error(e);
 			}
 		}, 3000);
 	},
