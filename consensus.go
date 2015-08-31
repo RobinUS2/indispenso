@@ -35,12 +35,30 @@ func (c *Consensus) Get(id string) *ConsensusRequest {
 	return c.Pending[id]
 }
 
-func (c *ConsensusRequest) Cancel(user *User) bool {
+// Delete
+func (c *ConsensusRequest) Delete() bool {
 	server.consensus.pendingMux.Lock()
 	defer server.consensus.pendingMux.Unlock()
-	audit.Log(user, "Consensus", fmt.Sprintf("Cancel %s", c.Id))
 	delete(server.consensus.Pending, c.Id)
+
+	// Delete child commands
+	server.clientsMux.RLock()
+	for _, client := range server.clients {
+		client.mux.Lock()
+		for k, _ := range client.DispatchedCmds {
+			delete(client.DispatchedCmds, k)
+		}
+		client.mux.Unlock()
+	}
+	server.clientsMux.RUnlock()
+
 	return true
+}
+
+// Cancel the request
+func (c *ConsensusRequest) Cancel(user *User) bool {
+	audit.Log(user, "Consensus", fmt.Sprintf("Cancel %s", c.Id))
+	return c.Delete()
 }
 func (c *ConsensusRequest) Template() *Template {
 	server.templateStore.templateMux.RLock()

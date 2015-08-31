@@ -45,13 +45,16 @@ func (ece *ExecutionCoordinatorEntry) Next() {
 	defer ece.mux.Unlock()
 
 	// Is all work from this batch done?
+	var allFinished bool = true
 	if debug {
 		log.Printf("Current batch %d", ece.iteration)
 	}
+
+	// Iterate
 	server.clientsMux.RLock()
-	var allFinished bool = true
 outer:
 	for _, client := range server.clients {
+		client.mux.RLock()
 		for _, cmd := range client.DispatchedCmds {
 			if cmd.ConsensusRequestId == ece.Id && cmd.ExecutionIterationId == ece.iteration {
 				if debug {
@@ -63,6 +66,7 @@ outer:
 				}
 			}
 		}
+		client.mux.RUnlock()
 	}
 	server.clientsMux.RUnlock()
 

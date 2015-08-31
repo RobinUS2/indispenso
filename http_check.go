@@ -71,6 +71,9 @@ func GetHttpCheck(w http.ResponseWriter, r *http.Request, ps httprouter.Params) 
 	case <-done:
 	}
 
+	// Cleanup
+	cr.Delete()
+
 	// Print results
 	jr.OK()
 	fmt.Fprint(w, jr.ToString(debug))
