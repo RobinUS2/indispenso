@@ -3,7 +3,7 @@ MAINTAINER "Robin Verlangen"
 
 # Install golang
 RUN yum install -y epel-release
-RUN yum install -y golang
+RUN yum install -y golang mercurial
 
 # Git for downloading source
 RUN yum install -y git
