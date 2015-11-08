@@ -446,7 +446,7 @@ var app = {
 
 									var lines = [];
 									lines.push('<tr>');
-									lines.push('<td>' + template.Title + '</td>');
+									lines.push('<td><a href="#" data-nav="request-execution?id=' + template.Id + '">' + template.Title + '</a></td>');
 									lines.push('<td>' + user.Username + '</td>');
 									lines.push('<td>' + work.ClientIds.join(', ') + '</td>');
 									lines.push('<td>' + work.Reason + '</td>');
@@ -489,7 +489,7 @@ var app = {
 
 									var lines = [];
 									lines.push('<tr>');
-									lines.push('<td>' + template.Title + '</td>');
+									lines.push('<td><a href="#" data-nav="request-execution?id=' + template.Id + '">' + template.Title + '</a></td>');
 									lines.push('<td>' + user.Username + '</td>');
 									lines.push('<td>' + request.ClientIds.join(', ') + '</td>');
 									lines.push('<td>' + request.Reason + '</td>');
@@ -504,6 +504,7 @@ var app = {
 								app.bindData('pending', workHtml.join("\n"));
 
 								app.initTables();
+								app.initNav();
 								
 								$('.cancel-request', app.pageInstance()).click(function() {
 									var id = $(this).attr('data-id');
