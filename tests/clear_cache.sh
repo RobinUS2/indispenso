@@ -1,2 +1,2 @@
 #!/bin/bash
-docker rmi indispenso_tests
+docker rmi -f indispenso_tests
