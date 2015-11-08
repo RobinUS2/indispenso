@@ -4,6 +4,7 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"os/signal"
 	"strings"
 	"time"
 )
@@ -32,6 +33,16 @@ const DEFAULT_COMMAND_TIMEOUT int = 300                   // In seconds
 
 func main() {
 	log.Println("Starting indispenso")
+
+	// Handle signals
+	c := make(chan os.Signal, 1)
+	signal.Notify(c, os.Interrupt)
+	go func() {
+		for _ = range c {
+			log.Printf("Shutting down %s", hostname)
+			os.Exit(0)
+		}
+	}()
 
 	// Log
 	log = newLog()
