@@ -316,9 +316,18 @@ func PutUser2fa(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 		return
 	}
 
+	// Gather values
+	value1 := r.PostFormValue("token_1")
+	value2 := r.PostFormValue("token_2")
+	if value1 == value2 || strings.TrimSpace(value1) == strings.TrimSpace(value2) {
+		jr.Error("The two values should not be the same. Wait for the next token (in a few seconds) to show up and provide that.")
+		fmt.Fprint(w, jr.ToString(debug))
+		return
+	}
+
 	// Validate
-	valid1 := user.ValidateTotp(r.PostFormValue("token_1"))
-	valid2 := user.ValidateTotp(r.PostFormValue("token_2"))
+	valid1 := user.ValidateTotp(value1)
+	valid2 := user.ValidateTotp(value2)
 	res := valid1 && valid2 // Both must match
 	if res == false {
 		jr.Error("The two tokens do not match. Make sure that the clock is set correctly on your mobile device and the Indispenso server.")
