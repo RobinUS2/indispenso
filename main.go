@@ -47,8 +47,8 @@ func main() {
 	flag.BoolVar(&autoTag, "auto-tag", true, "Auto tag based on server details")
 	flag.StringVar(&seedUri, "seed", "", "Seed URI")
 	flag.StringVar(&hostnameOverride, "hostname", "", "Hostname")
-	flag.IntVar(&serverPort, "server-port", 897, "Server port")
-	flag.IntVar(&clientPort, "client-port", 898, "Client port")
+	flag.IntVar(&serverPort, "server-port", 897, "Server port (setting it to -1 will disable it)")
+	flag.IntVar(&clientPort, "client-port", 898, "Client port (setting it to -1 will disable it)")
 	flag.Parse()
 
 	// Hostname
@@ -79,7 +79,7 @@ func main() {
 	}
 
 	// Server
-	if disableServer {
+	if disableServer || serverPort == -1 {
 		conf.IsServer = false
 	}
 	if conf.IsServer {

@@ -38,13 +38,17 @@ func (s *Client) Start() bool {
 	// Get auth token from server
 	s.AuthServer()
 
-	// Start webserver
-	go func() {
-		router := httprouter.New()
-		router.GET("/ping", Ping)
+	// Is the client enabled?
+	if clientPort != -1 {
+		// Start webserver
+		go func() {
+			router := httprouter.New()
+			router.GET("/ping", Ping)
 
-		log.Printf("%v", http.ListenAndServe(fmt.Sprintf(":%d", clientPort), router))
-	}()
+			log.Printf("%v", http.ListenAndServe(fmt.Sprintf(":%d", clientPort), router))
+
+		}()
+	}
 
 	// Register with server
 	go func() {
