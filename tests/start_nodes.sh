@@ -18,6 +18,7 @@ sleep 3
 {
     sleep 30
     killall indispenso
+    killall tail
     kill $$
 } &
 
