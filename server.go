@@ -135,6 +135,7 @@ func (c *RegisteredClient) GetDispatchedCmds() map[string]*Cmd {
 	newMap := make(map[string]*Cmd, 0)
 
 	// Build list
+	c.mux.RLock()
 	for k, d := range c.DispatchedCmds {
 		if d.Created >= maxAge {
 			newMap[k] = d
@@ -142,6 +143,7 @@ func (c *RegisteredClient) GetDispatchedCmds() map[string]*Cmd {
 			dirty = true
 		}
 	}
+	c.mux.RUnlock()
 
 	// Swap?
 	if dirty {
