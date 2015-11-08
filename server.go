@@ -207,7 +207,7 @@ func (s *Server) Start() bool {
 		s._prepareTlsKeys()
 
 		// Start server
-		log.Fatal(http.ListenAndServeTLS(fmt.Sprintf(":%d", serverPort), "./public_key", "./private_key", router))
+		log.Printf("Failed to start server %v", http.ListenAndServeTLS(fmt.Sprintf(":%d", serverPort), "./public_key", "./private_key", router))
 	}()
 
 	// Minutely cleanups etc
