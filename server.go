@@ -104,6 +104,7 @@ func (client *RegisteredClient) Submit(cmd *Cmd) {
 	client.CmdChan <- true
 }
 
+// A client that is registered with the server
 type RegisteredClient struct {
 	mux       sync.RWMutex
 	ClientId  string
@@ -121,6 +122,41 @@ type RegisteredClient struct {
 	CmdChan chan bool `json:"-"`
 }
 
+// Get list of dispatched commands
+// will automatically purge commands older than X days
+func (c *RegisteredClient) GetDispatchedCmds() map[string]*Cmd {
+	// Max age
+	maxAge := time.Now().Unix() - (14 * 86400)
+
+	// Is this one dirty? Meaning it contains too old data?
+	dirty := false
+
+	// Placeholder of list
+	newMap := make(map[string]*Cmd, 0)
+
+	// Build list
+	for k, d := range c.DispatchedCmds {
+		if d.Created >= maxAge {
+			newMap[k] = d
+		} else {
+			dirty = true
+		}
+	}
+
+	// Swap?
+	if dirty {
+		c.mux.Lock()
+		if debug {
+			log.Printf("Cleaning up dispatched commands of client %s size went from %d to %d", c.ClientId, len(c.DispatchedCmds), len(newMap))
+		}
+		c.DispatchedCmds = newMap
+		c.mux.Unlock()
+	}
+
+	return newMap
+}
+
+// Does this register client have this tag?
 func (c *RegisteredClient) HasTag(s string) bool {
 	if c.Tags == nil {
 		return false
@@ -359,7 +395,7 @@ func GetDispatched(w http.ResponseWriter, r *http.Request, ps httprouter.Params)
 	// Fetch and create
 	server.clientsMux.RLock()
 	for _, client := range server.clients {
-		for _, d := range client.DispatchedCmds {
+		for _, d := range client.GetDispatchedCmds() {
 			elm := make(map[string]interface{})
 			elm["Id"] = d.Id
 			elm["ClientId"] = client.ClientId
