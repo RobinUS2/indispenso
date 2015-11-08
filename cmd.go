@@ -216,9 +216,21 @@ func (c *Cmd) Execute(client *Client) {
 	if client != nil {
 		// Compute mac
 		expectedMac := c.ComputeHmac(client.AuthToken)
+
+		// Valid?
 		if expectedMac != c.Signature || len(c.Signature) < 1 {
+			// No, let's abort
+
+			// Notify server
 			c.NotifyServer("invalid_signature")
+
+			// Log
 			log.Printf("ERROR! Invalid command signature, communication between server and client might be tampered with")
+
+			// Re-authenticate with server in order to establish a new token
+			client.AuthServer()
+
+			// Abort execution
 			return
 		}
 	} else {
