@@ -966,7 +966,7 @@ var app = {
 									if (typeof userMap[elm.RequestUserId] !== 'undefined') {
 										user = userMap[elm.RequestUserId];
 									}
-									html.push('<tr><td>' + new Date(elm.Created * 1000).toString() + '</td><td>' + template.Title + '</td><td>' + user.Username + '</td><td>' + client.ClientId + '</td><td>' + elm.State + '</td><td><div class="btn-group btn-group-xs pull-right"><a class="btn btn-default" data-nav="logs?id=' + elm.Id + '&client=' + elm.ClientId + '" href="#">Logs</a></div></td></tr>');
+									html.push('<tr><td>' + new Date(elm.Created * 1000).toISOString().replace('T', ' ').slice(0, 19) + '</td><td>' + template.Title + '</td><td>' + user.Username + '</td><td>' + client.ClientId + '</td><td>' + elm.State + '</td><td><div class="btn-group btn-group-xs pull-right"><a class="btn btn-default" data-nav="logs?id=' + elm.Id + '&client=' + elm.ClientId + '" href="#">Logs</a></div></td></tr>');
 								});
 								app.bindData('dispatched', html.join("\n"));
 
