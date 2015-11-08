@@ -14,5 +14,8 @@ sleep 3
 ../indispenso --seed="https://127.0.0.1:897/" --hostname="client-one" --debug="true" --disable-server="true" >>/out.log 2>&1 &
 ../indispenso --seed="https://127.0.0.1:897/" --hostname="client-two" --debug="true" --disable-server="true" --client-port="-1" >>/out.log 2>&1 &
 
-# Make sure we wait (without wasting cpu cycles), we read "nothing" :)
+# Shutdown after 30 seconds
+$(sleep 30 && killall indispenso)
+
+# Read output
 tail -f /out.log
