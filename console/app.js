@@ -934,16 +934,23 @@ var app = {
 						app.ajax('/users/names').done(function(resp) {
 							var resp = app.handleResponse(resp);
 							var userNames = resp.users;
+
+							// Prepare ID => object map for users
 							var userMap = {};
 							$(userNames).each(function(i, user) {
 								userMap[user.Id] = user;
 							});
 
+							// Current time
+							var now = new Date();
+
+							// Load items
 							app.ajax('/dispatched').done(function(resp) { 
 								var dispatched = resp.dispatched;
 								// Print template
 								var html = [];
 								$(dispatched).each(function(i, elm) {
+									// Template data
 									var template = templates[elm.TemplateId];
 									if (typeof template === 'undefined') {
 										template = {
@@ -960,13 +967,29 @@ var app = {
 											client = c;
 										}
 									});
+
+									// User data
 									var user = {
 										Username : '-'
 									};
 									if (typeof userMap[elm.RequestUserId] !== 'undefined') {
 										user = userMap[elm.RequestUserId];
 									}
-									html.push('<tr><td>' + new Date(elm.Created * 1000).toISOString().replace('T', ' ').slice(0, 19) + '</td><td>' + template.Title + '</td><td>' + user.Username + '</td><td>' + client.ClientId + '</td><td>' + elm.State + '</td><td><div class="btn-group btn-group-xs pull-right"><a class="btn btn-default" data-nav="logs?id=' + elm.Id + '&client=' + elm.ClientId + '" href="#"><i class="fa fa-list-alt" title="Logs"></i></a></div></td></tr>');
+
+									// Date
+									var d = new Date(elm.Created * 1000);
+
+									// Markup classes placeholder
+									var classes = [];
+
+									// Grayed out? After 24 hours
+									var secondsOld = (now.getTime() - d.getTime()) / 1000;
+									if (secondsOld > 86400) {
+										classes.push('history-old');
+									}
+
+									// Print line
+									html.push('<tr class="' + classes.join(' ') + '"><td>' + d.toISOString().replace('T', ' ').slice(0, 19) + '</td><td>' + template.Title + '</td><td>' + user.Username + '</td><td>' + client.ClientId + '</td><td>' + elm.State + '</td><td><div class="btn-group btn-group-xs pull-right"><a class="btn btn-default" data-nav="logs?id=' + elm.Id + '&client=' + elm.ClientId + '" href="#"><i class="fa fa-list-alt" title="Logs"></i></a></div></td></tr>');
 								});
 								app.bindData('dispatched', html.join("\n"));
 
