@@ -689,6 +689,9 @@ var app = {
 				$('.request-execution', app.pageInstance()).show();
 				$('.select-clients', app.pageInstance()).hide();
 
+				// Clear old reason
+				$('input[name="reason"]', app.pageInstance()).val('');
+
 				var id = app.getParam('id');
 				if (id === null || id.length < 1) {
 					console.log('No id');
