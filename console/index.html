@@ -258,6 +258,14 @@ Indispenso: https://github.com/RobinUS2/indispenso
 						<b>Minimum authorizations</b><br />
 						<p data-bind="template-minAuth"></p>
 					</div>
+					<div class="row">
+						<b>Maximum execution time</b><br />
+						<p data-bind="template-timeout"></p>
+					</div>
+					<div class="row">
+						<b>Execution strategy</b><br />
+						<p data-bind="template-execution-strategy"></p>
+					</div>
 					<div class="row request-execution">
 						<span class="btn btn-success">Next step (select clients)</span>
 					</div>
@@ -433,7 +441,7 @@ Indispenso: https://github.com/RobinUS2/indispenso
 					    	<option value="simple">Simple</option>
 					    	<option value="test-one">Test one</option>
 					    	<option value="rolling">Rolling</option>
-					    	<option value="exponential-rolling" selected="selected">Exponential Rolling</option>
+					    	<option value="exponential-rolling" selected="selected">Exponential rolling</option>
 						</select>
 					    <span id="helpBlock" class="help-block">The execution strategy determines whether to start all at once, or to verify results and then start more. We recommend the usage of &quot;Exponential Rolling&quot; together with the &quot;Check for string&quot; functionality below.</span>
 					  </div>

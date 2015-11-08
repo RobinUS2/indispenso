@@ -52,10 +52,10 @@ func (e *ExecutionStrategy) Execute(c *ConsensusRequest) bool {
 }
 
 const (
-	SimpleExecutionStrategy ExecutionStrategyType = iota
-	OneTestExecutionStrategy
-	RollingExecutionStrategy
-	ExponentialRollingExecutionStrategy
+	SimpleExecutionStrategy             ExecutionStrategyType = iota // 0
+	OneTestExecutionStrategy                                         // 1
+	RollingExecutionStrategy                                         // 2
+	ExponentialRollingExecutionStrategy                              // 3
 )
 
 func newExecutionStrategy(strategy ExecutionStrategyType) *ExecutionStrategy {

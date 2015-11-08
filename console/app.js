@@ -710,6 +710,32 @@ var app = {
 					app.bindData('template-description', template.Description);
 					app.bindData('template-command', template.Command);
 					app.bindData('template-minAuth', template.Acl.MinAuth);
+					if (template.Timeout != '0') {
+						app.bindData('template-timeout', template.Timeout);
+					} else {
+						app.bindData('template-timeout', '<i>None</i>');
+					}
+					var strategyName = '-';
+					if (template.ExecutionStrategy !== null) {
+						switch (template.ExecutionStrategy.Strategy) {
+							case 0:
+								strategyName = 'Simple';
+							break;
+							case 1:
+								strategyName = 'Test one';
+							break;
+							case 2:
+								strategyName = 'Rolling';
+							break;
+							case 3:
+								strategyName = 'Exponential rolling';
+							break;
+							default:
+								strategyName = '-';
+							break;
+						}
+					}
+					app.bindData('template-execution-strategy', strategyName);
 
 					// Get eligible clients
 					app.ajax('/clients?filter_tags_include=' + encodeURIComponent(template.Acl.IncludedTags.join(',')) + '&filter_tags_exclude=' + encodeURIComponent(template.Acl.ExcludedTags.join(','))).done(function(resp) {
