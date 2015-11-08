@@ -49,6 +49,10 @@ func (s *Client) Start() bool {
 			log.Printf("Failed to start client server %s %v", s.Id, http.ListenAndServe(fmt.Sprintf(":%d", clientPort), router))
 
 		}()
+	} else {
+		if debug {
+			log.Printf("Client server of %s disabled", s.Id)
+		}
 	}
 
 	// Register with server
