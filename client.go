@@ -122,6 +122,7 @@ func (s *Client) PollCmds() {
 }
 
 // Auth server, token is used for verifying commands
+// @todo This function needs more logging in failure scenarios
 func (s *Client) AuthServer() {
 	b, e := s._req("POST", fmt.Sprintf("client/%s/auth", url.QueryEscape(s.Id)), nil)
 	if e == nil {
