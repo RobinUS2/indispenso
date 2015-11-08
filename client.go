@@ -42,10 +42,11 @@ func (s *Client) Start() bool {
 	if clientPort != -1 {
 		// Start webserver
 		go func() {
+			log.Printf("Starting client server %s", s.Id)
 			router := httprouter.New()
 			router.GET("/ping", Ping)
 
-			log.Printf("%v", http.ListenAndServe(fmt.Sprintf(":%d", clientPort), router))
+			log.Printf("Failed to start client server %s %v", s.Id, http.ListenAndServe(fmt.Sprintf(":%d", clientPort), router))
 
 		}()
 	}
