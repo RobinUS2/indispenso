@@ -614,7 +614,7 @@ var app = {
 						for (var k in checks) {
 							var check = checks[k];
 							var template = {
-								Title: '='
+								Title: '-'
 							};
 							if (typeof templates[check.TemplateId] !== 'undefined') {
 								template = templates[check.TemplateId];
