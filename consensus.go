@@ -26,7 +26,7 @@ type ConsensusRequest struct {
 	ApproveUserIds map[string]bool
 	executeMux     sync.RWMutex
 	Executed       bool
-	Callbacks      []func(*ConsensusRequest) // Will be called on completions
+	Callbacks      []func(*ConsensusRequest) `json:"-"` // Will be called on completions
 }
 
 func (c *Consensus) Get(id string) *ConsensusRequest {
