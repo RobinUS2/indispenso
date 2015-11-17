@@ -272,6 +272,9 @@ func (s *Server) Start() bool {
 		router.GET("/user/2fa", GetUser2fa)
 		router.PUT("/user/2fa", PutUser2fa)
 
+		// Backup
+		router.GET("/backup/configs", GetBackupConfigs)
+
 		// Console endpoint for interface
 		router.ServeFiles("/console/*filepath", http.Dir("console"))
 
