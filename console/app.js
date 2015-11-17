@@ -869,6 +869,13 @@ var app = {
 								return;
 							}
 
+							// Are you sure you want an min auth larger than 1, this will cause the http check to start a voting round
+							if (template.Acl.MinAuth > 1) {
+								if (!confirm('Are you sure you want to create an http check with "Minimum authorizations" larger than one (1)? This will let the http check trigger a consensus approval round.')) {
+									return;
+								}
+							}
+
 							// Totp challenge
 							var totp = prompt("Please enter your two factor token to create a new http check", "");
 
