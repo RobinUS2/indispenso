@@ -624,12 +624,27 @@ var app = {
 							lines.push('<tr>');
 							lines.push('<td>' + template.Title + '</td>');
 							lines.push('<td>' + check.ClientIds.join(', ') + '</td>');
-							lines.push('<td><a href="' + uri + '" target="_blank">open</a></td>');
+							lines.push('<td><div class="btn-group btn-group-xs pull-right"><a class="btn btn-default" href="' + uri + '" target="_blank" data-roles="requester" href="#">Execute</a> <span class="btn btn-default delete-http-check" data-roles="admin" data-id="' + check.Id + '"><i class="fa fa-trash-o" title="Delete"></i></span></div></td>');
 							lines.push('</tr>');
 							trs.push(lines.join(''));
 								
 						}
 						app.bindData('checks', trs.join("\n"));
+
+						app.initNav();
+						app.updateRolesDom();
+						$('.delete-http-check').click(function() {
+							var id = $(this).attr('data-id');
+							if (!confirm('Are you sure you want to delete this http check?')) {
+								return;
+							}
+							app.ajax('/http-check?id=' + id, { method: 'DELETE' }).done(function(resp) {
+								var resp = app.handleResponse(resp);
+								if (resp.status === 'OK') {
+									app.showPage('http-checks');
+								}
+							});
+						});
 					});
 				});
 			}

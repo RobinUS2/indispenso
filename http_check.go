@@ -177,6 +177,7 @@ func DeleteHttpCheck(w http.ResponseWriter, r *http.Request, ps httprouter.Param
 
 	// Remove
 	id := strings.TrimSpace(r.URL.Query().Get("id"))
+	audit.Log(user, "HTTP check", fmt.Sprintf("Deleted %s", id))
 	server.httpCheckStore.Remove(id)
 
 	// Save
