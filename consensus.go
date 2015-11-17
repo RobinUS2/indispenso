@@ -155,13 +155,32 @@ func (c *ConsensusRequest) Approve(user *User) bool {
 }
 
 func (c *Consensus) save() {
+	// Lock
 	c.pendingMux.Lock()
 	defer c.pendingMux.Unlock()
+
+	// Cleanup older than 2 weeks
+	maxAge := time.Now().Unix() - (14 * 86400)
+	newPending := make(map[string]*ConsensusRequest)
+	for k, pending := range c.Pending {
+		// Skip if too old
+		if pending.CreateTime < maxAge {
+			continue
+		}
+		newPending[k] = pending
+	}
+
+	// Put in place
+	c.Pending = newPending
+
+	// To JSON
 	bytes, je := json.Marshal(c.Pending)
 	if je != nil {
 		log.Printf("Failed to write consensus: %s", je)
 		return
 	}
+
+	// Write to disk
 	err := ioutil.WriteFile(c.ConfFile, bytes, 0644)
 	if err != nil {
 		log.Printf("Failed to write consensus: %s", err)
