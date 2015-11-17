@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"github.com/RobinUS2/golang-jresp"
 	"github.com/julienschmidt/httprouter"
-	"io"
 	"io/ioutil"
 	"net/http"
 )
@@ -84,5 +83,5 @@ func GetBackupConfigs(w http.ResponseWriter, r *http.Request, ps httprouter.Para
 	w.Header().Set("Content-Length", fmt.Sprintf("%d", len(buf.Bytes())))
 
 	// Dump as download
-	io.Copy(w, buf)
+	w.Write(buf.Bytes())
 }
