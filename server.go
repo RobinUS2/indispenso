@@ -208,37 +208,71 @@ func (s *Server) Start() bool {
 	// Start webserver
 	go func() {
 		router := httprouter.New()
+
+		// Homepage that redirects to /console
 		router.GET("/", Home)
+
+		// For uptime checks
 		router.GET("/ping", Ping)
+
+		// List tags
 		router.GET("/tags", GetTags)
+
+		// Client commands
 		router.GET("/client/:clientId/ping", ClientPing)
 		router.GET("/client/:clientId/cmds", ClientCmds)
 		router.PUT("/client/:clientId/cmd/:cmd/state", PutClientCmdState)
 		router.PUT("/client/:clientId/cmd/:cmd/logs", PutClientCmdLogs)
 		router.GET("/client/:clientId/cmd/:cmd/logs", GetClientCmdLogs)
 		router.POST("/client/:clientId/auth", PostClientAuth)
+
+		// Auth endpoint
 		router.POST("/auth", PostAuth)
+
+		// Templates
 		router.GET("/templates", GetTemplate)
 		router.POST("/template/:templateid/validation", PostTemplateValidation)
 		router.DELETE("/template/:templateid/validation/:id", DeleteTemplateValidation)
 		router.POST("/template", PostTemplate)
 		router.DELETE("/template", DeleteTemplate)
+
+		// Update password
 		router.PUT("/user/password", PutUserPassword)
+
+		// List clients (~ slaves)
 		router.GET("/clients", GetClients)
+
+		// List users
 		router.GET("/users", GetUsers)
+
+		// List user names by ids
 		router.GET("/users/names", GetUsersNames)
+
+		// Create user
 		router.POST("/user", PostUser)
+
+		// Remove user
+		router.DELETE("/user", DeleteUser)
+
+		// Consensus requests
 		router.POST("/consensus/request", PostConsensusRequest)
 		router.DELETE("/consensus/request", DeleteConsensusRequest)
 		router.POST("/consensus/approve", PostConsensusApprove)
 		router.GET("/consensus/pending", GetConsensusPending)
+
+		// Dispatched commands list
 		router.GET("/dispatched", GetDispatched)
+
+		// Http checks
 		router.GET("/http-check/:id", GetHttpCheck)
 		router.GET("/http-checks", GetHttpChecks)
 		router.POST("/http-check", PostHttpCheck)
-		router.DELETE("/user", DeleteUser)
+
+		// Two factor auth
 		router.GET("/user/2fa", GetUser2fa)
 		router.PUT("/user/2fa", PutUser2fa)
+
+		// Console endpoint for interface
 		router.ServeFiles("/console/*filepath", http.Dir("console"))
 
 		// Auto generate key
