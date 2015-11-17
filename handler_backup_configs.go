@@ -53,7 +53,7 @@ func GetBackupConfigs(w http.ResponseWriter, r *http.Request, ps httprouter.Para
 		}
 
 		// Read contents from file\
-		fileB, fileE := ioutil.ReadFile(fmt.Sprintf("/etc/indispenso/%s", file))
+		fileB, fileE := ioutil.ReadFile(fmt.Sprintf("/etc/indispenso/%s", file.Name))
 		if fileE != nil {
 			jr.Error(fmt.Sprintf("Failed creating zip: %s", fileE))
 			fmt.Fprint(w, jr.ToString(debug))
@@ -61,7 +61,7 @@ func GetBackupConfigs(w http.ResponseWriter, r *http.Request, ps httprouter.Para
 		}
 
 		// Write into file
-		_, err = f.Write([]byte(fileB))
+		_, err = f.Write(fileB)
 		if err != nil {
 			jr.Error(fmt.Sprintf("Failed creating zip: %s", err))
 			fmt.Fprint(w, jr.ToString(debug))
@@ -70,14 +70,18 @@ func GetBackupConfigs(w http.ResponseWriter, r *http.Request, ps httprouter.Para
 	}
 
 	// Make sure to check the error on Close.
+	zw.Flush()
 	err := zw.Close()
 	if err != nil {
-		log.Fatal(err)
+		jr.Error(fmt.Sprintf("Failed creating zip: %s", err))
+		fmt.Fprint(w, jr.ToString(debug))
+		return
 	}
 
 	// Set headers
 	w.Header().Set("Content-Disposition", "attachment; filename=indispenso_backup.zip")
 	w.Header().Set("Content-Type", "application/zip")
+	w.Header().Set("Content-Length", fmt.Sprintf("%d", len(buf.Bytes())))
 
 	// Dump as download
 	io.Copy(w, buf)
