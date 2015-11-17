@@ -6,6 +6,7 @@ import (
 	"github.com/nu7hatch/gouuid"
 	"io/ioutil"
 	"sync"
+	"time"
 )
 
 // @author Robin Verlangen
@@ -26,6 +27,9 @@ type ConsensusRequest struct {
 	ApproveUserIds map[string]bool
 	executeMux     sync.RWMutex
 	Executed       bool
+	CreateTime     int64                     // Unix TS for creation of consensus request
+	StartTime      int64                     // Unix TS for start of command execution
+	CompleteTime   int64                     // Unix TS for completion of command exectuion
 	Callbacks      []func(*ConsensusRequest) `json:"-"` // Will be called on completions
 }
 
@@ -94,8 +98,14 @@ func (c *ConsensusRequest) start() bool {
 		return false
 	}
 
+	// Start time
+	c.StartTime = time.Now().Unix()
+
 	// Execute
 	strategy.Execute(c)
+
+	// Completed
+	c.CompleteTime = time.Now().Unix()
 
 	return true
 }
@@ -211,6 +221,7 @@ func newConsensusRequest() *ConsensusRequest {
 	return &ConsensusRequest{
 		Id:             id.String(),
 		ApproveUserIds: make(map[string]bool),
+		CreateTime:     time.Now().Unix(),
 		Callbacks:      make([]func(*ConsensusRequest), 0),
 	}
 }
