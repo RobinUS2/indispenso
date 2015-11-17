@@ -78,7 +78,7 @@ func GetBackupConfigs(w http.ResponseWriter, r *http.Request, ps httprouter.Para
 	}
 
 	// Set headers
-	w.Header().Set("Content-Disposition", "attachment; filename=indispenso_backup.zip")
+	w.Header().Set("Content-Disposition", "attachment; filename=\"indispenso.zip\"")
 	w.Header().Set("Content-Type", "application/zip")
 	w.Header().Set("Content-Length", fmt.Sprintf("%d", len(buf.Bytes())))
 
