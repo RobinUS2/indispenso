@@ -97,6 +97,21 @@ func (s *HttpCheckStore) Get(id string) *HttpCheckConfiguration {
 	return s.Checks[id]
 }
 
+// Find by template id
+func (s *HttpCheckStore) FindByTemplate(id string) []*HttpCheckConfiguration {
+	list := make([]*HttpCheckConfiguration, 0)
+	s.mux.RLock()
+	defer s.mux.RUnlock()
+	for _, elm := range s.Checks {
+		// Does it match?
+		if elm.TemplateId != id {
+			continue
+		}
+		list = append(list, elm)
+	}
+	return list
+}
+
 // Add item
 func (s *HttpCheckStore) Add(e *HttpCheckConfiguration) {
 	s.mux.Lock()

@@ -982,6 +982,13 @@ func DeleteTemplate(w http.ResponseWriter, r *http.Request, ps httprouter.Params
 	// Username
 	id := strings.TrimSpace(r.URL.Query().Get("id"))
 
+	// Make sure it's not used by an HTTP check
+	if len(server.httpCheckStore.FindByTemplate(id)) > 0 {
+		jr.Error("This template is used by one or multiple http checks. You need to remove those first before deleting the template.")
+		fmt.Fprint(w, jr.ToString(debug))
+		return
+	}
+
 	// Remove
 	server.templateStore.Remove(id)
 	server.templateStore.save()
