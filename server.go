@@ -267,6 +267,7 @@ func (s *Server) Start() bool {
 		router.GET("/http-check/:id", GetHttpCheck)
 		router.GET("/http-checks", GetHttpChecks)
 		router.POST("/http-check", PostHttpCheck)
+		router.DELETE("/http-check", DeleteHttpCheck)
 
 		// Two factor auth
 		router.GET("/user/2fa", GetUser2fa)

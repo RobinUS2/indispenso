@@ -104,6 +104,20 @@ func (s *HttpCheckStore) Add(e *HttpCheckConfiguration) {
 	s.Checks[e.Id] = e
 }
 
+// Remove item
+func (s *HttpCheckStore) Remove(id string) {
+	s.mux.Lock()
+	defer s.mux.Unlock()
+	tmp := make(map[string]*HttpCheckConfiguration)
+	for k, elm := range s.Checks {
+		if elm.Id == id {
+			continue
+		}
+		tmp[k] = elm
+	}
+	s.Checks = tmp
+}
+
 // Save to disk
 func (s *HttpCheckStore) save() bool {
 	s.mux.Lock()
@@ -140,6 +154,34 @@ func GetHttpChecks(w http.ResponseWriter, r *http.Request, ps httprouter.Params)
 	server.httpCheckStore.mux.RLock()
 	jr.Set("checks", server.httpCheckStore.Checks)
 	server.httpCheckStore.mux.RUnlock()
+	jr.OK()
+	fmt.Fprint(w, jr.ToString(debug))
+}
+
+// Delete HTTP check
+func DeleteHttpCheck(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+	jr := jresp.NewJsonResp()
+	if !authUser(r) {
+		jr.Error("Not authorized")
+		fmt.Fprint(w, jr.ToString(debug))
+		return
+	}
+
+	// Must be admin
+	user := getUser(r)
+	if !user.HasRole("admin") {
+		jr.Error("Not authorized")
+		fmt.Fprint(w, jr.ToString(debug))
+		return
+	}
+
+	// Remove
+	id := strings.TrimSpace(r.URL.Query().Get("id"))
+	server.httpCheckStore.Remove(id)
+
+	// Save
+	res := server.httpCheckStore.save()
+	jr.Set("saved", res)
 	jr.OK()
 	fmt.Fprint(w, jr.ToString(debug))
 }
