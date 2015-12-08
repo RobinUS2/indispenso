@@ -12,13 +12,14 @@ import (
 
 // Configuration
 type Conf struct {
-	Seed           string
-	SecureToken    string // Pre-shared token in configuration, never via the wire
-	CertFile       string // TLS certificate file
-	PrivateKeyFile string // Private key file
-	IsServer       bool
-	tagsMux        sync.RWMutex
-	tags           map[string]bool
+	Seed             string
+	SecureToken      string // Pre-shared token in configuration, never via the wire
+	CertFile         string // TLS certificate file
+	PrivateKeyFile   string // Private key file
+	IsServer         bool
+	AutoGenerateCert bool
+	tagsMux          sync.RWMutex
+	tags             map[string]bool
 }
 
 // Get tags
@@ -151,6 +152,14 @@ func (c *Conf) load() {
 				privateKeyFile := rootMap.Key("private_key_file").(yaml.Scalar).String()
 				if len(privateKeyFile) > 1 {
 					c.PrivateKeyFile = privateKeyFile
+				}
+			}
+
+			c.AutoGenerateCert = true
+			if rootMap.Key("auto_generate_cert") != nil {
+				autoGenerateCert := rootMap.Key("auto_generate_cert").(yaml.Scalar).String()
+				if len(autoGenerateCert) > 0 && autoGenerateCert == "false"  {
+					c.AutoGenerateCert = false
 				}
 			}
 		}
