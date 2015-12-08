@@ -2,6 +2,7 @@ package main
 
 import (
 	"crypto/sha256"
+	"crypto/rsa"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
@@ -17,6 +18,12 @@ import (
 	"strings"
 	"sync"
 	"time"
+	"crypto/rand"
+	"crypto/x509"
+	"math/big"
+	"crypto/x509/pkix"
+	"encoding/pem"
+	"net"
 )
 
 // Server methods (you probably only need one or two in HA failover mode)
@@ -175,14 +182,106 @@ func (c *RegisteredClient) HasTag(s string) bool {
 }
 
 // Generate keys
-func (s *Server) _prepareTlsKeys() {
-	if _, err := os.Stat("./private_key"); os.IsNotExist(err) {
-		// No keys, generate
-		log.Println("Auto-generating keys for server")
-		cmd := newCmd("./generate_key.sh", 60)
-		cmd.Execute(nil)
-		log.Println("Finished generating keys for server")
+func (s *Server) _prepareTlsKeys() error {
+	if _, err := os.Stat(conf.CertFile); os.IsNotExist(err) {
+		if !conf.AutoGenerateCert {
+			log.Printf("Cannot locat certificate file(%s) doesn't exist, provide one or enable automatic self signed cert generation", conf.CertFile )
+			return err
+		}
+		privateKey, err := _readOrGeneratePrivateKey(conf.PrivateKeyFile)
+		if(err != nil ){
+			return err
+		}
+		return _generateCertificate(conf.CertFile, privateKey, 365*24*time.Hour )
 	}
+	return nil
+}
+
+func _readOrGeneratePrivateKey(fileName string) (*rsa.PrivateKey, error) {
+	if _, err := os.Stat(fileName); os.IsNotExist(err) {
+		privateKey, _ := rsa.GenerateKey(rand.Reader, 2048)
+		keyOut, err := os.OpenFile(fileName, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0600)
+		defer keyOut.Close()
+		if err != nil {
+			log.Printf("failed to open %s for writing: %s", fileName , err)
+			return privateKey, err
+		}
+		pem.Encode(keyOut, &pem.Block{Type: "RSA PRIVATE KEY", Bytes: x509.MarshalPKCS1PrivateKey(privateKey)})
+		return privateKey, nil
+	} else {
+		log.Printf("Private key (%s) exists and will be used",fileName)
+		certArray, err := ioutil.ReadFile(fileName)
+		if( err != nil ){
+			return nil, err
+		}
+		block, _ := pem.Decode(certArray)
+		return x509.ParsePKCS1PrivateKey(block.Bytes)
+	}
+}
+
+/**
+	Function that provide Serial number for certificate.
+
+	The serial number is chosen by the CA which issued the certificate.
+	It is just written in the certificate. The CA can choose the serial
+	number in any way as it sees fit.
+ */
+func _getCertSerialNumber() *big.Int {
+	serialNumberLimit := new(big.Int).Lsh(big.NewInt(1), 128)
+	serialNumber, err := rand.Int(rand.Reader, serialNumberLimit)
+	if err != nil {
+		log.Printf("failed to generate serial number: %s", err)
+	}
+	return serialNumber
+}
+
+func _generateCertificateTmpl(subject pkix.Name, validPeriod time.Duration) x509.Certificate {
+	currentTime := time.Now()
+	return x509.Certificate{
+		SerialNumber:_getCertSerialNumber(),
+		Subject: subject,
+
+		NotBefore: currentTime,
+		NotAfter: currentTime.Add(validPeriod),
+
+		KeyUsage: 				x509.KeyUsageKeyEncipherment | x509.KeyUsageDigitalSignature | x509.KeyUsageCertSign,
+		ExtKeyUsage:            []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth},
+		IsCA: 					false,
+		BasicConstraintsValid:  true,
+		IPAddresses: []net.IP{ net.IPv4(127, 0, 0, 1).To4() },
+	}
+}
+
+func _generateCertificate( fileName string, privateKey *rsa.PrivateKey, validPeriod time.Duration) error{
+
+	log.Println("Autogeneration of selfsigned certificate key...")
+	subject := pkix.Name{
+		Organization:[]string{"Indispenso"},
+		Country: []string{"NL"},
+		CommonName: "ssl.indispenso.org",
+		OrganizationalUnit: []string{"IT"},
+		Province: []string{"Indispenso"},
+		Locality: []string{"Indispenso"},
+	}
+
+	tmpl := _generateCertificateTmpl(subject,validPeriod)
+	certBytes, err := x509.CreateCertificate(rand.Reader,&tmpl,&tmpl,&privateKey.PublicKey,privateKey)
+	if err != nil {
+		log.Printf("Failed to create certificate: %s\n", err)
+		return err
+	}
+	log.Println("Public key generated sucessfully")
+
+	certFile, err := os.Create(fileName)
+	if(err != nil ){
+		log.Printf("Cannot create cert file : %s\n", err )
+		return err
+	}
+
+	pem.Encode(certFile, &pem.Block{Type: "CERTIFICATE", Bytes: certBytes})
+	certFile.Close()
+	log.Printf("Successfully written certificate: %s\n",fileName)
+	return err
 }
 
 // Start server
@@ -280,10 +379,13 @@ func (s *Server) Start() bool {
 		router.ServeFiles("/console/*filepath", http.Dir("console"))
 
 		// Auto generate key
-		s._prepareTlsKeys()
+		if err := s._prepareTlsKeys(); err != nil {
+			log.Printf("TLS preperation failed due to : %s", err)
+			log.Fatal("Unable to start server")
+		}
 
 		// Start server
-		log.Printf("Failed to start server %v", http.ListenAndServeTLS(fmt.Sprintf(":%d", serverPort), "./public_key", "./private_key", router))
+		log.Printf("Failed to start server %v", http.ListenAndServeTLS(fmt.Sprintf(":%d", serverPort), conf.CertFile, conf.PrivateKeyFile, router))
 	}()
 
 	// Minutely cleanups etc

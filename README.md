@@ -12,6 +12,17 @@ This project requires Go 1.2 or later to compile.
 
 If this completes without errors you have a indispenso binary.
 
+## Configuring
+
+Indispenso serves WebUI using SSL secure connection, so it needs private key and certificate pair. 
+It will automatically generate self signed certificate during startup if it not present, 
+if you want generate own self signed certificate, this code snippet will be useful:
+
+```
+$ openssl genrsa -out key.pem 2048
+$ openssl req -new -x509 -key key.pem -out cert.pem -days 365 -subj "/C=NL/ST=Indispenso/L=Indispenso/O=Indispenso/OU=IT/CN=ssl.indispenso.org"
+```
+
 ## Running
 This application is architected with minimal setup and maintenance in mind. All you need is one or multiple seed nodes, and a shared secret.
 
