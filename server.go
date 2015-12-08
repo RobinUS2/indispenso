@@ -219,7 +219,14 @@ func _readOrGeneratePrivateKey(fileName string) (*rsa.PrivateKey, error) {
 	}
 }
 
-func _getRandomSerialNumber() *big.Int {
+/**
+	Function that provide Serial number for certificate.
+
+	The serial number is chosen by the CA which issued the certificate.
+	It is just written in the certificate. The CA can choose the serial
+	number in any way as it sees fit.
+ */
+func _getCertSerialNumber() *big.Int {
 	serialNumberLimit := new(big.Int).Lsh(big.NewInt(1), 128)
 	serialNumber, err := rand.Int(rand.Reader, serialNumberLimit)
 	if err != nil {
@@ -231,7 +238,7 @@ func _getRandomSerialNumber() *big.Int {
 func _generateCertificateTmpl(subject pkix.Name, validPeriod time.Duration) x509.Certificate {
 	currentTime := time.Now()
 	return x509.Certificate{
-		SerialNumber:_getRandomSerialNumber(),
+		SerialNumber:_getCertSerialNumber(),
 		Subject: subject,
 
 		NotBefore: currentTime,
