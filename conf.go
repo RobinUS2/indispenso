@@ -1,49 +1,101 @@
 package main
 
 import (
-	"github.com/kylelemons/go-gypsy/yaml"
-	"os"
-	"path/filepath"
-	"regexp"
+	"github.com/spf13/viper"
 	"strings"
-	"sync"
-	"time"
+	"regexp"
+	"os"
+	"fmt"
 )
 
-// Configuration
+
 type Conf struct {
-	Seed             string
-	SecureToken      string // Pre-shared token in configuration, never via the wire
-	CertFile         string // TLS certificate file
-	PrivateKeyFile   string // Private key file
-	IsServer         bool
-	AutoGenerateCert bool
-	tagsMux          sync.RWMutex
-	tags             map[string]bool
+	SecureToken       string // Pre-shared token in configuration, never via the wire
+	Hostname          string
+	TagsList          []string
+	UseAutoTag        bool
+	ServerEnabled     bool
+	EndpointURI       string
+	ServerPort        int
+	SslCertFile       string // TLS certificate file
+	SslPrivateKeyFile string // Private key file
+	AutoGenerateCert  bool
+	ClientPort        int
+
 }
 
-// Get tags
-func (c *Conf) Tags() []string {
-	c.tagsMux.RLock()
-	defer c.tagsMux.RUnlock()
-	keys := make([]string, 0, len(c.tags))
-	for k := range c.tags {
-		keys = append(keys, k)
+
+func newConfigV() *Conf {
+	var c Conf
+
+	viper.AddConfigPath("config")
+	viper.AddConfigPath("/etc/indispenso/")
+	viper.SetConfigName("indispenso")
+	viper.SetEnvPrefix("ind")
+	viper.AutomaticEnv()
+	viper.ReadInConfig()
+
+	// Defaults
+
+	viper.SetDefault("SecureToken","")
+	viper.SetDefault("Hostname",getDefaultHostName())
+	viper.SetDefault("UseAutoTag",true)
+	viper.SetDefault("ServerEnabled",true)
+	viper.SetDefault("ServerPort",897)
+	viper.SetDefault("EndpointURI","")
+	viper.SetDefault("SslCertFile","./cert.pem" )
+	viper.SetDefault("SslPrivateKeyFile", "./key.pem" )
+	viper.SetDefault("AutoGenerateCert", true )
+	viper.SetDefault("ClientPort", 898 )
+
+
+	viper.Unmarshal(&c)
+	log.Printf("%+v",c)
+	return &c
+}
+
+func getDefaultHostName() string {
+	if hostname, err := os.Hostname(); err == nil{
+		return hostname
 	}
-	return keys
+	return "localhost"
+}
+
+func (c *Conf) Validate() {
+	// Must have token
+	minLen := 32
+	if len(strings.TrimSpace(c.SecureToken)) < minLen {
+		log.Fatal(fmt.Sprintf("Must have secure token with minimum length of %d", minLen))
+	}
+}
+
+func (c *Conf) isClientEnabled()bool{
+	return len(conf.EndpointURI) > 0
+}
+
+func (c *Conf)getTags() []string {
+	tagsList := viper.GetStringSlice("tagslist")
+
+	if viper.GetBool("useautotag") {
+		autoTags := c.hostTagDiscovery()
+		tagsList = append(tagsList,autoTags...)
+	}
+
+	return tagsList
 }
 
 // Auto tag
-func (c *Conf) autoTag() {
-	c.tagsMux.Lock()
-	defer c.tagsMux.Unlock()
-	tokens := strings.FieldsFunc(hostname, func(r rune) bool {
+func (c *Conf) hostTagDiscovery() []string {
+
+	tokens := strings.FieldsFunc(c.Hostname, func(r rune) bool {
 		return r == '.' || r == '-' || r == '_'
 	})
+	ret := make([]string,len(tokens))
+
 	numbersOnlyRegexp, _ := regexp.Compile("^[[:digit:]]+$")
 	numbersRegexp, _ := regexp.Compile("[[:digit:]]")
 	for _, token := range tokens {
-		cleanTag := c.cleanTag(token)
+		cleanTag := cleanTag(token)
 		// Min 2 characters && not just numbers && not only numbers
 		if len(cleanTag) >= 2 && !numbersOnlyRegexp.MatchString(cleanTag) {
 			// Count numbers
@@ -53,13 +105,15 @@ func (c *Conf) autoTag() {
 				// More than half is numbers, ignore
 				continue
 			}
-			c.tags[cleanTag] = true
+			ret = append(ret, cleanTag)
 		}
 	}
+
+	return ret
 }
 
 // Clean tag
-func (c *Conf) cleanTag(in string) string {
+func cleanTag(in string) string {
 	tagRegexp, _ := regexp.Compile("^[[:alnum:]-]+$")
 	cleanTag := strings.ToLower(strings.TrimSpace(in))
 	// Must be alphanumeric
@@ -69,120 +123,3 @@ func (c *Conf) cleanTag(in string) string {
 	return cleanTag
 }
 
-// Reload config every once in a while
-func (co *Conf) startAutoReload() {
-	go func() {
-		c := time.Tick(time.Duration(60) * time.Second)
-		for _ = range c {
-			co.load()
-		}
-	}()
-}
-
-// Load config files
-func (c *Conf) load() {
-	c.tagsMux.Lock()
-	defer c.tagsMux.Unlock()
-	mainConf := "/etc/indispenso/indispenso.conf"
-	additionalFilesPath := "/etc/indispenso/conf.d/*"
-	files, _ := filepath.Glob(additionalFilesPath)
-	files = append([]string{mainConf}, files...) // Prepend item
-	for _, file := range files {
-		if _, err := os.Stat(file); os.IsNotExist(err) {
-			// Not existing
-			continue
-		}
-
-		// Read
-		conf, confErr := yaml.ReadFile(file)
-		if confErr != nil {
-			log.Printf("Failed reading %s: %v", file, confErr)
-			continue
-		}
-
-		// Skip empty
-		if conf == nil {
-			continue
-		}
-
-		// Root map
-		if conf.Root == nil {
-			continue
-		}
-		rootMap := conf.Root.(yaml.Map)
-
-		// Read base conf
-		if file == mainConf {
-			// Seed
-			if rootMap.Key("seed") != nil {
-				seed := rootMap.Key("seed").(yaml.Scalar).String()
-				if len(seed) > 0 {
-					c.Seed = seed
-				}
-			}
-
-			// Secure token
-			if rootMap.Key("secure_token") != nil {
-				secureToken := rootMap.Key("secure_token").(yaml.Scalar).String()
-				if len(secureToken) > 0 {
-					c.SecureToken = secureToken
-				}
-			}
-
-			// Server
-			if rootMap.Key("server_enabled") != nil {
-				serverEnabled := rootMap.Key("server_enabled").(yaml.Scalar).String()
-				if len(serverEnabled) > 0 && (serverEnabled == "1" || serverEnabled == "true") {
-					c.IsServer = true
-				} else {
-					c.IsServer = false
-				}
-			}
-
-			c.CertFile = "./cert.pem"
-			if rootMap.Key("cert_file") != nil {
-				certFile := rootMap.Key("cert_file").(yaml.Scalar).String()
-				if len(certFile) > 1 {
-					c.CertFile = certFile
-				}
-			}
-
-			c.PrivateKeyFile = "./key.pem"
-			if rootMap.Key("private_key_file") != nil {
-				privateKeyFile := rootMap.Key("private_key_file").(yaml.Scalar).String()
-				if len(privateKeyFile) > 1 {
-					c.PrivateKeyFile = privateKeyFile
-				}
-			}
-
-			c.AutoGenerateCert = true
-			if rootMap.Key("auto_generate_cert") != nil {
-				autoGenerateCert := rootMap.Key("auto_generate_cert").(yaml.Scalar).String()
-				if len(autoGenerateCert) > 0 && autoGenerateCert == "false"  {
-					c.AutoGenerateCert = false
-				}
-			}
-		}
-
-		// Tags
-		if rootMap.Key("tags") != nil {
-			tags := rootMap.Key("tags").(yaml.List)
-			if tags != nil {
-				for _, tag := range tags {
-					cleanTag := c.cleanTag(tag.(yaml.Scalar).String())
-					if len(cleanTag) > 0 {
-						c.tags[cleanTag] = true
-					} else {
-						log.Printf("Invalid tag %s, must be alphanumeric", tag)
-					}
-				}
-			}
-		}
-	}
-}
-
-func newConf() *Conf {
-	return &Conf{
-		tags: make(map[string]bool),
-	}
-}

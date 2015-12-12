@@ -30,7 +30,7 @@ type Client struct {
 
 // Start client
 func (s *Client) Start() bool {
-	log.Printf("Starting client %s from seed %s with tags %v", s.Id, conf.Seed, conf.tags)
+	log.Printf("Starting client %s from seed %s with tags %v", s.Id, conf.EndpointURI, conf.getTags())
 
 	// Ping server to register
 	s.PingServer()
@@ -39,14 +39,14 @@ func (s *Client) Start() bool {
 	s.AuthServer()
 
 	// Is the client enabled?
-	if clientPort != -1 {
+	if conf.isClientEnabled() {
 		// Start webserver
 		go func() {
 			log.Printf("Starting client server %s", s.Id)
 			router := httprouter.New()
 			router.GET("/ping", Ping)
 
-			log.Printf("Failed to start client server %s %v", s.Id, http.ListenAndServe(fmt.Sprintf(":%d", clientPort), router))
+			log.Printf("Failed to start client server %s %v", s.Id, http.ListenAndServe(fmt.Sprintf(":%d", conf.ClientPort), router))
 
 		}()
 	} else {
@@ -163,7 +163,7 @@ func (s *Client) AuthServer() {
 
 // Ping server
 func (s *Client) PingServer() {
-	bytes, e := s._get(fmt.Sprintf("client/%s/ping?tags=%s&hostname=%s", url.QueryEscape(s.Id), url.QueryEscape(strings.Join(conf.Tags(), ",")), url.QueryEscape(s.Hostname)))
+	bytes, e := s._get(fmt.Sprintf("client/%s/ping?tags=%s&hostname=%s", url.QueryEscape(s.Id), url.QueryEscape(strings.Join(conf.getTags(), ",")), url.QueryEscape(s.Hostname)))
 	if e == nil {
 		obj, jerr := jason.NewObjectFromBytes(bytes)
 		if jerr == nil {
@@ -237,7 +237,7 @@ func (s *Client) _reqUnsafe(method string, uri string, data []byte) ([]byte, err
 	} else {
 		uri = fmt.Sprintf("%s&_rand=%s", uri, randStr)
 	}
-	url := fmt.Sprintf("%s%s", strings.TrimRight(seedUri, "/"), uri)
+	url := fmt.Sprintf("%s%s", strings.TrimRight(conf.EndpointURI, "/"), uri)
 
 	// Log
 	if debug {
@@ -283,7 +283,7 @@ func (s *Client) _reqUnsafe(method string, uri string, data []byte) ([]byte, err
 // Create new client
 func newClient() *Client {
 	return &Client{
-		Id:       hostname,
-		Hostname: hostname,
+		Id:       conf.Hostname,
+		Hostname: conf.Hostname,
 	}
 }

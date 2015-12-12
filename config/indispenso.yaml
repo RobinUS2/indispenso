@@ -1,0 +1,11 @@
+#secureToken: ""
+#hostname : ""
+#useAutoTag: true
+#tagsList :
+#serverEnabled: true
+#endpointURI: ""
+#serverPort: 897
+#sslCertFile: "cert.pem"
+#sslPrivateKeyFile : "key.pem"
+#autoGenerateCert : true
+#clientPort: 898
