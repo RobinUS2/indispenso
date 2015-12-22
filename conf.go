@@ -33,8 +33,7 @@ func newConfigV() *Conf {
 	viper.AddConfigPath("/etc/indispenso/")
 	viper.SetConfigName("indispenso")
 	viper.SetEnvPrefix("ind")
-	viper.AutomaticEnv()
-	viper.ReadInConfig()
+
 
 	// Defaults
 	viper.SetDefault("SecureToken","")
@@ -43,6 +42,7 @@ func newConfigV() *Conf {
 	viper.SetDefault("ServerEnabled",true)
 	viper.SetDefault("Debug",false)
 
+	configFile := pflag.StringP("Config","c","","Config file location default is /etc/indispenso/indispenso.{json,toml,yaml,yml,properties,props,prop}")
 	pflag.BoolP("serverEnabled","s",true,"Deine if server module shoud be started or not")
 	pflag.BoolP("Debug","d", false, "Enable debug mode" )
 
@@ -54,7 +54,12 @@ func newConfigV() *Conf {
 	viper.SetDefault("ClientPort", 898 )
 
 	pflag.Parse()
+	if( len(*configFile) > 2 ) {
+		viper.SetConfigFile(*configFile)
+	}
 	viper.BindPFlags(pflag.CommandLine)
+	viper.AutomaticEnv()
+	viper.ReadInConfig()
 
 	viper.Unmarshal(c)
 
