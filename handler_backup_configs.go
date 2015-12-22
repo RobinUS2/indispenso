@@ -9,6 +9,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
+	"path"
 )
 
 // Backup data from the server in a ZIP file
@@ -24,7 +25,7 @@ func GetBackupConfigs(w http.ResponseWriter, r *http.Request, ps httprouter.Para
 	// Must be admin
 	usr := getUser(r)
 	if !usr.HasRole("admin") {
-		jr.Error("Not authorized")
+		jr.Error("Not allowed")
 		fmt.Fprint(w, jr.ToString(debug))
 		return
 	}
@@ -36,23 +37,26 @@ func GetBackupConfigs(w http.ResponseWriter, r *http.Request, ps httprouter.Para
 	zw := zip.NewWriter(buf)
 
 	// Add some files to the archive.
+	//TOOD add
 	var files = []struct {
 		Name string
 	}{
-		{fmt.Sprintf("%s/%s", conf.GetHome(), "users.json" )},
+		{fmt.Sprintf("%s/%s", conf.GetHome(),"users.json" )},
 		{fmt.Sprintf("%s/%s", conf.GetHome(),"templates.conf")},
 		{fmt.Sprintf("%s/%s", conf.GetHome(),"httpchecks.json")},
 		{conf.GetSslCertFile()},
 		{conf.GetSslPrivateKeyFile()},
+		{conf.ConfFile()},
 	}
 	for _, file := range files {
 		fileName := file.Name
+		fmt.Println(file.Name)
 		if _, err := os.Stat(fileName); os.IsNotExist(err) {
 			continue
 		}
 
 		// Create file in zip archive
-		f, err := zw.Create(file.Name)
+		f, err := zw.Create(path.Base(file.Name))
 		if err != nil {
 			jr.Error(fmt.Sprintf("Failed creating zip: %s", err))
 			fmt.Fprint(w, jr.ToString(debug))
