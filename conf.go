@@ -6,6 +6,7 @@ import (
 	"regexp"
 	"os"
 	"fmt"
+	"github.com/spf13/pflag"
 )
 
 
@@ -21,12 +22,12 @@ type Conf struct {
 	SslPrivateKeyFile string // Private key file
 	AutoGenerateCert  bool
 	ClientPort        int
-
+	Debug             bool
 }
 
 
 func newConfigV() *Conf {
-	var c Conf
+	c := new(Conf)
 
 	viper.AddConfigPath("config")
 	viper.AddConfigPath("/etc/indispenso/")
@@ -36,11 +37,15 @@ func newConfigV() *Conf {
 	viper.ReadInConfig()
 
 	// Defaults
-
 	viper.SetDefault("SecureToken","")
 	viper.SetDefault("Hostname",getDefaultHostName())
 	viper.SetDefault("UseAutoTag",true)
 	viper.SetDefault("ServerEnabled",true)
+	viper.SetDefault("Debug",false)
+
+	pflag.BoolP("serverEnabled","s",true,"Deine if server module shoud be started or not")
+	pflag.BoolP("Debug","d", false, "Enable debug mode" )
+
 	viper.SetDefault("ServerPort",897)
 	viper.SetDefault("EndpointURI","")
 	viper.SetDefault("SslCertFile","./cert.pem" )
@@ -48,10 +53,15 @@ func newConfigV() *Conf {
 	viper.SetDefault("AutoGenerateCert", true )
 	viper.SetDefault("ClientPort", 898 )
 
+	pflag.Parse()
+	viper.BindPFlags(pflag.CommandLine)
 
-	viper.Unmarshal(&c)
-	log.Printf("%+v",c)
-	return &c
+	viper.Unmarshal(c)
+
+	if c.Debug {
+		log.Printf("Configuration: %+v", c)
+	}
+	return c
 }
 
 func getDefaultHostName() string {
@@ -75,7 +85,6 @@ func (c *Conf) isClientEnabled()bool{
 
 func (c *Conf)getTags() []string {
 	tagsList := viper.GetStringSlice("tagslist")
-
 	if viper.GetBool("useautotag") {
 		autoTags := c.hostTagDiscovery()
 		tagsList = append(tagsList,autoTags...)
