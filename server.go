@@ -183,16 +183,16 @@ func (c *RegisteredClient) HasTag(s string) bool {
 
 // Generate keys
 func (s *Server) _prepareTlsKeys() error {
-	if _, err := os.Stat(conf.SslCertFile); os.IsNotExist(err) {
+	if _, err := os.Stat(conf.GetSslCertFile()); os.IsNotExist(err) {
 		if !conf.AutoGenerateCert {
-			log.Printf("Cannot locat certificate file(%s) doesn't exist, provide one or enable automatic self signed cert generation", conf.SslCertFile )
+			log.Printf("Cannot locat certificate file(%s) doesn't exist, provide one or enable automatic self signed cert generation", conf.GetSslCertFile() )
 			return err
 		}
-		privateKey, err := _readOrGeneratePrivateKey(conf.SslPrivateKeyFile)
+		privateKey, err := _readOrGeneratePrivateKey(conf.GetSslPrivateKeyFile())
 		if(err != nil ){
 			return err
 		}
-		return _generateCertificate(conf.SslCertFile, privateKey, 365*24*time.Hour )
+		return _generateCertificate(conf.GetSslCertFile(), privateKey, 365*24*time.Hour )
 	}
 	return nil
 }
@@ -385,7 +385,7 @@ func (s *Server) Start() bool {
 		}
 
 		// Start server
-		log.Printf("Failed to start server %v", http.ListenAndServeTLS(fmt.Sprintf(":%d", conf.ServerPort), conf.SslCertFile, conf.SslPrivateKeyFile, router))
+		log.Printf("Failed to start server %v", http.ListenAndServeTLS(fmt.Sprintf(":%d", conf.ServerPort), conf.GetSslCertFile(), conf.GetSslPrivateKeyFile(), router))
 	}()
 
 	// Minutely cleanups etc

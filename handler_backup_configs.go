@@ -52,7 +52,7 @@ func GetBackupConfigs(w http.ResponseWriter, r *http.Request, ps httprouter.Para
 		}
 
 		// Read contents from file\
-		fileB, fileE := ioutil.ReadFile(fmt.Sprintf("/etc/indispenso/%s", file.Name))
+		fileB, fileE := ioutil.ReadFile(fmt.Sprintf("%s/%s", conf.GetHome(), file.Name))
 		if fileE != nil {
 			jr.Error(fmt.Sprintf("Failed creating zip: %s", fileE))
 			fmt.Fprint(w, jr.ToString(debug))

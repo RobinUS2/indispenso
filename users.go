@@ -221,7 +221,7 @@ func newUser() *User {
 func newUserStore() *UserStore {
 	store := &UserStore{
 		Users:    make([]*User, 0),
-		ConfFile: "/etc/indispenso/users.json",
+		ConfFile: conf.HomeFile( "users.json" ),
 	}
 	store.load()
 	store.prepareDefaultUser()

@@ -23,14 +23,13 @@ type Conf struct {
 	AutoGenerateCert  bool
 	ClientPort        int
 	Debug             bool
+	Home		      string //home directory
 }
 
+const defaultHomePath = "/etc/indispenso/"
 
 func newConfigV() *Conf {
 	c := new(Conf)
-
-	viper.AddConfigPath("config")
-	viper.AddConfigPath("/etc/indispenso/")
 	viper.SetConfigName("indispenso")
 	viper.SetEnvPrefix("ind")
 
@@ -40,6 +39,7 @@ func newConfigV() *Conf {
 	viper.SetDefault("Hostname",getDefaultHostName())
 	viper.SetDefault("UseAutoTag",true)
 	viper.SetDefault("ServerEnabled",true)
+	viper.SetDefault("Home",defaultHomePath)
 	viper.SetDefault("Debug",false)
 
 	configFile := pflag.StringP("Config","c","","Config file location default is /etc/indispenso/indispenso.{json,toml,yaml,yml,properties,props,prop}")
@@ -48,8 +48,8 @@ func newConfigV() *Conf {
 
 	viper.SetDefault("ServerPort",897)
 	viper.SetDefault("EndpointURI","")
-	viper.SetDefault("SslCertFile","./cert.pem" )
-	viper.SetDefault("SslPrivateKeyFile", "./key.pem" )
+	viper.SetDefault("SslCertFile","cert.pem" )
+	viper.SetDefault("SslPrivateKeyFile", "key.pem" )
 	viper.SetDefault("AutoGenerateCert", true )
 	viper.SetDefault("ClientPort", 898 )
 
@@ -59,6 +59,9 @@ func newConfigV() *Conf {
 	}
 	viper.BindPFlags(pflag.CommandLine)
 	viper.AutomaticEnv()
+
+	viper.AddConfigPath("config")
+	viper.AddConfigPath(viper.GetString("Home"))
 	viper.ReadInConfig()
 
 	viper.Unmarshal(c)
@@ -69,6 +72,15 @@ func newConfigV() *Conf {
 	return c
 }
 
+func (c *Conf) GetSslPrivateKeyFile() string{
+	return c.HomeFile(c.SslPrivateKeyFile)
+}
+
+
+func (c *Conf) GetSslCertFile() string{
+	return c.HomeFile(c.SslCertFile)
+}
+
 func getDefaultHostName() string {
 	if hostname, err := os.Hostname(); err == nil{
 		return hostname
@@ -76,11 +88,23 @@ func getDefaultHostName() string {
 	return "localhost"
 }
 
+func (c *Conf) GetHome() string{
+	return strings.TrimRight(c.Home,"/")
+}
+
+func (c *Conf) HomeFile(fileName string) string{
+	return fmt.Sprintf("%s/%s",c.GetHome(),fileName)
+}
+
 func (c *Conf) Validate() {
 	// Must have token
 	minLen := 32
 	if len(strings.TrimSpace(c.SecureToken)) < minLen {
 		log.Fatal(fmt.Sprintf("Must have secure token with minimum length of %d", minLen))
+	}
+
+	if _,err := os.Stat(c.GetHome()); os.IsNotExist(err) {
+		log.Fatal(fmt.Sprintf("Home directory doesn't exists: %s", c.GetHome()))
 	}
 }
 

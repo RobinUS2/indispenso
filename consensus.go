@@ -230,7 +230,7 @@ func (c *Consensus) AddRequest(templateId string, clientIds []string, user *User
 func newConsensus() *Consensus {
 	c := &Consensus{
 		Pending:  make(map[string]*ConsensusRequest),
-		ConfFile: "/etc/indispenso/consensus.json",
+		ConfFile: conf.HomeFile("consensus.json"),
 	}
 	c.load()
 	return c
