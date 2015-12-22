@@ -8,6 +8,7 @@ import (
 	"github.com/julienschmidt/httprouter"
 	"io/ioutil"
 	"net/http"
+	"os"
 )
 
 // Backup data from the server in a ZIP file
@@ -38,11 +39,18 @@ func GetBackupConfigs(w http.ResponseWriter, r *http.Request, ps httprouter.Para
 	var files = []struct {
 		Name string
 	}{
-		{"users.json"},
-		{"templates.conf"},
-		{"httpchecks.json"},
+		{fmt.Sprintf("%s/%s", conf.GetHome(), "users.json" )},
+		{fmt.Sprintf("%s/%s", conf.GetHome(),"templates.conf")},
+		{fmt.Sprintf("%s/%s", conf.GetHome(),"httpchecks.json")},
+		{conf.GetSslCertFile()},
+		{conf.GetSslPrivateKeyFile()},
 	}
 	for _, file := range files {
+		fileName := file.Name
+		if _, err := os.Stat(fileName); os.IsNotExist(err) {
+			continue
+		}
+
 		// Create file in zip archive
 		f, err := zw.Create(file.Name)
 		if err != nil {
@@ -52,7 +60,7 @@ func GetBackupConfigs(w http.ResponseWriter, r *http.Request, ps httprouter.Para
 		}
 
 		// Read contents from file\
-		fileB, fileE := ioutil.ReadFile(fmt.Sprintf("%s/%s", conf.GetHome(), file.Name))
+		fileB, fileE := ioutil.ReadFile(fileName)
 		if fileE != nil {
 			jr.Error(fmt.Sprintf("Failed creating zip: %s", fileE))
 			fmt.Fprint(w, jr.ToString(debug))

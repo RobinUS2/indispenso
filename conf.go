@@ -81,6 +81,10 @@ func (c *Conf) GetSslCertFile() string{
 	return c.HomeFile(c.SslCertFile)
 }
 
+func (c *Conf) ConfFile() string{
+	return viper.ConfigFileUsed()
+}
+
 func getDefaultHostName() string {
 	if hostname, err := os.Hostname(); err == nil{
 		return hostname
