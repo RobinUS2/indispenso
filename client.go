@@ -143,7 +143,7 @@ func (s *Client) AuthServer() {
 			// Verify token signature with our secure token
 			hasher := sha256.New()
 			hasher.Write([]byte(token))
-			hasher.Write([]byte(conf.SecureToken))
+			hasher.Write([]byte(conf.Token))
 			expectedTokenSignature := base64.URLEncoding.EncodeToString(hasher.Sum(nil))
 
 			// The same?
@@ -259,7 +259,7 @@ func (s *Client) _reqUnsafe(method string, uri string, data []byte) ([]byte, err
 	// Signed token
 	hasher := sha256.New()
 	hasher.Write([]byte(uri))
-	hasher.Write([]byte(conf.SecureToken))
+	hasher.Write([]byte(conf.Token))
 	signedToken := base64.URLEncoding.EncodeToString(hasher.Sum(nil))
 
 	// Auth token

@@ -22,11 +22,15 @@ const LONG_POLL_TIMEOUT time.Duration = time.Duration(30) // In seconds
 const DEFAULT_COMMAND_TIMEOUT int = 300                   // In seconds
 
 func main() {
-	log.Println("Starting indispenso")
 	// Log
 	log = newLog()
 	//Conf
-	conf = newConfigV()
+	conf = newConfig()
+	if conf.IsHelp() {
+		conf.PrintHelp()
+	}
+
+	log.Println("Starting indispenso")
 	conf.Validate()
 
 	// Handle signals

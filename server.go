@@ -188,11 +188,11 @@ func (s *Server) _prepareTlsKeys() error {
 			log.Printf("Cannot locat certificate file(%s) doesn't exist, provide one or enable automatic self signed cert generation", conf.GetSslCertFile() )
 			return err
 		}
-		privateKey, err := _readOrGeneratePrivateKey(conf.GetSslPrivateKeyFile())
+		privateKey, err := _readOrGeneratePrivateKey(conf.SslPrivateKeyFile)
 		if(err != nil ){
 			return err
 		}
-		return _generateCertificate(conf.GetSslCertFile(), privateKey, 365*24*time.Hour )
+		return _generateCertificate(conf.SslCertFile, privateKey, 365*24*time.Hour )
 	}
 	return nil
 }
@@ -385,7 +385,7 @@ func (s *Server) Start() bool {
 		}
 
 		// Start server
-		log.Printf("Failed to start server %v", http.ListenAndServeTLS(fmt.Sprintf(":%d", conf.ServerPort), conf.GetSslCertFile(), conf.GetSslPrivateKeyFile(), router))
+		log.Printf("Failed to start server %v", http.ListenAndServeTLS(fmt.Sprintf(":%d", conf.ServerPort), conf.SslCertFile, conf.SslPrivateKeyFile, router))
 	}()
 
 	// Minutely cleanups etc
@@ -1343,7 +1343,7 @@ func PostClientAuth(w http.ResponseWriter, r *http.Request, ps httprouter.Params
 	// Sign token based of our secure token
 	hasher := sha256.New()
 	hasher.Write([]byte(token))
-	hasher.Write([]byte(conf.SecureToken))
+	hasher.Write([]byte(conf.Token))
 	tokenSignature := base64.URLEncoding.EncodeToString(hasher.Sum(nil))
 
 	// Return token
@@ -1540,7 +1540,7 @@ func auth(r *http.Request) bool {
 	uri := r.URL.String()
 	hasher := sha256.New()
 	hasher.Write([]byte(uri))
-	hasher.Write([]byte(conf.SecureToken))
+	hasher.Write([]byte(conf.Token))
 	signedToken := base64.URLEncoding.EncodeToString(hasher.Sum(nil))
 
 	// Validate

@@ -14,21 +14,44 @@ If this completes without errors you have a indispenso binary.
 
 ## Configuring
 
+### Home directory
+
+Home directory is location of all indispenso configuration files. By default is located in ```/etc/indispenso```
+If you want to change it, you can use environmental variable named ```$IND_HOME``` or by passing command line parameter:
+ 
+    $ indispenso -p /home/user
+    
+or
+    
+    $ indispenso --home="/home/user"
+
+### SSL configuration
+
 Indispenso serves WebUI using SSL secure connection, so it needs private key and certificate pair. 
 It will automatically generate self signed certificate during startup if it not present, 
 if you want generate own self signed certificate, this code snippet will be useful:
 
-```
-$ openssl genrsa -out key.pem 2048
-$ openssl req -new -x509 -key key.pem -out cert.pem -days 365 -subj "/C=NL/ST=Indispenso/L=Indispenso/O=Indispenso/OU=IT/CN=ssl.indispenso.org"
-```
+    $ openssl genrsa -out key.pem 2048
+    $ openssl req -new -x509 -key key.pem -out cert.pem -days 365 -subj "/C=NL/ST=Indispenso/L=Indispenso/O=Indispenso/OU=IT/CN=ssl.indispenso.org"
+
+This certificate and private key should be located in home directory of indispenso. Names of this files should be ```key.pem``` 
+for private key and ```cert.pem``` for certificate file. You can change required filenames in main config file.
 
 ## Running
 This application is architected with minimal setup and maintenance in mind. All you need is one or multiple seed nodes, and a shared secret.
 
-	$ ./indispenso --seeds="indispenso-seed.my-company.com" --secret="my_secret_of_at_least_32_characters"
+	$ ./indispenso -e "indispenso-seed.my-company.com" -t "my_secret_of_at_least_32_characters"
 
-In order to ensure consistency across nodes this sytem relies on the system clock. Make sure you install something like [_ntpd_](http://en.wikipedia.org/wiki/Ntpd) to keep your clocks in sync.
+In order to ensure consistency across nodes this system relies on the system clock. Make sure you install something like [_ntpd_](http://en.wikipedia.org/wiki/Ntpd) to keep your clocks in sync.
+
+To get help just use one of this commands:
+    
+    $ indispenso -h
+    
+or
+    
+    $ indispenso --help
+    
 
 ## Goals
 - Easy management of servers, applications and infrastructure

@@ -11,7 +11,7 @@ import (
 
 
 type Conf struct {
-	SecureToken       string // Pre-shared token in configuration, never via the wire
+	Token       string // Pre-shared token in configuration, never via the wire
 	Hostname          string
 	TagsList          []string
 	UseAutoTag        bool
@@ -28,30 +28,34 @@ type Conf struct {
 
 const defaultHomePath = "/etc/indispenso/"
 
-func newConfigV() *Conf {
+func newConfig() *Conf {
 	c := new(Conf)
 	viper.SetConfigName("indispenso")
 	viper.SetEnvPrefix("ind")
 
 
 	// Defaults
-	viper.SetDefault("SecureToken","")
+	viper.SetDefault("Token","")
 	viper.SetDefault("Hostname",getDefaultHostName())
 	viper.SetDefault("UseAutoTag",true)
 	viper.SetDefault("ServerEnabled",true)
 	viper.SetDefault("Home",defaultHomePath)
 	viper.SetDefault("Debug",false)
-
-	configFile := pflag.StringP("Config","c","","Config file location default is /etc/indispenso/indispenso.{json,toml,yaml,yml,properties,props,prop}")
-	pflag.BoolP("serverEnabled","s",true,"Deine if server module shoud be started or not")
-	pflag.BoolP("Debug","d", false, "Enable debug mode" )
-
 	viper.SetDefault("ServerPort",897)
 	viper.SetDefault("EndpointURI","")
 	viper.SetDefault("SslCertFile","cert.pem" )
 	viper.SetDefault("SslPrivateKeyFile", "key.pem" )
 	viper.SetDefault("AutoGenerateCert", true )
 	viper.SetDefault("ClientPort", 898 )
+
+	//Flags
+	configFile := pflag.StringP("Config","c","","Config file location default is /etc/indispenso/indispenso.{json,toml,yaml,yml,properties,props,prop}")
+	pflag.BoolP("serverEnabled","s",true,"Deine if server module shoud be started or not")
+	pflag.BoolP("debug","d", false, "Enable debug mode" )
+	pflag.StringP("home","p", defaultHomePath, "Enable debug mode" )
+	pflag.StringP("endpointUri","e", "", "URI where server will listen for client requests" )
+	pflag.StringP("Token","t", "", "Secret token" )
+	pflag.BoolP("help","h", false, "Print help message" )
 
 	pflag.Parse()
 	if( len(*configFile) > 2 ) {
@@ -70,6 +74,15 @@ func newConfigV() *Conf {
 		log.Printf("Configuration: %+v", c)
 	}
 	return c
+}
+
+func (c *Conf) IsHelp() bool{
+	return viper.GetBool("help")
+}
+
+func (c *Conf) PrintHelp() {
+	pflag.Usage()
+	os.Exit(0)
 }
 
 func (c *Conf) GetSslPrivateKeyFile() string{
@@ -103,7 +116,7 @@ func (c *Conf) HomeFile(fileName string) string{
 func (c *Conf) Validate() {
 	// Must have token
 	minLen := 32
-	if len(strings.TrimSpace(c.SecureToken)) < minLen {
+	if len(strings.TrimSpace(c.Token)) < minLen {
 		log.Fatal(fmt.Sprintf("Must have secure token with minimum length of %d", minLen))
 	}
 

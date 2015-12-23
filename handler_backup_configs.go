@@ -37,7 +37,7 @@ func GetBackupConfigs(w http.ResponseWriter, r *http.Request, ps httprouter.Para
 	zw := zip.NewWriter(buf)
 
 	// Add some files to the archive.
-	//TOOD add
+	//TOOD create struct and add files form respective modules
 	var files = []struct {
 		Name string
 	}{
