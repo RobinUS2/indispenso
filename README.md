@@ -38,7 +38,9 @@ This certificate and private key should be located in home directory of indispen
 for private key and ```cert.pem``` for certificate file. You can change required filenames in main config file.
 
 ## Running
-This application is architected with minimal setup and maintenance in mind. All you need is one or multiple seed nodes, and a shared secret.
+By default this application is running in client only mode, to enable server mode use -s/--serverEnable flag.
+
+This application is designed with minimal setup and maintenance in mind. All you need is one or multiple seed nodes, and a shared secret.
 
 	$ ./indispenso -e "indispenso-seed.my-company.com" -t "my_secret_of_at_least_32_characters"
 

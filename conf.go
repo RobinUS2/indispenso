@@ -1,17 +1,17 @@
 package main
 
 import (
-	"github.com/spf13/viper"
-	"strings"
-	"regexp"
-	"os"
 	"fmt"
+	"github.com/spf13/cast"
 	"github.com/spf13/pflag"
+	"github.com/spf13/viper"
+	"os"
+	"regexp"
+	"strings"
 )
 
-
 type Conf struct {
-	Token       string // Pre-shared token in configuration, never via the wire
+	Token             string // Pre-shared token in configuration, never via the wire
 	Hostname          string
 	TagsList          []string
 	UseAutoTag        bool
@@ -23,7 +23,8 @@ type Conf struct {
 	AutoGenerateCert  bool
 	ClientPort        int
 	Debug             bool
-	Home		      string //home directory
+	Home              string //home directory
+	confFlags         *pflag.FlagSet
 }
 
 const defaultHomePath = "/etc/indispenso/"
@@ -33,35 +34,36 @@ func newConfig() *Conf {
 	viper.SetConfigName("indispenso")
 	viper.SetEnvPrefix("ind")
 
-
 	// Defaults
-	viper.SetDefault("Token","")
-	viper.SetDefault("Hostname",getDefaultHostName())
-	viper.SetDefault("UseAutoTag",true)
-	viper.SetDefault("ServerEnabled",true)
-	viper.SetDefault("Home",defaultHomePath)
-	viper.SetDefault("Debug",false)
-	viper.SetDefault("ServerPort",897)
-	viper.SetDefault("EndpointURI","")
-	viper.SetDefault("SslCertFile","cert.pem" )
-	viper.SetDefault("SslPrivateKeyFile", "key.pem" )
-	viper.SetDefault("AutoGenerateCert", true )
-	viper.SetDefault("ClientPort", 898 )
+	viper.SetDefault("Token", "")
+	viper.SetDefault("Hostname", getDefaultHostName())
+	viper.SetDefault("UseAutoTag", true)
+	viper.SetDefault("ServerEnabled", false)
+	viper.SetDefault("Home", defaultHomePath)
+	viper.SetDefault("Debug", false)
+	viper.SetDefault("ServerPort", 1897)
+	viper.SetDefault("EndpointURI", "")
+	viper.SetDefault("SslCertFile", "cert.pem")
+	viper.SetDefault("SslPrivateKeyFile", "key.pem")
+	viper.SetDefault("AutoGenerateCert", true)
+	viper.SetDefault("ClientPort", 1898)
 
 	//Flags
-	configFile := pflag.StringP("Config","c","","Config file location default is /etc/indispenso/indispenso.{json,toml,yaml,yml,properties,props,prop}")
-	pflag.BoolP("serverEnabled","s",true,"Deine if server module shoud be started or not")
-	pflag.BoolP("debug","d", false, "Enable debug mode" )
-	pflag.StringP("home","p", defaultHomePath, "Enable debug mode" )
-	pflag.StringP("endpointUri","e", "", "URI where server will listen for client requests" )
-	pflag.StringP("Token","t", "", "Secret token" )
-	pflag.BoolP("help","h", false, "Print help message" )
+	c.confFlags = pflag.NewFlagSet(os.Args[0], pflag.ExitOnError)
+	configFile := c.confFlags.StringP("Config", "c", "", "Config file location default is /etc/indispenso/indispenso.{json,toml,yaml,yml,properties,props,prop}")
+	c.confFlags.BoolP("serverEnabled", "s", false, "Deine if server module shoud be started or not")
+	c.confFlags.BoolP("debug", "d", false, "Enable debug mode")
+	c.confFlags.StringP("home", "p", defaultHomePath, "Home direcotry where all config files are located")
+	c.confFlags.StringP("endpointUri", "e", "", "URI of server interface, used by client")
+	c.confFlags.StringP("token", "t", "", "Secret token")
+	c.confFlags.StringP("hostname", "i", getDefaultHostName(), "Hostname that is use to identify itself")
+	c.confFlags.BoolP("help", "h", false, "Print help message")
 
-	pflag.Parse()
-	if( len(*configFile) > 2 ) {
+	c.confFlags.Parse(os.Args[1:])
+	if len(*configFile) > 2 {
 		viper.SetConfigFile(*configFile)
 	}
-	viper.BindPFlags(pflag.CommandLine)
+	viper.BindPFlags(c.confFlags)
 	viper.AutomaticEnv()
 
 	viper.AddConfigPath("config")
@@ -69,48 +71,81 @@ func newConfig() *Conf {
 	viper.ReadInConfig()
 
 	viper.Unmarshal(c)
-
+	c.AutoRepair()
 	if c.Debug {
 		log.Printf("Configuration: %+v", c)
 	}
 	return c
 }
 
-func (c *Conf) IsHelp() bool{
+func (c *Conf) IsHelp() bool {
 	return viper.GetBool("help")
 }
 
+func (c *Conf) AutoRepair() {
+	fullUriPattern, _ := regexp.Compile("(http[s]{0,1})://([^/:]+):?([0-9]{0,}).*")
+	if !fullUriPattern.MatchString(c.EndpointURI) {
+		protocol := "https"
+		host := getDefaultHostName()
+		port := cast.ToString(c.ServerPort)
+		hostWithPortPattern, _ := regexp.Compile("([^:/]+):?([0-9]{0,})")
+		repaired := false
+
+		if hostWithPortPattern.MatchString(c.EndpointURI) {
+			matches := hostWithPortPattern.FindAllStringSubmatch(c.EndpointURI, -1)
+			if val := matches[0][1]; val != "" {
+				host = val
+			}
+			if val := matches[0][2]; val != "" {
+				port = val
+			}
+			repaired = true
+		}
+
+		if repaired {
+			c.EndpointURI = fmt.Sprintf("%s://%s:%s/", protocol, host, port)
+			log.Printf("EndpointURI successfully reparied to: %s", c.EndpointURI)
+		}
+	}
+}
+
 func (c *Conf) PrintHelp() {
-	pflag.Usage()
+	c.confFlags.Usage()
 	os.Exit(0)
 }
 
-func (c *Conf) GetSslPrivateKeyFile() string{
+func (c *Conf) GetSslPrivateKeyFile() string {
 	return c.HomeFile(c.SslPrivateKeyFile)
 }
 
-
-func (c *Conf) GetSslCertFile() string{
+func (c *Conf) GetSslCertFile() string {
 	return c.HomeFile(c.SslCertFile)
 }
 
-func (c *Conf) ConfFile() string{
+func (c *Conf) ConfFile() string {
 	return viper.ConfigFileUsed()
 }
 
 func getDefaultHostName() string {
-	if hostname, err := os.Hostname(); err == nil{
+	if hostname, err := os.Hostname(); err == nil {
 		return hostname
 	}
 	return "localhost"
 }
 
-func (c *Conf) GetHome() string{
-	return strings.TrimRight(c.Home,"/")
+func (c *Conf) GetHome() string {
+	if( c.Home == "/" ){
+		return c.Home
+	}
+	return strings.TrimRight(c.Home, "/")
 }
 
-func (c *Conf) HomeFile(fileName string) string{
-	return fmt.Sprintf("%s/%s",c.GetHome(),fileName)
+func (c *Conf) HomeFile(fileName string) string {
+	return fmt.Sprintf("%s/%s", c.GetHome(), fileName)
+}
+
+func (c *Conf) ServerRequest(path string) string {
+	return fmt.Sprintf("%s/%s", strings.TrimRight(conf.EndpointURI, "/"), strings.TrimLeft(path, "/"))
 }
 
 func (c *Conf) Validate() {
@@ -120,20 +155,20 @@ func (c *Conf) Validate() {
 		log.Fatal(fmt.Sprintf("Must have secure token with minimum length of %d", minLen))
 	}
 
-	if _,err := os.Stat(c.GetHome()); os.IsNotExist(err) {
+	if _, err := os.Stat(c.GetHome()); os.IsNotExist(err) {
 		log.Fatal(fmt.Sprintf("Home directory doesn't exists: %s", c.GetHome()))
 	}
 }
 
-func (c *Conf) isClientEnabled()bool{
+func (c *Conf) isClientEnabled() bool {
 	return len(conf.EndpointURI) > 0
 }
 
-func (c *Conf)getTags() []string {
+func (c *Conf) getTags() []string {
 	tagsList := viper.GetStringSlice("tagslist")
 	if viper.GetBool("useautotag") {
 		autoTags := c.hostTagDiscovery()
-		tagsList = append(tagsList,autoTags...)
+		tagsList = append(tagsList, autoTags...)
 	}
 
 	return tagsList
@@ -145,7 +180,7 @@ func (c *Conf) hostTagDiscovery() []string {
 	tokens := strings.FieldsFunc(c.Hostname, func(r rune) bool {
 		return r == '.' || r == '-' || r == '_'
 	})
-	ret := make([]string,len(tokens))
+	ret := make([]string, len(tokens))
 
 	numbersOnlyRegexp, _ := regexp.Compile("^[[:digit:]]+$")
 	numbersRegexp, _ := regexp.Compile("[[:digit:]]")
@@ -177,4 +212,3 @@ func cleanTag(in string) string {
 	}
 	return cleanTag
 }
-

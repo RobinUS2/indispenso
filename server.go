@@ -1,10 +1,14 @@
 package main
 
 import (
-	"crypto/sha256"
+	"crypto/rand"
 	"crypto/rsa"
+	"crypto/sha256"
+	"crypto/x509"
+	"crypto/x509/pkix"
 	"encoding/base64"
 	"encoding/json"
+	"encoding/pem"
 	"fmt"
 	"github.com/RobinUS2/golang-jresp"
 	"github.com/dgryski/dgoogauth"
@@ -12,18 +16,14 @@ import (
 	"github.com/nu7hatch/gouuid"
 	"github.com/petar/rsc/qr"
 	"io/ioutil"
+	"math/big"
+	"net"
 	"net/http"
 	"os"
 	"strconv"
 	"strings"
 	"sync"
 	"time"
-	"crypto/rand"
-	"crypto/x509"
-	"math/big"
-	"crypto/x509/pkix"
-	"encoding/pem"
-	"net"
 )
 
 // Server methods (you probably only need one or two in HA failover mode)
@@ -185,14 +185,14 @@ func (c *RegisteredClient) HasTag(s string) bool {
 func (s *Server) _prepareTlsKeys() error {
 	if _, err := os.Stat(conf.GetSslCertFile()); os.IsNotExist(err) {
 		if !conf.AutoGenerateCert {
-			log.Printf("Cannot locat certificate file(%s) doesn't exist, provide one or enable automatic self signed cert generation", conf.GetSslCertFile() )
+			log.Printf("Cannot locat certificate file(%s) doesn't exist, provide one or enable automatic self signed cert generation", conf.GetSslCertFile())
 			return err
 		}
-		privateKey, err := _readOrGeneratePrivateKey(conf.SslPrivateKeyFile)
-		if(err != nil ){
+		privateKey, err := _readOrGeneratePrivateKey(conf.GetSslPrivateKeyFile())
+		if err != nil {
 			return err
 		}
-		return _generateCertificate(conf.SslCertFile, privateKey, 365*24*time.Hour )
+		return _generateCertificate(conf.GetSslCertFile(), privateKey, 365*24*time.Hour)
 	}
 	return nil
 }
@@ -203,15 +203,15 @@ func _readOrGeneratePrivateKey(fileName string) (*rsa.PrivateKey, error) {
 		keyOut, err := os.OpenFile(fileName, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0600)
 		defer keyOut.Close()
 		if err != nil {
-			log.Printf("failed to open %s for writing: %s", fileName , err)
+			log.Printf("failed to open %s for writing: %s", fileName, err)
 			return privateKey, err
 		}
 		pem.Encode(keyOut, &pem.Block{Type: "RSA PRIVATE KEY", Bytes: x509.MarshalPKCS1PrivateKey(privateKey)})
 		return privateKey, nil
 	} else {
-		log.Printf("Private key (%s) exists and will be used",fileName)
+		log.Printf("Private key (%s) exists and will be used", fileName)
 		certArray, err := ioutil.ReadFile(fileName)
-		if( err != nil ){
+		if err != nil {
 			return nil, err
 		}
 		block, _ := pem.Decode(certArray)
@@ -220,12 +220,12 @@ func _readOrGeneratePrivateKey(fileName string) (*rsa.PrivateKey, error) {
 }
 
 /**
-	Function that provide Serial number for certificate.
+Function that provide Serial number for certificate.
 
-	The serial number is chosen by the CA which issued the certificate.
-	It is just written in the certificate. The CA can choose the serial
-	number in any way as it sees fit.
- */
+The serial number is chosen by the CA which issued the certificate.
+It is just written in the certificate. The CA can choose the serial
+number in any way as it sees fit.
+*/
 func _getCertSerialNumber() *big.Int {
 	serialNumberLimit := new(big.Int).Lsh(big.NewInt(1), 128)
 	serialNumber, err := rand.Int(rand.Reader, serialNumberLimit)
@@ -238,34 +238,34 @@ func _getCertSerialNumber() *big.Int {
 func _generateCertificateTmpl(subject pkix.Name, validPeriod time.Duration) x509.Certificate {
 	currentTime := time.Now()
 	return x509.Certificate{
-		SerialNumber:_getCertSerialNumber(),
-		Subject: subject,
+		SerialNumber: _getCertSerialNumber(),
+		Subject:      subject,
 
 		NotBefore: currentTime,
-		NotAfter: currentTime.Add(validPeriod),
+		NotAfter:  currentTime.Add(validPeriod),
 
-		KeyUsage: 				x509.KeyUsageKeyEncipherment | x509.KeyUsageDigitalSignature | x509.KeyUsageCertSign,
-		ExtKeyUsage:            []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth},
-		IsCA: 					false,
-		BasicConstraintsValid:  true,
-		IPAddresses: []net.IP{ net.IPv4(127, 0, 0, 1).To4() },
+		KeyUsage:    x509.KeyUsageKeyEncipherment | x509.KeyUsageDigitalSignature | x509.KeyUsageCertSign,
+		ExtKeyUsage: []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth},
+		IsCA:        false,
+		BasicConstraintsValid: true,
+		IPAddresses:           []net.IP{net.IPv4(127, 0, 0, 1).To4()},
 	}
 }
 
-func _generateCertificate( fileName string, privateKey *rsa.PrivateKey, validPeriod time.Duration) error{
+func _generateCertificate(fileName string, privateKey *rsa.PrivateKey, validPeriod time.Duration) error {
 
 	log.Println("Autogeneration of selfsigned certificate key...")
 	subject := pkix.Name{
-		Organization:[]string{"Indispenso"},
-		Country: []string{"NL"},
-		CommonName: "ssl.indispenso.org",
+		Organization:       []string{"Indispenso"},
+		Country:            []string{"NL"},
+		CommonName:         "ssl.indispenso.org",
 		OrganizationalUnit: []string{"IT"},
-		Province: []string{"Indispenso"},
-		Locality: []string{"Indispenso"},
+		Province:           []string{"Indispenso"},
+		Locality:           []string{"Indispenso"},
 	}
 
-	tmpl := _generateCertificateTmpl(subject,validPeriod)
-	certBytes, err := x509.CreateCertificate(rand.Reader,&tmpl,&tmpl,&privateKey.PublicKey,privateKey)
+	tmpl := _generateCertificateTmpl(subject, validPeriod)
+	certBytes, err := x509.CreateCertificate(rand.Reader, &tmpl, &tmpl, &privateKey.PublicKey, privateKey)
 	if err != nil {
 		log.Printf("Failed to create certificate: %s\n", err)
 		return err
@@ -273,14 +273,14 @@ func _generateCertificate( fileName string, privateKey *rsa.PrivateKey, validPer
 	log.Println("Public key generated sucessfully")
 
 	certFile, err := os.Create(fileName)
-	if(err != nil ){
-		log.Printf("Cannot create cert file : %s\n", err )
+	if err != nil {
+		log.Printf("Cannot create cert file : %s\n", err)
 		return err
 	}
 
 	pem.Encode(certFile, &pem.Block{Type: "CERTIFICATE", Bytes: certBytes})
 	certFile.Close()
-	log.Printf("Successfully written certificate: %s\n",fileName)
+	log.Printf("Successfully written certificate: %s\n", fileName)
 	return err
 }
 
@@ -385,7 +385,7 @@ func (s *Server) Start() bool {
 		}
 
 		// Start server
-		log.Printf("Failed to start server %v", http.ListenAndServeTLS(fmt.Sprintf(":%d", conf.ServerPort), conf.SslCertFile, conf.SslPrivateKeyFile, router))
+		log.Printf("Failed to start server %v", http.ListenAndServeTLS(fmt.Sprintf(":%d", conf.ServerPort), conf.GetSslCertFile(), conf.GetSslPrivateKeyFile(), router))
 	}()
 
 	// Minutely cleanups etc
@@ -403,7 +403,7 @@ func (s *Server) Start() bool {
 func GetClientCmdLogs(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	jr := jresp.NewJsonResp()
 	if !authUser(r) {
-		jr.Error("Not authorized")
+		jr.Error("User not authorized for GetClientCmdLogs ")
 		fmt.Fprint(w, jr.ToString(debug))
 		return
 	}
@@ -438,7 +438,7 @@ func GetClientCmdLogs(w http.ResponseWriter, r *http.Request, ps httprouter.Para
 func PutUser2fa(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	jr := jresp.NewJsonResp()
 	if !authUser(r) {
-		jr.Error("Not authorized")
+		jr.Error("User not authorized for PutUser2fa")
 		fmt.Fprint(w, jr.ToString(debug))
 		return
 	}
@@ -490,7 +490,7 @@ func PutUser2fa(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 func GetUser2fa(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	jr := jresp.NewJsonResp()
 	if !authUser(r) {
-		jr.Error("Not authorized")
+		jr.Error("User not authorized for GetUser2fa")
 		fmt.Fprint(w, jr.ToString(debug))
 		return
 	}
@@ -535,7 +535,7 @@ func GetUser2fa(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 func GetDispatched(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	jr := jresp.NewJsonResp()
 	if !authUser(r) {
-		jr.Error("Not authorized")
+		jr.Error("User not authorized for GetDispatech")
 		fmt.Fprint(w, jr.ToString(debug))
 		return
 	}
@@ -568,7 +568,7 @@ func GetDispatched(w http.ResponseWriter, r *http.Request, ps httprouter.Params)
 func GetConsensusPending(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	jr := jresp.NewJsonResp()
 	if !authUser(r) {
-		jr.Error("Not authorized")
+		jr.Error("User not authorized for GetConsensusPending")
 		fmt.Fprint(w, jr.ToString(debug))
 		return
 	}
@@ -610,14 +610,14 @@ func GetConsensusPending(w http.ResponseWriter, r *http.Request, ps httprouter.P
 func PostConsensusApprove(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	jr := jresp.NewJsonResp()
 	if !authUser(r) {
-		jr.Error("Not authorized")
+		jr.Error("User not authorized for PostConsensusApprove")
 		fmt.Fprint(w, jr.ToString(debug))
 		return
 	}
 
 	user := getUser(r)
 	if !user.HasRole("approver") {
-		jr.Error("Not authorized")
+		jr.Error("User not allowed for PostConsensusApprove")
 		fmt.Fprint(w, jr.ToString(debug))
 		return
 	}
@@ -642,14 +642,14 @@ func PostConsensusApprove(w http.ResponseWriter, r *http.Request, ps httprouter.
 func DeleteConsensusRequest(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	jr := jresp.NewJsonResp()
 	if !authUser(r) {
-		jr.Error("Not authorized")
+		jr.Error("User not authorized for  DeleteConsensusRequest")
 		fmt.Fprint(w, jr.ToString(debug))
 		return
 	}
 
 	user := getUser(r)
 	if !user.HasRole("requester") {
-		jr.Error("Not authorized")
+		jr.Error("User not allowed to DeleteConsensusRequest")
 		fmt.Fprint(w, jr.ToString(debug))
 		return
 	}
@@ -686,7 +686,7 @@ func DeleteConsensusRequest(w http.ResponseWriter, r *http.Request, ps httproute
 func PostConsensusRequest(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	jr := jresp.NewJsonResp()
 	if !authUser(r) {
-		jr.Error("Not authorized")
+		jr.Error("User not authorized for PostConsensusRequest")
 		fmt.Fprint(w, jr.ToString(debug))
 		return
 	}
@@ -694,7 +694,7 @@ func PostConsensusRequest(w http.ResponseWriter, r *http.Request, ps httprouter.
 	// Are we allow to request execution?
 	user := getUser(r)
 	if !user.HasRole("requester") {
-		jr.Error("Not authorized")
+		jr.Error("User not allowed to PostConsensusRequest")
 		fmt.Fprint(w, jr.ToString(debug))
 		return
 	}
@@ -731,7 +731,7 @@ func PostConsensusRequest(w http.ResponseWriter, r *http.Request, ps httprouter.
 func PostTemplateValidation(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	jr := jresp.NewJsonResp()
 	if !authUser(r) {
-		jr.Error("Not authorized")
+		jr.Error("User not authorized for PostTemplateValidation")
 		fmt.Fprint(w, jr.ToString(debug))
 		return
 	}
@@ -777,7 +777,7 @@ func PostTemplateValidation(w http.ResponseWriter, r *http.Request, ps httproute
 func DeleteTemplateValidation(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	jr := jresp.NewJsonResp()
 	if !authUser(r) {
-		jr.Error("Not authorized")
+		jr.Error("User not authorized for DeleteTemplateValidation")
 		fmt.Fprint(w, jr.ToString(debug))
 		return
 	}
@@ -810,7 +810,7 @@ func DeleteTemplateValidation(w http.ResponseWriter, r *http.Request, ps httprou
 func GetTemplate(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	jr := jresp.NewJsonResp()
 	if !authUser(r) {
-		jr.Error("Not authorized")
+		jr.Error("User not authorized for GetTemplate")
 		fmt.Fprint(w, jr.ToString(debug))
 		return
 	}
@@ -826,14 +826,14 @@ func GetTemplate(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 func PostTemplate(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	jr := jresp.NewJsonResp()
 	if !authUser(r) {
-		jr.Error("Not authorized")
+		jr.Error("User not authorized for PostTemplate")
 		fmt.Fprint(w, jr.ToString(debug))
 		return
 	}
 
 	user := getUser(r)
 	if !user.HasRole("admin") {
-		jr.Error("Not authorized")
+		jr.Error("User not allowed to PostTemplate")
 		fmt.Fprint(w, jr.ToString(debug))
 		return
 	}
@@ -978,7 +978,7 @@ func PostAuth(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 func GetTags(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	jr := jresp.NewJsonResp()
 	if !authUser(r) {
-		jr.Error("Not authorized")
+		jr.Error("User not authorized for GetTags")
 		fmt.Fprint(w, jr.ToString(debug))
 		return
 	}
@@ -997,7 +997,7 @@ func GetTags(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 func PutUserPassword(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	jr := jresp.NewJsonResp()
 	if !authUser(r) {
-		jr.Error("Not authorized")
+		jr.Error("User not authorized for PutUserPassword")
 		fmt.Fprint(w, jr.ToString(debug))
 		return
 	}
@@ -1070,13 +1070,13 @@ func getUser(r *http.Request) *User {
 func DeleteTemplate(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	jr := jresp.NewJsonResp()
 	if !authUser(r) {
-		jr.Error("Not authorized")
+		jr.Error("User not authorized for DeleteTemplate")
 		fmt.Fprint(w, jr.ToString(debug))
 		return
 	}
 	usr := getUser(r)
 	if !usr.HasRole("admin") {
-		jr.Error("Not authorized")
+		jr.Error("User not allowed to DeleteTemplate")
 		fmt.Fprint(w, jr.ToString(debug))
 		return
 	}
@@ -1104,13 +1104,13 @@ func DeleteTemplate(w http.ResponseWriter, r *http.Request, ps httprouter.Params
 func DeleteUser(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	jr := jresp.NewJsonResp()
 	if !authUser(r) {
-		jr.Error("Not authorized")
+		jr.Error("User not authorized for DeleteUser")
 		fmt.Fprint(w, jr.ToString(debug))
 		return
 	}
 	usr := getUser(r)
 	if !usr.HasRole("admin") {
-		jr.Error("Not authorized")
+		jr.Error("User not allowed to DeleteUser")
 		fmt.Fprint(w, jr.ToString(debug))
 		return
 	}
@@ -1145,13 +1145,13 @@ func DeleteUser(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 func PostUser(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	jr := jresp.NewJsonResp()
 	if !authUser(r) {
-		jr.Error("Not authorized")
+		jr.Error("User not authorized for PostUser")
 		fmt.Fprint(w, jr.ToString(debug))
 		return
 	}
 	usr := getUser(r)
 	if !usr.HasRole("admin") {
-		jr.Error("Not authorized")
+		jr.Error("User not allowed to PosUser")
 		fmt.Fprint(w, jr.ToString(debug))
 		return
 	}
@@ -1199,7 +1199,7 @@ func PostUser(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 func GetUsersNames(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	jr := jresp.NewJsonResp()
 	if !authUser(r) {
-		jr.Error("Not authorized")
+		jr.Error("User not authorized for GetUsersNames")
 		fmt.Fprint(w, jr.ToString(debug))
 		return
 	}
@@ -1222,13 +1222,13 @@ func GetUsersNames(w http.ResponseWriter, r *http.Request, ps httprouter.Params)
 func GetUsers(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	jr := jresp.NewJsonResp()
 	if !authUser(r) {
-		jr.Error("Not authorized")
+		jr.Error("User not authorized for GetUsers")
 		fmt.Fprint(w, jr.ToString(debug))
 		return
 	}
 	usr := getUser(r)
 	if !usr.HasRole("admin") {
-		jr.Error("Not authorized")
+		jr.Error("User not allowed to GetUsers")
 		fmt.Fprint(w, jr.ToString(debug))
 		return
 	}
@@ -1252,7 +1252,7 @@ func GetUsers(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 func GetClients(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	jr := jresp.NewJsonResp()
 	if !authUser(r) {
-		jr.Error("Not authorized")
+		jr.Error("User not authorized for GetClients")
 		fmt.Fprint(w, jr.ToString(debug))
 		return
 	}
@@ -1313,7 +1313,7 @@ outer:
 func PostClientAuth(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	jr := jresp.NewJsonResp()
 	if !auth(r) {
-		jr.Error("Not authorized")
+		jr.Error("User not authorized for PostClientAuth")
 		fmt.Fprint(w, jr.ToString(debug))
 		return
 	}
@@ -1357,7 +1357,7 @@ func PostClientAuth(w http.ResponseWriter, r *http.Request, ps httprouter.Params
 func PutClientCmdLogs(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	jr := jresp.NewJsonResp()
 	if !auth(r) {
-		jr.Error("Not authorized")
+		jr.Error("Client not authorized for PutClientCmdLogs")
 		fmt.Fprint(w, jr.ToString(debug))
 		return
 	}
@@ -1424,7 +1424,7 @@ func PutClientCmdLogs(w http.ResponseWriter, r *http.Request, ps httprouter.Para
 func PutClientCmdState(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	jr := jresp.NewJsonResp()
 	if !auth(r) {
-		jr.Error("Not authorized")
+		jr.Error("Client not authorized for PutClientCmdState")
 		fmt.Fprint(w, jr.ToString(debug))
 		return
 	}
@@ -1462,7 +1462,7 @@ func PutClientCmdState(w http.ResponseWriter, r *http.Request, ps httprouter.Par
 func ClientCmds(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	jr := jresp.NewJsonResp()
 	if !auth(r) {
-		jr.Error("Not authorized")
+		jr.Error("Client not authorized for ClientCmds")
 		fmt.Fprint(w, jr.ToString(debug))
 		return
 	}
@@ -1508,7 +1508,7 @@ func ClientCmds(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 func ClientPing(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	jr := jresp.NewJsonResp()
 	if !auth(r) {
-		jr.Error("Not authorized")
+		jr.Error("Client not authorized for ClientPing")
 		fmt.Fprint(w, jr.ToString(debug))
 		return
 	}

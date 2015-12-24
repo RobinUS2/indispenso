@@ -237,7 +237,7 @@ func (s *Client) _reqUnsafe(method string, uri string, data []byte) ([]byte, err
 	} else {
 		uri = fmt.Sprintf("%s&_rand=%s", uri, randStr)
 	}
-	url := fmt.Sprintf("%s%s", strings.TrimRight(conf.EndpointURI, "/"), uri)
+	url := conf.ServerRequest(uri)
 
 	// Log
 	if debug {
@@ -264,6 +264,10 @@ func (s *Client) _reqUnsafe(method string, uri string, data []byte) ([]byte, err
 
 	// Auth token
 	req.Header.Add("X-Auth", signedToken)
+
+	if conf.Debug {
+		log.Println("Sending X-Auth: " + signedToken)
+	}
 
 	// Execute
 	resp, respErr := client.Do(req)
