@@ -43,3 +43,15 @@ func TestHomeAsRoot(t *testing.T) {
 
 	assert.Equal(t,"/",c.GetHome())
 }
+
+func TestAutoTag(t *testing.T) {
+	c := newConfig()
+	c.Hostname =  "cb01.test.localdomain"
+	tags := c.GetTags()
+	assert.Len(t,tags,2)
+	assert.NotContains(t,tags,"cb01")
+	assert.NotContains(t,tags,"cb")
+	assert.Contains(t, tags, "test")
+	assert.Contains(t, tags, "localdomain")
+	assert.NotContains(t, tags, "")
+}

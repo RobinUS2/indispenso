@@ -30,6 +30,8 @@ func main() {
 		conf.PrintHelp()
 	}
 
+	conf.EnableAutoUpdate()
+
 	log.Println("Starting indispenso")
 	conf.Validate()
 

@@ -68,19 +68,20 @@ func newConfig() *Conf {
 	viper.AutomaticEnv()
 
 	homePath := viper.GetString("Home")
-	if len(homePath ) > 0 {
+	if len(homePath) > 0 {
 		viper.AddConfigPath(homePath)
-	}else{
+	}else {
 		viper.AddConfigPath("config")
 	}
 
 	viper.ReadInConfig()
 	c.Update()
-
-	viper.OnConfigChange(func(in fsnotify.Event) { c.Update() } )
-	viper.WatchConfig()
-
 	return c
+}
+
+func (c *Conf) EnableAutoUpdate(){
+	viper.OnConfigChange(func(in fsnotify.Event) { c.Update() })
+	viper.WatchConfig()
 }
 
 func (c *Conf )Update() {
@@ -179,7 +180,8 @@ func (c *Conf) isClientEnabled() bool {
 }
 
 func (c *Conf) GetTags() []string {
-	tagsList := viper.GetStringSlice("tagslist")
+	tagsList := c.TagsList
+
 	if viper.GetBool("useautotag") {
 		autoTags := c.hostTagDiscovery()
 		tagsList = append(tagsList, autoTags...)
@@ -194,8 +196,7 @@ func (c *Conf) hostTagDiscovery() []string {
 	tokens := strings.FieldsFunc(c.Hostname, func(r rune) bool {
 		return r == '.' || r == '-' || r == '_'
 	})
-	ret := make([]string, len(tokens))
-
+	ret := make([]string, 0, len(tokens))
 	numbersOnlyRegexp, _ := regexp.Compile("^[[:digit:]]+$")
 	numbersRegexp, _ := regexp.Compile("[[:digit:]]")
 	for _, token := range tokens {
