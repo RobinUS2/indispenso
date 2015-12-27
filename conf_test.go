@@ -55,3 +55,16 @@ func TestAutoTag(t *testing.T) {
 	assert.Contains(t, tags, "localdomain")
 	assert.NotContains(t, tags, "")
 }
+
+func TestTagsShouldContainsAutoAndRegularTags(t *testing.T) {
+	c := newConfig()
+	c.TagsList = []string{ "test1", "test2" }
+	c.Hostname = "localtest"
+
+	tags := c.GetTags()
+
+	assert.Len(t,tags,3)
+	assert.Contains(t, tags, "localtest")
+	assert.Contains(t, tags, "test1")
+	assert.Contains(t, tags, "test2")
+}
