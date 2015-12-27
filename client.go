@@ -30,7 +30,7 @@ type Client struct {
 
 // Start client
 func (s *Client) Start() bool {
-	log.Printf("Starting client %s from seed %s with tags %v", s.Id, conf.EndpointURI, conf.getTags())
+	log.Printf("Starting client %s from seed %s with tags %v", s.Id, conf.EndpointURI, conf.GetTags())
 
 	// Ping server to register
 	s.PingServer()
@@ -163,7 +163,7 @@ func (s *Client) AuthServer() {
 
 // Ping server
 func (s *Client) PingServer() {
-	bytes, e := s._get(fmt.Sprintf("client/%s/ping?tags=%s&hostname=%s", url.QueryEscape(s.Id), url.QueryEscape(strings.Join(conf.getTags(), ",")), url.QueryEscape(s.Hostname)))
+	bytes, e := s._get(fmt.Sprintf("client/%s/ping?tags=%s&hostname=%s", url.QueryEscape(s.Id), url.QueryEscape(strings.Join(conf.GetTags(), ",")), url.QueryEscape(s.Hostname)))
 	if e == nil {
 		obj, jerr := jason.NewObjectFromBytes(bytes)
 		if jerr == nil {

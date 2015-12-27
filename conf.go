@@ -8,6 +8,7 @@ import (
 	"os"
 	"regexp"
 	"strings"
+	"gopkg.in/fsnotify.v1"
 )
 
 type Conf struct {
@@ -66,16 +67,29 @@ func newConfig() *Conf {
 	viper.BindPFlags(c.confFlags)
 	viper.AutomaticEnv()
 
-	viper.AddConfigPath("config")
-	viper.AddConfigPath(viper.GetString("Home"))
-	viper.ReadInConfig()
+	homePath := viper.GetString("Home")
+	if len(homePath ) > 0 {
+		viper.AddConfigPath(homePath)
+	}else{
+		viper.AddConfigPath("config")
+	}
 
+	viper.ReadInConfig()
+	c.Update()
+
+	viper.OnConfigChange(func(in fsnotify.Event) { c.Update() } )
+	viper.WatchConfig()
+
+	return c
+}
+
+func (c *Conf )Update() {
+	log.Println("Updating config")
 	viper.Unmarshal(c)
 	c.AutoRepair()
 	if c.Debug {
 		log.Printf("Configuration: %+v", c)
 	}
-	return c
 }
 
 func (c *Conf) IsHelp() bool {
@@ -164,7 +178,7 @@ func (c *Conf) isClientEnabled() bool {
 	return len(conf.EndpointURI) > 0
 }
 
-func (c *Conf) getTags() []string {
+func (c *Conf) GetTags() []string {
 	tagsList := viper.GetStringSlice("tagslist")
 	if viper.GetBool("useautotag") {
 		autoTags := c.hostTagDiscovery()
