@@ -5,10 +5,10 @@ import (
 	"github.com/spf13/cast"
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
+	"gopkg.in/fsnotify.v1"
 	"os"
 	"regexp"
 	"strings"
-	"gopkg.in/fsnotify.v1"
 )
 
 type Conf struct {
@@ -70,7 +70,7 @@ func newConfig() *Conf {
 	homePath := viper.GetString("Home")
 	if len(homePath) > 0 {
 		viper.AddConfigPath(homePath)
-	}else {
+	} else {
 		viper.AddConfigPath("config")
 	}
 
@@ -79,12 +79,12 @@ func newConfig() *Conf {
 	return c
 }
 
-func (c *Conf) EnableAutoUpdate(){
+func (c *Conf) EnableAutoUpdate() {
 	viper.OnConfigChange(func(in fsnotify.Event) { c.Update() })
 	viper.WatchConfig()
 }
 
-func (c *Conf )Update() {
+func (c *Conf) Update() {
 	log.Println("Updating config")
 	viper.Unmarshal(c)
 	c.AutoRepair()
@@ -149,7 +149,7 @@ func getDefaultHostName() string {
 }
 
 func (c *Conf) GetHome() string {
-	if( c.Home == "/" ){
+	if c.Home == "/" {
 		return c.Home
 	}
 	return strings.TrimRight(c.Home, "/")
