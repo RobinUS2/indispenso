@@ -41,9 +41,9 @@ func GetBackupConfigs(w http.ResponseWriter, r *http.Request, ps httprouter.Para
 	var files = []struct {
 		Name string
 	}{
-		{fmt.Sprintf("%s/%s", conf.GetHome(), "users.json")},
-		{fmt.Sprintf("%s/%s", conf.GetHome(), "templates.conf")},
-		{fmt.Sprintf("%s/%s", conf.GetHome(), "httpchecks.json")},
+		{conf.HomeFile("users.json")},
+		{conf.HomeFile( "templates.conf")},
+		{conf.HomeFile( "httpchecks.json")},
 		{conf.GetSslCertFile()},
 		{conf.GetSslPrivateKeyFile()},
 		{conf.ConfFile()},
