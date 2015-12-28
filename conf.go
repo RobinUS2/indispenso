@@ -42,12 +42,12 @@ func newConfig() *Conf {
 	viper.SetDefault("ServerEnabled", false)
 	viper.SetDefault("Home", defaultHomePath)
 	viper.SetDefault("Debug", false)
-	viper.SetDefault("ServerPort", 1897)
+	viper.SetDefault("ServerPort", 897)
 	viper.SetDefault("EndpointURI", "")
 	viper.SetDefault("SslCertFile", "cert.pem")
 	viper.SetDefault("SslPrivateKeyFile", "key.pem")
 	viper.SetDefault("AutoGenerateCert", true)
-	viper.SetDefault("ClientPort", 1898)
+	viper.SetDefault("ClientPort", 898)
 
 	//Flags
 	c.confFlags = pflag.NewFlagSet(os.Args[0], pflag.ExitOnError)
