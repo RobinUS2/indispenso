@@ -4,6 +4,7 @@ import (
 	"github.com/spf13/cast"
 	"github.com/stretchr/testify/assert"
 	"testing"
+	"github.com/jmcvetta/randutil"
 )
 
 func TestAutoRepair(t *testing.T) {
@@ -67,4 +68,25 @@ func TestTagsShouldContainsAutoAndRegularTags(t *testing.T) {
 	assert.Contains(t, tags, "localtest")
 	assert.Contains(t, tags, "test1")
 	assert.Contains(t, tags, "test2")
+}
+
+func TestTokenLength(t *testing.T) {
+	c := newConfig()
+	var err error
+
+	c.Token,err = randutil.AlphaString(32)
+	assert.NoError(t,err)
+	assert.NoError(t, c.Validate())
+
+	c.Token,err = randutil.AlphaString(10)
+	assert.NoError(t,err)
+	assert.Error(t, c.Validate())
+
+
+}
+
+func TestEmptyTokenValidation(t *testing.T) {
+	c := newConfig()
+	c.Token = ""
+	assert.Error(t, c.Validate())
 }

@@ -33,7 +33,9 @@ func main() {
 	conf.EnableAutoUpdate()
 
 	log.Println("Starting indispenso")
-	conf.Validate()
+	if err := conf.Validate(); err != nil {
+		log.Fatal(err)
+	}
 
 	// Handle signals
 	c := make(chan os.Signal, 1)

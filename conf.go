@@ -9,6 +9,7 @@ import (
 	"os"
 	"regexp"
 	"strings"
+	"errors"
 )
 
 type Conf struct {
@@ -163,16 +164,18 @@ func (c *Conf) ServerRequest(path string) string {
 	return fmt.Sprintf("%s/%s", strings.TrimRight(conf.EndpointURI, "/"), strings.TrimLeft(path, "/"))
 }
 
-func (c *Conf) Validate() {
+func (c *Conf) Validate() error {
 	// Must have token
 	minLen := 32
 	if len(strings.TrimSpace(c.Token)) < minLen {
-		log.Fatal(fmt.Sprintf("Must have secure token with minimum length of %d", minLen))
+		return errors.New( fmt.Sprintf("Must have secure token with minimum length of %d", minLen))
 	}
 
 	if _, err := os.Stat(c.GetHome()); os.IsNotExist(err) {
-		log.Fatal(fmt.Sprintf("Home directory doesn't exists: %s", c.GetHome()))
+		return errors.New( fmt.Sprintf("Home directory doesn't exists: %s", c.GetHome()))
 	}
+
+	return nil
 }
 
 func (c *Conf) isClientEnabled() bool {
