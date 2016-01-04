@@ -78,7 +78,7 @@ func TestTokenLength(t *testing.T) {
 	assert.NoError(t,err)
 	assert.NoError(t, c.Validate())
 
-	c.Token,err = randutil.AlphaString(10)
+	c.Token,err = randutil.AlphaString(10)2
 	assert.NoError(t,err)
 	assert.Error(t, c.Validate())
 

@@ -52,6 +52,7 @@ func newConfig() *Conf {
 
 	//Flags
 	c.confFlags = pflag.NewFlagSet(os.Args[0], pflag.ExitOnError)
+
 	configFile := c.confFlags.StringP("Config", "c", "", "Config file location default is /etc/indispenso/indispenso.{json,toml,yaml,yml,properties,props,prop}")
 	c.confFlags.BoolP("serverEnabled", "s", false, "Deine if server module shoud be started or not")
 	c.confFlags.BoolP("debug", "d", false, "Enable debug mode")
@@ -126,7 +127,8 @@ func (c *Conf) AutoRepair() {
 }
 
 func (c *Conf) PrintHelp() {
-	c.confFlags.Usage()
+	fmt.Println( "Usage of indispenso:")
+	c.confFlags.PrintDefaults()
 	os.Exit(0)
 }
 
