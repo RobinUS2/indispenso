@@ -42,8 +42,8 @@ func GetBackupConfigs(w http.ResponseWriter, r *http.Request, ps httprouter.Para
 		Name string
 	}{
 		{conf.HomeFile("users.json")},
-		{conf.HomeFile( "templates.conf")},
-		{conf.HomeFile( "httpchecks.json")},
+		{conf.HomeFile("templates.conf")},
+		{conf.HomeFile("httpchecks.json")},
 		{conf.GetSslCertFile()},
 		{conf.GetSslPrivateKeyFile()},
 		{conf.ConfFile()},
