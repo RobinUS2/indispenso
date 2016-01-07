@@ -14,4 +14,4 @@ go get "github.com/spf13/viper"
 go get "github.com/stretchr/testify/assert"
 go get "github.com/jmcvetta/randutil"
 go fmt .
-go build .
+go test && go build .

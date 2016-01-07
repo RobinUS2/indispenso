@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"github.com/spf13/cast"
 	"github.com/spf13/pflag"
@@ -9,7 +10,6 @@ import (
 	"os"
 	"regexp"
 	"strings"
-	"errors"
 )
 
 type Conf struct {
@@ -127,7 +127,7 @@ func (c *Conf) AutoRepair() {
 }
 
 func (c *Conf) PrintHelp() {
-	fmt.Println( "Usage of indispenso:")
+	fmt.Println("Usage of indispenso:")
 	c.confFlags.PrintDefaults()
 	os.Exit(0)
 }
@@ -170,11 +170,11 @@ func (c *Conf) Validate() error {
 	// Must have token
 	minLen := 32
 	if len(strings.TrimSpace(c.Token)) < minLen {
-		return errors.New( fmt.Sprintf("Must have secure token with minimum length of %d", minLen))
+		return errors.New(fmt.Sprintf("Must have secure token with minimum length of %d", minLen))
 	}
 
 	if _, err := os.Stat(c.GetHome()); os.IsNotExist(err) {
-		return errors.New( fmt.Sprintf("Home directory doesn't exists: %s", c.GetHome()))
+		return errors.New(fmt.Sprintf("Home directory doesn't exists: %s", c.GetHome()))
 	}
 
 	return nil
