@@ -5,6 +5,7 @@ import (
 	"github.com/spf13/cast"
 	"github.com/stretchr/testify/assert"
 	"testing"
+	"os"
 )
 
 func TestAutoRepair(t *testing.T) {
@@ -72,6 +73,9 @@ func TestTagsShouldContainsAutoAndRegularTags(t *testing.T) {
 
 func TestTokenLength(t *testing.T) {
 	c := newConfig()
+	home, _ := os.Getwd()
+	c.Home = home
+
 	var err error
 
 	c.Token, err = randutil.AlphaString(32)
@@ -86,6 +90,8 @@ func TestTokenLength(t *testing.T) {
 
 func TestEmptyTokenValidation(t *testing.T) {
 	c := newConfig()
+	home, _ := os.Getwd()
+	c.Home = home
 	c.Token = ""
 	assert.Error(t, c.Validate())
 }
