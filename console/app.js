@@ -257,6 +257,14 @@ var app = {
 	bindData : function(k, v) {
 		$('[data-bind="' + k + '"]', app.pageInstance()).html(v);
 	},
+	/**
+	 *
+	 * @param id
+	 * @param lines array of lines to be bounded
+     */
+	bindBashDataLines : function( id,lines ) {
+		app.bindData(id, ansi_up.ansi_to_html(lines.join("\n")) )
+	},
 
 	logout : function() {
 		delete localStorage['token'];
@@ -964,13 +972,13 @@ var app = {
 					$(resp.log_output).each(function(i, line) {
 						lis.push(line);
 					});
-					app.bindData('out', lis.join("\n"));
+					app.bindBashDataLines('out', lis);
 
 					var lis = [];
 					$(resp.log_error).each(function(i, line) {
 						lis.push(line);
 					});
-					app.bindData('err', lis.join("\n"));
+					app.bindBashDataLines('err', lis);
 				});
 			}
 		},
