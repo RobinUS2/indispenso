@@ -40,6 +40,7 @@ type Server struct {
 	consensus            *Consensus
 	executionCoordinator *ExecutionCoordinator
 	httpCheckStore       *HttpCheckStore
+	authService          *AuthService
 
 	InstanceId string // Unique ID generated at startup of the server, used for re-authentication and client-side refresh after and update/restart
 }
@@ -289,6 +290,8 @@ func (s *Server) Start() bool {
 	// Users
 	s.userStore = newUserStore()
 
+	s.authService = newAuthService(s.userStore)
+
 	// Templates
 	s.templateStore = newTemplateStore()
 
@@ -466,8 +469,8 @@ func PutUser2fa(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	}
 
 	// Validate
-	valid1 := user.ValidateTotp(value1)
-	valid2 := user.ValidateTotp(value2)
+	valid1,_ := user.ValidateTotp(value1)
+	valid2,_ := user.ValidateTotp(value2)
 	res := valid1 && valid2 // Both must match
 	if res == false {
 		jr.Error("The two tokens do not match. Make sure that the clock is set correctly on your mobile device and the Indispenso server.")
@@ -700,7 +703,7 @@ func PostConsensusRequest(w http.ResponseWriter, r *http.Request, ps httprouter.
 	}
 
 	// Verify two factor for, so that a hacked account can not request or execute anything without getting access to the 2fa device
-	if user.ValidateTotp(r.PostFormValue("totp")) == false {
+	if res,_:=user.ValidateTotp(r.PostFormValue("totp")); res == false {
 		jr.Error("Invalid two factor token")
 		fmt.Fprint(w, jr.ToString(debug))
 		return
@@ -920,36 +923,17 @@ func PostTemplate(w http.ResponseWriter, r *http.Request, ps httprouter.Params) 
 // Login
 func PostAuth(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	jr := jresp.NewJsonResp()
-	usr := strings.TrimSpace(r.PostFormValue("username"))
-	pwd := strings.TrimSpace(r.PostFormValue("password"))
-	token2fa := strings.TrimSpace(r.PostFormValue("2fa"))
 
-	// Fetch user
-	user := server.userStore.ByName(usr)
-
-	// Hash and check (also if there is no user to prevent timing attacks)
-	hash := ""
-	if user != nil {
-		hash = user.PasswordHash
-	} else {
-		// Fake password
-		hash = "JDJhJDExJDBnOVJ4cmo4OHhzeGliV2oucDFrLmUzQlYzN296OVBlU1JqNU1FVWNqVGVCZEEuaWtMS2oo"
+	authReq := &AuthRequest{
+		login: strings.TrimSpace(r.PostFormValue("username")),
+		credential: strings.TrimSpace(r.PostFormValue("password")),
+		token: strings.TrimSpace(r.PostFormValue("2fa")),
 	}
 
-	// Error message
-	errMsg := "Username / password / two-factor combination invalid"
-
-	// Authenticate
-	authRes := server.userStore.Auth(hash, pwd)
-	if !authRes || len(usr) < 1 || len(pwd) < 1 || user == nil || user.Enabled == false {
-		jr.Error(errMsg) // Message must be constant to not leak information
-		fmt.Fprint(w, jr.ToString(debug))
-		return
-	}
-
-	// Validate two factor token
-	if user.HasTwoFactor() && user.ValidateTotp(token2fa) == false {
-		jr.Error(errMsg) // Message must be constant to not leak information
+	user, err := server.authService.authUser(authReq)
+	if err != nil {
+		fmt.Print(err)
+		jr.Error( "Username / password / two-factor combination invalid" ) // Message must be constant to not leak information
 		fmt.Fprint(w, jr.ToString(debug))
 		return
 	}
@@ -1116,7 +1100,7 @@ func DeleteUser(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	}
 
 	// Verify two factor for deletion of a user
-	if usr.ValidateTotp(r.URL.Query().Get("admin_totp")) == false {
+	if res, _ := usr.ValidateTotp(r.URL.Query().Get("admin_totp")); res == false {
 		jr.Error("Invalid two factor token")
 		fmt.Fprint(w, jr.ToString(debug))
 		return
@@ -1157,7 +1141,7 @@ func PostUser(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	}
 
 	// Verify two factor for creation of new user, so that a hacked admin can not create a new user and use that to sign of for new commands
-	if usr.ValidateTotp(r.PostFormValue("admin_totp")) == false {
+	if res, _ := usr.ValidateTotp(r.PostFormValue("admin_totp")); res == false {
 		jr.Error("Invalid two factor token")
 		fmt.Fprint(w, jr.ToString(debug))
 		return

@@ -10,6 +10,7 @@ import (
 	"strings"
 	"sync"
 	"time"
+	"errors"
 )
 
 const TOTP_MAX_WINDOWS = 3
@@ -104,7 +105,7 @@ func (s *UserStore) CreateUser(username string, password string, email string, r
 }
 
 func (s *UserStore) HashPassword(pwd string) (string, error) {
-	b, e := bcrypt.GenerateFromPassword([]byte(pwd), bcrypt.DefaultCost+1)
+	b, e := bcrypt.GenerateFromPassword([]byte(pwd), bcrypt.DefaultCost + 1)
 	str := base64.URLEncoding.EncodeToString(b)
 	return str, e
 }
@@ -168,10 +169,10 @@ func (u *User) HasTwoFactor() bool {
 }
 
 // Validate totp token
-func (u *User) ValidateTotp(t string) bool {
+func (u *User) ValidateTotp(t string) (bool,error) {
 	// No token set / provided?
 	if len(u.TotpSecret) < 1 || len(strings.TrimSpace(t)) < 1 {
-		return false
+		return false, errors.New("Token not provided")
 	}
 
 	// Validate
@@ -179,8 +180,7 @@ func (u *User) ValidateTotp(t string) bool {
 		Secret:     u.TotpSecret,
 		WindowSize: TOTP_MAX_WINDOWS,
 	}
-	res, _ := cotp.Authenticate(t)
-	return res
+	return cotp.Authenticate(t)
 }
 
 func (u *User) HasRole(r string) bool {
