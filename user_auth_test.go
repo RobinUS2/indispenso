@@ -11,7 +11,7 @@ func TestUserStoreAuthWithoutSecondFactor(t *testing.T) {
 	user.TotpSecret = "dsafasfasfsafsafa"
 	user.TotpSecretValidated = true
 
-	usAuth := newUserStoreAuthenticator(userStore,nil)
+	usAuth := newUserStoreAuthenticator(userStore,FirstFactorAuth,nil)
 
 	res, err := usAuth.auth(nil,&AuthRequest{login:"test",credential:"test", token:""})
 
@@ -23,7 +23,7 @@ func TestUserStoreAuthWithoutSecondFactor(t *testing.T) {
 func TestAuthenticateUserOneFactor(t *testing.T) {
 	userStore := newUserStore()
 	userStore.CreateUser("test","test","test@test.pl", []string{})
-	usAuth := newUserStoreAuthenticator(userStore,nil)
+	usAuth := newUserStoreAuthenticator(userStore,FirstFactorAuth,nil)
 
 	res, err := usAuth.auth(nil,&AuthRequest{login:"test",credential:"test", token:""})
 	assert.NoError(t,err)
