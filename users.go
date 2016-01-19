@@ -3,6 +3,8 @@ package main
 import (
 	"encoding/base64"
 	"encoding/json"
+	"errors"
+	"fmt"
 	"github.com/dgryski/dgoogauth"
 	"github.com/nu7hatch/gouuid"
 	"golang.org/x/crypto/bcrypt"
@@ -10,7 +12,6 @@ import (
 	"strings"
 	"sync"
 	"time"
-	"errors"
 )
 
 const TOTP_MAX_WINDOWS = 3
@@ -22,7 +23,6 @@ const (
 	AUTH_TYPE_LDAP
 	AUTH_TYPE_TWO_FACTOR
 )
-
 
 // Users
 
@@ -108,7 +108,7 @@ func (s *UserStore) CreateUser(username string, password string, email string, r
 }
 
 func (s *UserStore) HashPassword(pwd string) (string, error) {
-	b, e := bcrypt.GenerateFromPassword([]byte(pwd), bcrypt.DefaultCost + 1)
+	b, e := bcrypt.GenerateFromPassword([]byte(pwd), bcrypt.DefaultCost+1)
 	str := base64.URLEncoding.EncodeToString(b)
 	return str, e
 }
@@ -125,14 +125,14 @@ func (s *UserStore) load() {
 			log.Printf("Invalid users.json: %s", je)
 			return
 		}
-		s.MigrateUsers( v )
+		s.MigrateUsers(v)
 		s.Users = v
 	}
 }
 
-func (s *UserStore) MigrateUsers( users []*User ){
+func (s *UserStore) MigrateUsers(users []*User) {
 	for _, v := range users {
-		if !v.IsAuthDefined(){
+		if !v.IsAuthDefined() {
 			if len(v.PasswordHash) > 0 {
 				v.AuthType |= AUTH_TYPE_LOCAL
 			}
@@ -141,6 +141,29 @@ func (s *UserStore) MigrateUsers( users []*User ){
 			}
 		}
 	}
+}
+
+func (s *UserStore) AddUser(login string, email string, authType AuthType) (*User, error) {
+	login = strings.TrimSpace(login)
+
+	// Check unique username
+	for _, usr := range s.Users {
+		if usr.Username == login {
+			return nil, fmt.Errorf("Cannot add new user (%s), user already exsists", login)
+		}
+	}
+
+	user := newUser()
+	user.Username = login
+	user.EmailAddress = email
+	user.Enabled = true
+	user.AuthType |= authType
+
+	s.usersMux.Lock()
+	defer s.usersMux.Unlock()
+	s.Users = append(s.Users, user)
+
+	return user, nil
 }
 
 func (s *UserStore) prepareDefaultUser() {
@@ -168,7 +191,7 @@ type User struct {
 	Username             string
 	EmailAddress         string
 	PasswordHash         string
-	AuthType			 AuthType
+	AuthType             AuthType
 	Enabled              bool
 	SessionToken         string
 	TotpSecret           string // Secret for time based 2-factor
@@ -186,20 +209,20 @@ func (u *User) HasTwoFactor() bool {
 	return u.IsAuthType(AUTH_TYPE_TWO_FACTOR) && u.LegacyHasTwoFactors()
 }
 
-func (u * User) LegacyHasTwoFactors() bool {
+func (u *User) LegacyHasTwoFactors() bool {
 	return len(u.TotpSecret) > 0 && u.TotpSecretValidated == true
 }
 
-func (u *User) IsAuthType(a AuthType ) bool{
-	return u.AuthType & a != 0
+func (u *User) IsAuthType(a AuthType) bool {
+	return u.AuthType&a != 0
 }
 
-func (u * User) IsAuthDefined() bool{
+func (u *User) IsAuthDefined() bool {
 	return u.AuthType != 0
 }
 
 // Validate totp token
-func (u *User) ValidateTotp(t string) (bool,error) {
+func (u *User) ValidateTotp(t string) (bool, error) {
 	// No token set / provided?
 	if len(u.TotpSecret) < 1 || len(strings.TrimSpace(t)) < 1 {
 		return false, errors.New("Token not provided")
