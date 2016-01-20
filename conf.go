@@ -36,7 +36,6 @@ func newConfig() *Conf {
 
 	viper.SetConfigName("indispenso")
 	viper.SetEnvPrefix("ind")
-	viper.SetConfigType("yaml")
 
 	// Defaults
 	viper.SetDefault("Token", "")
@@ -67,6 +66,12 @@ func newConfig() *Conf {
 	c.confFlags.Parse(os.Args[1:])
 	if len(*configFile) > 2 {
 		viper.SetConfigFile(*configFile)
+	}else{
+		legacyConfigFile := "/etc/indispenso/indispenso.conf"
+		if _, err := os.Stat(legacyConfigFile); err == nil {
+			viper.SetConfigFile(legacyConfigFile)
+			viper.SetConfigType("yaml")
+		}
 	}
 	viper.BindPFlags(c.confFlags)
 	viper.AutomaticEnv()
