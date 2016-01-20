@@ -36,6 +36,7 @@ func newConfig() *Conf {
 
 	viper.SetConfigName("indispenso")
 	viper.SetEnvPrefix("ind")
+	viper.SetConfigType("yaml")
 
 	// Defaults
 	viper.SetDefault("Token", "")
@@ -54,10 +55,10 @@ func newConfig() *Conf {
 	//Flags
 	c.confFlags = pflag.NewFlagSet(os.Args[0], pflag.ExitOnError)
 
-	configFile := c.confFlags.StringP("Config", "c", "", "Config file location default is /etc/indispenso/indispenso.{json,toml,yaml,yml,properties,props,prop}")
-	c.confFlags.BoolP("serverEnabled", "s", false, "Deine if server module shoud be started or not")
+	configFile := c.confFlags.StringP("config", "c", "", "Config file location default is /etc/indispenso/indispenso.{json,toml,yaml,yml,properties,props,prop}")
+	c.confFlags.BoolP("serverEnabled", "s", false, "Define if server module should be started or not")
 	c.confFlags.BoolP("debug", "d", false, "Enable debug mode")
-	c.confFlags.StringP("home", "p", defaultHomePath, "Home direcotry where all config files are located")
+	c.confFlags.StringP("home", "p", defaultHomePath, "Home directory where all config files are located")
 	c.confFlags.StringP("endpointUri", "e", "", "URI of server interface, used by client")
 	c.confFlags.StringP("token", "t", "", "Secret token")
 	c.confFlags.StringP("hostname", "i", getDefaultHostName(), "Hostname that is use to identify itself")

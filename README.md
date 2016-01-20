@@ -14,6 +14,44 @@ If this completes without errors you have a indispenso binary.
 
 ## Configuring
 
+### Compatibility
+
+If you are using previous version of indispenso you need to change configurations. For reference see tables below:
+
+Flags:
+
+ New version  | Old version
+------------- | -------------
+ - | auto-tag
+ - | server-port
+ - | client-port
+config  (c) | -
+serverEnabled (s)  | disable-server (use oposite value)
+debug (d) | debug
+home (p) | -
+endpointUri (e) | seed
+token (t) | -
+hostname (i) | hostname
+help (h) | -
+
+Configuration :
+
+ New version  | Old version   | Backward compatible<br />(auto translate)
+------------- | ------------- | :---------------------:
+ token  | secure_token | YES
+ hostname | - | NO
+ useAutoTag | - | NO
+ tagsList | tags | NO
+ serverEnabled | server_enabled | NO
+ endpointURI | seed | YES
+ serverPort | - | NO
+ sslCertFile | cert_file | NO
+ sslPrivateKeyFile | private_key_file | NO
+ autoGenerateCert | auto_generate_cert | NO
+ clientPort | - | NO
+ debug | - | NO
+
+
 ### Home directory
 
 Home directory is location of all indispenso configuration files. By default is located in ```/etc/indispenso```
@@ -24,6 +62,23 @@ If you want to change it, you can use environmental variable named ```$IND_HOME`
 or
     
     $ indispenso --home="/home/user"
+
+
+### Flags
+
+You can run indispenso with set of flags that configure application, below:
+
+    $ ./indispenso -h
+    Usage of indispenso:
+      -c, --config="": Config file location default is /etc/indispenso/indispenso.{json,toml,yaml,yml,properties,props,prop}
+      -d, --debug[=false]: Enable debug mode
+      -e, --endpointUri="": URI of server interface, used by client
+      -h, --help[=false]: Print help message
+      -p, --home="/etc/indispenso/": Home directory where all config files are located
+      -i, --hostname="localhost": Hostname that is use to identify itself
+      -s, --serverEnabled[=false]: Define if server module should be started or not
+      -t, --token="": Secret token
+
 
 ### SSL configuration
 
