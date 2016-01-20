@@ -3,9 +3,10 @@ package main
 import (
 	"github.com/jmcvetta/randutil"
 	"github.com/spf13/cast"
+	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
-	"testing"
 	"os"
+	"testing"
 )
 
 func TestAutoRepair(t *testing.T) {
@@ -94,4 +95,15 @@ func TestEmptyTokenValidation(t *testing.T) {
 	c.Home = home
 	c.Token = ""
 	assert.Error(t, c.Validate())
+}
+
+func TestLegacyOptionsAliasing(t *testing.T) {
+	viper.Reset()
+	viper.Set("source", "test")
+	UpdateLegacyString("target", "source")
+	assert.Equal(t, "", viper.GetString("target"))
+	UpdateLegacyString("source", "target")
+	assert.Equal(t, "test", viper.GetString("target"))
+	viper.Set("source", "newTest")
+	assert.Equal(t, "test", viper.GetString("target"))
 }

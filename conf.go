@@ -33,6 +33,7 @@ const defaultHomePath = "/etc/indispenso/"
 
 func newConfig() *Conf {
 	c := new(Conf)
+
 	viper.SetConfigName("indispenso")
 	viper.SetEnvPrefix("ind")
 
@@ -88,10 +89,26 @@ func (c *Conf) EnableAutoUpdate() {
 
 func (c *Conf) Update() {
 	log.Println("Updating config")
+
+	//Legacy config for client
+	UpdateLegacyString("seed", "endpointuri")
+	UpdateLegacyString("secure_token", "token")
+
 	viper.Unmarshal(c)
 	c.AutoRepair()
 	if c.Debug {
 		log.Printf("Configuration: %+v", c)
+	}
+}
+
+func UpdateLegacyString(from string, to string) {
+	val := viper.GetString(from)
+	if val == "" {
+		return
+	}
+
+	if viper.GetString(to) == "" {
+		viper.Set(to, viper.GetString(from))
 	}
 }
 
