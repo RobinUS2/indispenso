@@ -276,7 +276,7 @@ func newHttpCheckStore() *HttpCheckStore {
 	systemUser := newUser()
 	systemUser.AddRole("requester")
 	s := &HttpCheckStore{
-		ConfFile:   "/etc/indispenso/httpchecks.json",
+		ConfFile:   conf.HomeFile("httpchecks.json"),
 		Checks:     make(map[string]*HttpCheckConfiguration),
 		SystemUser: systemUser,
 	}

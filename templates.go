@@ -142,7 +142,7 @@ func (t *Template) GetExecutionStrategy() *ExecutionStrategy {
 
 func newTemplateStore() *TemplateStore {
 	s := &TemplateStore{
-		ConfFile:  "/etc/indispenso/templates.conf",
+		ConfFile:  conf.HomeFile("templates.conf"),
 		Templates: make(map[string]*Template),
 	}
 	s.load()

@@ -64,7 +64,7 @@ func (c *Cmd) SetState(state string) {
 // Validate the execution of a command, only on the server
 func (c *Cmd) _validate() {
 	// Only on the server
-	if conf.IsServer == false {
+	if !conf.ServerEnabled {
 		return
 	}
 

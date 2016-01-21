@@ -1,49 +1,236 @@
 package main
 
 import (
-	"github.com/kylelemons/go-gypsy/yaml"
+	"errors"
+	"fmt"
+	"github.com/spf13/cast"
+	"github.com/spf13/pflag"
+	"github.com/spf13/viper"
+	"gopkg.in/fsnotify.v1"
 	"os"
-	"path/filepath"
 	"regexp"
 	"strings"
-	"sync"
-	"time"
 )
 
-// Configuration
 type Conf struct {
-	Seed             string
-	SecureToken      string // Pre-shared token in configuration, never via the wire
-	CertFile         string // TLS certificate file
-	PrivateKeyFile   string // Private key file
-	IsServer         bool
-	AutoGenerateCert bool
-	tagsMux          sync.RWMutex
-	tags             map[string]bool
+	Token             string // Pre-shared token in configuration, never via the wire
+	Hostname          string
+	TagsList          []string
+	UseAutoTag        bool
+	ServerEnabled     bool
+	EndpointURI       string
+	ServerPort        int
+	SslCertFile       string // TLS certificate file
+	SslPrivateKeyFile string // Private key file
+	AutoGenerateCert  bool
+	ClientPort        int
+	Debug             bool
+	Home              string //home directory
+	confFlags         *pflag.FlagSet
 }
 
-// Get tags
-func (c *Conf) Tags() []string {
-	c.tagsMux.RLock()
-	defer c.tagsMux.RUnlock()
-	keys := make([]string, 0, len(c.tags))
-	for k := range c.tags {
-		keys = append(keys, k)
+const defaultHomePath = "/etc/indispenso/"
+
+func newConfig() *Conf {
+	c := new(Conf)
+
+	viper.SetConfigName("indispenso")
+	viper.SetEnvPrefix("ind")
+
+	// Defaults
+	viper.SetDefault("Token", "")
+	viper.SetDefault("Hostname", getDefaultHostName())
+	viper.SetDefault("UseAutoTag", true)
+	viper.SetDefault("ServerEnabled", false)
+	viper.SetDefault("Home", defaultHomePath)
+	viper.SetDefault("Debug", false)
+	viper.SetDefault("ServerPort", 897)
+	viper.SetDefault("EndpointURI", "")
+	viper.SetDefault("SslCertFile", "cert.pem")
+	viper.SetDefault("SslPrivateKeyFile", "key.pem")
+	viper.SetDefault("AutoGenerateCert", true)
+	viper.SetDefault("ClientPort", 898)
+
+	//Flags
+	c.confFlags = pflag.NewFlagSet(os.Args[0], pflag.ExitOnError)
+
+	configFile := c.confFlags.StringP("config", "c", "", "Config file location default is /etc/indispenso/indispenso.{json,toml,yaml,yml,properties,props,prop}")
+	c.confFlags.BoolP("serverEnabled", "s", false, "Define if server module should be started or not")
+	c.confFlags.BoolP("debug", "d", false, "Enable debug mode")
+	c.confFlags.StringP("home", "p", defaultHomePath, "Home directory where all config files are located")
+	c.confFlags.StringP("endpointUri", "e", "", "URI of server interface, used by client")
+	c.confFlags.StringP("token", "t", "", "Secret token")
+	c.confFlags.StringP("hostname", "i", getDefaultHostName(), "Hostname that is use to identify itself")
+	c.confFlags.BoolP("help", "h", false, "Print help message")
+
+	c.confFlags.Parse(os.Args[1:])
+	if len(*configFile) > 2 {
+		viper.SetConfigFile(*configFile)
+	}else{
+		legacyConfigFile := "/etc/indispenso/indispenso.conf"
+		if _, err := os.Stat(legacyConfigFile); err == nil {
+			viper.SetConfigFile(legacyConfigFile)
+			viper.SetConfigType("yaml")
+		}
 	}
-	return keys
+	viper.BindPFlags(c.confFlags)
+	viper.AutomaticEnv()
+
+	homePath := viper.GetString("Home")
+	if len(homePath) > 0 {
+		viper.AddConfigPath(homePath)
+	} else {
+		viper.AddConfigPath("config")
+	}
+
+	viper.ReadInConfig()
+	c.Update()
+	return c
+}
+
+func (c *Conf) EnableAutoUpdate() {
+	viper.OnConfigChange(func(in fsnotify.Event) { c.Update() })
+	viper.WatchConfig()
+}
+
+func (c *Conf) Update() {
+	log.Println("Updating config")
+
+	//Legacy config for client
+	//need to be replaced by aliases after this PR will be integrated into viper:
+	//https://github.com/spf13/viper/pull/155
+	UpdateLegacyString("seed", "endpointuri")
+	UpdateLegacyString("secure_token", "token")
+
+	viper.Unmarshal(c)
+	c.AutoRepair()
+	if c.Debug {
+		log.Printf("Configuration: %+v", c)
+	}
+}
+
+func UpdateLegacyString(from string, to string) {
+	val := viper.GetString(from)
+	if val == "" {
+		return
+	}
+
+	if viper.GetString(to) == "" {
+		viper.Set(to, viper.GetString(from))
+	}
+}
+
+func (c *Conf) IsHelp() bool {
+	return viper.GetBool("help")
+}
+
+func (c *Conf) AutoRepair() {
+	fullUriPattern, _ := regexp.Compile("(http[s]{0,1})://([^/:]+):?([0-9]{0,}).*")
+	if !fullUriPattern.MatchString(c.EndpointURI) {
+		protocol := "https"
+		host := getDefaultHostName()
+		port := cast.ToString(c.ServerPort)
+		hostWithPortPattern, _ := regexp.Compile("([^:/]+):?([0-9]{0,})")
+		repaired := false
+
+		if hostWithPortPattern.MatchString(c.EndpointURI) {
+			matches := hostWithPortPattern.FindAllStringSubmatch(c.EndpointURI, -1)
+			if val := matches[0][1]; val != "" {
+				host = val
+			}
+			if val := matches[0][2]; val != "" {
+				port = val
+			}
+			repaired = true
+		}
+
+		if repaired {
+			c.EndpointURI = fmt.Sprintf("%s://%s:%s/", protocol, host, port)
+			log.Printf("EndpointURI successfully reparied to: %s", c.EndpointURI)
+		}
+	}
+}
+
+func (c *Conf) PrintHelp() {
+	fmt.Println("Usage of indispenso:")
+	c.confFlags.PrintDefaults()
+	os.Exit(0)
+}
+
+func (c *Conf) GetSslPrivateKeyFile() string {
+	return c.HomeFile(c.SslPrivateKeyFile)
+}
+
+func (c *Conf) GetSslCertFile() string {
+	return c.HomeFile(c.SslCertFile)
+}
+
+func (c *Conf) ConfFile() string {
+	return viper.ConfigFileUsed()
+}
+
+func getDefaultHostName() string {
+	if hostname, err := os.Hostname(); err == nil {
+		return hostname
+	}
+	return "localhost"
+}
+
+func (c *Conf) GetHome() string {
+	if c.Home == "/" {
+		return c.Home
+	}
+	return strings.TrimRight(c.Home, "/")
+}
+
+func (c *Conf) HomeFile(fileName string) string {
+	return fmt.Sprintf("%s/%s", c.GetHome(), fileName)
+}
+
+func (c *Conf) ServerRequest(path string) string {
+	return fmt.Sprintf("%s/%s", strings.TrimRight(conf.EndpointURI, "/"), strings.TrimLeft(path, "/"))
+}
+
+func (c *Conf) Validate() error {
+	// Must have token
+	minLen := 32
+	if len(strings.TrimSpace(c.Token)) < minLen {
+		return errors.New(fmt.Sprintf("Must have secure token with minimum length of %d", minLen))
+	}
+
+	if _, err := os.Stat(c.GetHome()); os.IsNotExist(err) {
+		return errors.New(fmt.Sprintf("Home directory doesn't exists: %s", c.GetHome()))
+	}
+
+	return nil
+}
+
+func (c *Conf) isClientEnabled() bool {
+	return len(conf.EndpointURI) > 0
+}
+
+func (c *Conf) GetTags() []string {
+	tagsList := c.TagsList
+
+	if viper.GetBool("useautotag") {
+		autoTags := c.hostTagDiscovery()
+		tagsList = append(tagsList, autoTags...)
+	}
+
+	return tagsList
 }
 
 // Auto tag
-func (c *Conf) autoTag() {
-	c.tagsMux.Lock()
-	defer c.tagsMux.Unlock()
-	tokens := strings.FieldsFunc(hostname, func(r rune) bool {
+func (c *Conf) hostTagDiscovery() []string {
+
+	tokens := strings.FieldsFunc(c.Hostname, func(r rune) bool {
 		return r == '.' || r == '-' || r == '_'
 	})
+	ret := make([]string, 0, len(tokens))
 	numbersOnlyRegexp, _ := regexp.Compile("^[[:digit:]]+$")
 	numbersRegexp, _ := regexp.Compile("[[:digit:]]")
 	for _, token := range tokens {
-		cleanTag := c.cleanTag(token)
+		cleanTag := cleanTag(token)
 		// Min 2 characters && not just numbers && not only numbers
 		if len(cleanTag) >= 2 && !numbersOnlyRegexp.MatchString(cleanTag) {
 			// Count numbers
@@ -53,13 +240,15 @@ func (c *Conf) autoTag() {
 				// More than half is numbers, ignore
 				continue
 			}
-			c.tags[cleanTag] = true
+			ret = append(ret, cleanTag)
 		}
 	}
+
+	return ret
 }
 
 // Clean tag
-func (c *Conf) cleanTag(in string) string {
+func cleanTag(in string) string {
 	tagRegexp, _ := regexp.Compile("^[[:alnum:]-]+$")
 	cleanTag := strings.ToLower(strings.TrimSpace(in))
 	// Must be alphanumeric
@@ -67,122 +256,4 @@ func (c *Conf) cleanTag(in string) string {
 		return ""
 	}
 	return cleanTag
-}
-
-// Reload config every once in a while
-func (co *Conf) startAutoReload() {
-	go func() {
-		c := time.Tick(time.Duration(60) * time.Second)
-		for _ = range c {
-			co.load()
-		}
-	}()
-}
-
-// Load config files
-func (c *Conf) load() {
-	c.tagsMux.Lock()
-	defer c.tagsMux.Unlock()
-	mainConf := "/etc/indispenso/indispenso.conf"
-	additionalFilesPath := "/etc/indispenso/conf.d/*"
-	files, _ := filepath.Glob(additionalFilesPath)
-	files = append([]string{mainConf}, files...) // Prepend item
-	for _, file := range files {
-		if _, err := os.Stat(file); os.IsNotExist(err) {
-			// Not existing
-			continue
-		}
-
-		// Read
-		conf, confErr := yaml.ReadFile(file)
-		if confErr != nil {
-			log.Printf("Failed reading %s: %v", file, confErr)
-			continue
-		}
-
-		// Skip empty
-		if conf == nil {
-			continue
-		}
-
-		// Root map
-		if conf.Root == nil {
-			continue
-		}
-		rootMap := conf.Root.(yaml.Map)
-
-		// Read base conf
-		if file == mainConf {
-			// Seed
-			if rootMap.Key("seed") != nil {
-				seed := rootMap.Key("seed").(yaml.Scalar).String()
-				if len(seed) > 0 {
-					c.Seed = seed
-				}
-			}
-
-			// Secure token
-			if rootMap.Key("secure_token") != nil {
-				secureToken := rootMap.Key("secure_token").(yaml.Scalar).String()
-				if len(secureToken) > 0 {
-					c.SecureToken = secureToken
-				}
-			}
-
-			// Server
-			if rootMap.Key("server_enabled") != nil {
-				serverEnabled := rootMap.Key("server_enabled").(yaml.Scalar).String()
-				if len(serverEnabled) > 0 && (serverEnabled == "1" || serverEnabled == "true") {
-					c.IsServer = true
-				} else {
-					c.IsServer = false
-				}
-			}
-
-			c.CertFile = "./cert.pem"
-			if rootMap.Key("cert_file") != nil {
-				certFile := rootMap.Key("cert_file").(yaml.Scalar).String()
-				if len(certFile) > 1 {
-					c.CertFile = certFile
-				}
-			}
-
-			c.PrivateKeyFile = "./key.pem"
-			if rootMap.Key("private_key_file") != nil {
-				privateKeyFile := rootMap.Key("private_key_file").(yaml.Scalar).String()
-				if len(privateKeyFile) > 1 {
-					c.PrivateKeyFile = privateKeyFile
-				}
-			}
-
-			c.AutoGenerateCert = true
-			if rootMap.Key("auto_generate_cert") != nil {
-				autoGenerateCert := rootMap.Key("auto_generate_cert").(yaml.Scalar).String()
-				if len(autoGenerateCert) > 0 && autoGenerateCert == "false"  {
-					c.AutoGenerateCert = false
-				}
-			}
-		}
-
-		// Tags
-		if rootMap.Key("tags") != nil {
-			tags := rootMap.Key("tags").(yaml.List)
-			if tags != nil {
-				for _, tag := range tags {
-					cleanTag := c.cleanTag(tag.(yaml.Scalar).String())
-					if len(cleanTag) > 0 {
-						c.tags[cleanTag] = true
-					} else {
-						log.Printf("Invalid tag %s, must be alphanumeric", tag)
-					}
-				}
-			}
-		}
-	}
-}
-
-func newConf() *Conf {
-	return &Conf{
-		tags: make(map[string]bool),
-	}
 }

@@ -1,18 +1,26 @@
 #!/bin/bash
 
 # Update repo
-git pull
+#git pull
 
 # Build
 ../build.sh
 
+TOKEN=`openssl rand -base64 128 | tr -d '\n'`
 # Start the server
-../start_server.sh --debug="true" --client-port="-1" >>/out.log 2>&1 &
+export IND_HOME=`mktemp -d`
+export IND_SERVER_TOKEN=${TOKEN}
+echo -e "Starting server with home dir: ${IND_HOME}"
+../indispenso -d -s -t "${TOKEN}" > out_server.log 2>&1 &
 sleep 3
 
 # Start another few clients
-../indispenso --seed="https://127.0.0.1:897/" --hostname="client-one" --debug="true" --disable-server="true" >>/out.log 2>&1 &
-../indispenso --seed="https://127.0.0.1:897/" --hostname="client-two" --debug="true" --disable-server="true" --client-port="-1" >>/out.log 2>&1 &
+export IND_HOME=`mktemp -d`
+echo -e "Starting client 1 with home dir: ${IND_HOME}"
+../indispenso -i "client-one" -d -t "${TOKEN}" -e "localhost" > out_client1.log 2>&1 &
+export IND_HOME=`mktemp -d`
+echo -e "Starting client 2 with home dir: ${IND_HOME}"
+../indispenso -i "client-two" -d -t "${TOKEN}"  -e "localhost" > out_client2.log 2>&1 &
 
 # Shutdown after 30 seconds
 {
@@ -23,4 +31,4 @@ sleep 3
 } &
 
 # Read output
-tail -f /out.log
+tail -f out_server.log

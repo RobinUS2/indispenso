@@ -8,6 +8,8 @@ import (
 	"github.com/julienschmidt/httprouter"
 	"io/ioutil"
 	"net/http"
+	"os"
+	"path"
 )
 
 // Backup data from the server in a ZIP file
@@ -23,7 +25,7 @@ func GetBackupConfigs(w http.ResponseWriter, r *http.Request, ps httprouter.Para
 	// Must be admin
 	usr := getUser(r)
 	if !usr.HasRole("admin") {
-		jr.Error("Not authorized")
+		jr.Error("Not allowed")
 		fmt.Fprint(w, jr.ToString(debug))
 		return
 	}
@@ -35,16 +37,26 @@ func GetBackupConfigs(w http.ResponseWriter, r *http.Request, ps httprouter.Para
 	zw := zip.NewWriter(buf)
 
 	// Add some files to the archive.
+	//TOOD create struct and add files form respective modules
 	var files = []struct {
 		Name string
 	}{
-		{"users.json"},
-		{"templates.conf"},
-		{"httpchecks.json"},
+		{conf.HomeFile("users.json")},
+		{conf.HomeFile("templates.conf")},
+		{conf.HomeFile("httpchecks.json")},
+		{conf.GetSslCertFile()},
+		{conf.GetSslPrivateKeyFile()},
+		{conf.ConfFile()},
 	}
 	for _, file := range files {
+		fileName := file.Name
+		fmt.Println(file.Name)
+		if _, err := os.Stat(fileName); os.IsNotExist(err) {
+			continue
+		}
+
 		// Create file in zip archive
-		f, err := zw.Create(file.Name)
+		f, err := zw.Create(path.Base(file.Name))
 		if err != nil {
 			jr.Error(fmt.Sprintf("Failed creating zip: %s", err))
 			fmt.Fprint(w, jr.ToString(debug))
@@ -52,7 +64,7 @@ func GetBackupConfigs(w http.ResponseWriter, r *http.Request, ps httprouter.Para
 		}
 
 		// Read contents from file\
-		fileB, fileE := ioutil.ReadFile(fmt.Sprintf("/etc/indispenso/%s", file.Name))
+		fileB, fileE := ioutil.ReadFile(fileName)
 		if fileE != nil {
 			jr.Error(fmt.Sprintf("Failed creating zip: %s", fileE))
 			fmt.Fprint(w, jr.ToString(debug))
