@@ -101,6 +101,7 @@ func (c *Conf) Update() {
 	//https://github.com/spf13/viper/pull/155
 	UpdateLegacyString("seed", "endpointuri")
 	UpdateLegacyString("secure_token", "token")
+	UpdateLegacyBool("server_enabled", "serverEnabled", false)
 
 	viper.Unmarshal(c)
 	c.AutoRepair()
@@ -119,6 +120,18 @@ func UpdateLegacyString(from string, to string) {
 		viper.Set(to, viper.GetString(from))
 	}
 }
+
+func UpdateLegacyBool(from string, to string, defaultValue bool) {
+	val := viper.GetBool(from)
+	if val == defaultValue {
+		return
+	}
+
+	if viper.GetBool(to) == defaultValue {
+		viper.Set(to, viper.GetBool(from))
+	}
+}
+
 
 func (c *Conf) IsHelp() bool {
 	return viper.GetBool("help")

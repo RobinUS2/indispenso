@@ -42,7 +42,7 @@ Configuration :
  hostname | - | NO
  useAutoTag | - | NO
  tagsList | tags | NO
- serverEnabled | server_enabled | NO
+ serverEnabled | server_enabled | YES
  endpointURI | seed | YES
  serverPort | - | NO
  sslCertFile | cert_file | NO
