@@ -66,7 +66,7 @@ func newConfig() *Conf {
 	c.confFlags.Parse(os.Args[1:])
 	if len(*configFile) > 2 {
 		viper.SetConfigFile(*configFile)
-	}else{
+	} else {
 		legacyConfigFile := "/etc/indispenso/indispenso.conf"
 		if _, err := os.Stat(legacyConfigFile); err == nil {
 			viper.SetConfigFile(legacyConfigFile)
