@@ -97,6 +97,8 @@ func (c *Conf) Update() {
 	log.Println("Updating config")
 
 	//Legacy config for client
+	//need to be replaced by aliases after this PR will be integrated into viper:
+	//https://github.com/spf13/viper/pull/155
 	UpdateLegacyString("seed", "endpointuri")
 	UpdateLegacyString("secure_token", "token")
 
