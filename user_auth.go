@@ -110,6 +110,9 @@ func (a *GAuthAuthenticator) auth(user *User, ar *AuthRequest) (*User, error) {
 	if res, err := user.ValidateTotp(ar.token); res {
 		return user, nil
 	} else {
+		if err == nil{
+			err = errors.New("Invalid token/Unknown error")
+		}
 		return nil, err
 	}
 

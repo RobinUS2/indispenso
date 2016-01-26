@@ -23,7 +23,6 @@ const (
 	AUTH_TYPE_LDAP
 	AUTH_TYPE_TWO_FACTOR
 )
-
 // Users
 
 type UserStore struct {
@@ -142,6 +141,15 @@ func (s *UserStore) MigrateUsers(users []*User) {
 		}
 	}
 }
+
+func (s *UserStore) AuthTypes() map[string]int {
+	return map[string]int{
+		"Local":int(AUTH_TYPE_LOCAL),
+		"LDAP":int(AUTH_TYPE_LDAP),
+		"Two factor":int(AUTH_TYPE_TWO_FACTOR),
+	}
+}
+
 
 func (s *UserStore) AddUser(login string, email string, authType AuthType) (*User, error) {
 	login = strings.TrimSpace(login)

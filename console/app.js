@@ -43,6 +43,17 @@ var app = {
 		return v;
 	},
 
+	changeUser: function(values, username, token) {
+		values["username"] = username
+		values["token"] = token
+		app.ajax('/user', { method: 'PUT', data : values }).done(function(resp) {
+			var resp = app.handleResponse(resp);
+			if (resp.status === 'OK') {
+				app.showPage('users');
+			}
+		}, 'json');
+	},
+
 	showPage : function(input) {
 		// Params?
 		var qp = input.indexOf('?');
@@ -241,6 +252,17 @@ var app = {
 		opts["dataType"] = 'json';
 		var x = $.ajax(url, opts);
 		return x;
+	},
+
+	AuthMethods : function(type, authMethods ){
+		var res = [];
+		$.each(authMethods, function(key, value) {
+			if( type&value ) {
+				res.push(key);
+			}
+		});
+
+		return res.join(", ");
 	},
 
 	handleResponse : function(resp) {
@@ -541,11 +563,12 @@ var app = {
 						}
 						var obj = resp.users[k];
 						var lines = [];
-						lines.push('<tr>');
+						lines.push('<tr class="user-row" data-username="'+obj.Username+'">');
 						lines.push('<td>' + obj.Username + '</td>');
 						lines.push('<td>' + Object.keys(obj.Roles).join(', ') + '</td>');
-						lines.push('<td>' + (obj.TotpSecretValidated === true ? 'Yes' : 'No') + '</td>');
-						lines.push('<td><div class="btn-group btn-group-xs pull-right"><span class="btn btn-default delete-user" data-username="' + obj.Username + '"><i class="fa fa-trash-o" title="Delete"></i></span></div></td>');
+						lines.push('<td>' + app.AuthMethods( obj.AuthType,resp.authTypes ) + '</td>');
+						lines.push('<td><input type="checkbox" class="enable-user" '+ (obj.Enabled == true ? 'checked="checked"' : '')+' /></td>');
+						lines.push('<td><div class="btn-group btn-group-xs pull-right"><span class="btn btn-default delete-user"><i class="fa fa-trash-o" title="Delete"></i></span></div></td>');
 						lines.push('</tr>');
 						html.push(lines.join("\n"));
 					}
@@ -554,7 +577,7 @@ var app = {
 					
 
 					$('.delete-user').click(function() {
-						var username = $(this).attr('data-username');
+						var username = $(this).closest("tr").attr('data-username');
 						if (!confirm('Are you sure you want to delete "' + username + '"?')) {
 							return;
 						}
@@ -569,10 +592,30 @@ var app = {
 							}
 						});
 					});
+
+					$('.enable-user').change(function(e) {
+						e.preventDefault();
+						var username = $(this).closest("tr").attr('data-username');
+						var enableVal = $(this).is(':checked');
+						this.checked = !enableVal;
+
+						if (!confirm('Are you sure you want to '+( enableVal ? "enable" : "disable" )+' "' + username + '"?')) {
+							return;
+						}
+
+						// Admin totp challenge
+						var adminTotp = prompt("Please enter your own two factor token to authorize the change of a user", "");
+						if(adminTotp == null || adminTotp.length < 2) {
+							app.alert("danger","Invalid token", "Token is too short");
+							return;
+						}
+						app.changeUser({enable:enableVal},username, adminTotp);
+					});
 				});
 			},
 			unload : function() {
 				$('.delete-user').unbind('click');
+				$('.enable-user').unbind('click');
 			}
 		},
 

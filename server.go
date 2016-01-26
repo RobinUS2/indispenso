@@ -24,6 +24,7 @@ import (
 	"strings"
 	"sync"
 	"time"
+	"github.com/spf13/cast"
 )
 
 // Server methods (you probably only need one or two in HA failover mode)
@@ -356,6 +357,9 @@ func (s *Server) Start() bool {
 		// Remove user
 		router.DELETE("/user", DeleteUser)
 
+		//Change user
+		router.PUT("/user",ChangeUser)
+
 		// Consensus requests
 		router.POST("/consensus/request", PostConsensusRequest)
 		router.DELETE("/consensus/request", DeleteConsensusRequest)
@@ -491,6 +495,7 @@ func PutUser2fa(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	// Enable
 	if res {
 		user.TotpSecretValidated = true
+		user.AuthType |= AUTH_TYPE_TWO_FACTOR
 		server.userStore.save()
 	}
 
@@ -1145,7 +1150,7 @@ func PostUser(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	}
 	usr := getUser(r)
 	if !usr.HasRole("admin") {
-		jr.Error("User not allowed to PosUser")
+		jr.Error("User not allowed to PostUser")
 		fmt.Fprint(w, jr.ToString(debug))
 		return
 	}
@@ -1189,6 +1194,55 @@ func PostUser(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	fmt.Fprint(w, jr.ToString(debug))
 }
 
+// Modify user
+func ChangeUser(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+	jr := jresp.NewJsonResp()
+	if !authUser(r) {
+		jr.Error("User not authorized for Change User")
+		fmt.Fprint(w, jr.ToString(debug))
+		return
+	}
+	admin := getUser(r)
+	if !admin.HasRole("admin") {
+		jr.Error("User not allowed to Change User")
+		fmt.Fprint(w, jr.ToString(debug))
+		return
+	}
+
+	// Verify two factor for change user
+	if res, _ := admin.ValidateTotp(r.PostFormValue("token")); res == false {
+		jr.Error("Invalid two factor token")
+		fmt.Fprint(w, jr.ToString(debug))
+		return
+	}
+
+	// Username
+	username := r.PostFormValue("username")
+	user := server.userStore.ByName(username)
+	if user == nil {
+		jr.Error("Cannot find user to modify")
+		fmt.Fprint(w, jr.ToString(debug))
+		return
+	}
+	for key, _ := range r.PostForm {
+		switch key {
+			case "enable":
+				user.Enabled = cast.ToBool(r.PostFormValue(key))
+			case "username","token":
+				continue
+			default :
+				jr.Error("Invalid change request")
+				fmt.Fprint(w, jr.ToString(debug))
+				return
+		}
+	}
+
+	server.userStore.save();
+	jr.Set("changed", true)
+	jr.OK()
+	fmt.Fprint(w, jr.ToString(debug))
+}
+
 // Get user names
 func GetUsersNames(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	jr := jresp.NewJsonResp()
@@ -1211,6 +1265,7 @@ func GetUsersNames(w http.ResponseWriter, r *http.Request, ps httprouter.Params)
 	jr.OK()
 	fmt.Fprint(w, jr.ToString(debug))
 }
+
 
 // List users
 func GetUsers(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
@@ -1237,6 +1292,7 @@ func GetUsers(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 		users = append(users, user)
 	}
 	jr.Set("users", users)
+	jr.Set("authTypes", server.userStore.AuthTypes())
 	server.userStore.usersMux.RUnlock()
 	jr.OK()
 	fmt.Fprint(w, jr.ToString(debug))
