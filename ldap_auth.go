@@ -21,7 +21,7 @@ type LdapAuthenticator struct {
 
 func newLdapAuthenticator(c *LdapConfig, userStore LocalUserStore) *LdapAuthenticator {
 	if err := c.Init(); err != nil {
-		log.Fatal(fmt.Sprintf("Cannot initialize config %v due to: %s", c, err))
+		log.Fatal(fmt.Sprintf("Cannot initialize config %+v due to: %s", c, err))
 	}
 
 	a := new(LdapAuthenticator)
@@ -38,7 +38,7 @@ func newLdapAuthenticator(c *LdapConfig, userStore LocalUserStore) *LdapAuthenti
 func (a *LdapAuthenticator) Init() error {
 	conn, err := a.createConnection()
 	if err != nil {
-		return fmt.Errorf("Cannot connect to %s due to: %s", a.config.ServerAddress, err)
+		return fmt.Errorf("Cannot connect to %s due to: %s", a.config.GetAddress(), err)
 	}
 
 	if err := conn.Bind(a.config.ManagerDN, a.config.ManagerPassword); err != nil {
@@ -51,15 +51,15 @@ func (a *LdapAuthenticator) Init() error {
 
 func (c *LdapAuthenticator) createConnection() (conn *ldap.Conn, err error) {
 
-	if c.config.isTLS {
-		conn, err = ldap.Dial("tcp", c.config.ServerAddress)
+	if !c.config.isTLS {
+		conn, err = ldap.Dial("tcp", c.config.GetAddress())
 		if err != nil {
 			return
 		}
 		err = conn.StartTLS(c.config.tlsConfig)
 		return
 	} else {
-		return ldap.DialTLS("tcp", c.config.ServerAddress, c.config.tlsConfig)
+		return ldap.DialTLS("tcp", c.config.GetAddress(), c.config.tlsConfig)
 	}
 	return conn, nil
 }
@@ -152,6 +152,7 @@ func (c *LdapConfig) Init() error {
 		return nil
 	}
 
+
 	c.ldapConfMux.Lock()
 	defer c.ldapConfMux.Unlock()
 
@@ -174,6 +175,7 @@ func (c *LdapConfig) Init() error {
 		}
 	}
 
+	c.tlsConfig = &tls.Config{InsecureSkipVerify:false,ServerName:c.host}
 	c.initialized = true
 	return nil
 }

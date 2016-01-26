@@ -33,6 +33,7 @@ endpointUri (e) | seed
 token (t) | -
 hostname (i) | hostname
 help (h) | -
+enableLdap (l) | -
 
 Configuration :
 
@@ -50,6 +51,8 @@ Configuration :
  autoGenerateCert | auto_generate_cert | NO
  clientPort | - | NO
  debug | - | NO
+ LdapConfigFile | - | NO
+ EnableLdap | - | NO
 
 
 ### Home directory

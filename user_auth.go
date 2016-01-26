@@ -7,9 +7,7 @@ import (
 	"fmt"
 )
 
-var FirstFactorAuth = []Authenticator{
-	&LocalAuthenticator{},
-}
+var DefaultFirstFactorAuth = []Authenticator{ &LocalAuthenticator{} }
 
 type AuthRequest struct {
 	login      string
@@ -17,11 +15,11 @@ type AuthRequest struct {
 	token      string
 }
 
-func (ar *AuthRequest) Validate() (bool, error) {
+func (ar *AuthRequest) Validate() (error) {
 	if len(ar.login) < 1 || len(ar.credential) < 1 {
-		return false, errors.New("Empty login or credential")
+		return errors.New("Empty login or credential")
 	}
-	return true, nil
+	return nil
 }
 
 type Authenticator interface {
@@ -29,77 +27,73 @@ type Authenticator interface {
 }
 
 type AuthService struct {
-	authenticator Authenticator
-}
-
-func newAuthServiceWithLdap(us *UserStore, ldapConf *LdapConfig)(as *AuthService){
-
-	ldapAuthenticator := newLdapAuthenticator(ldapConf,us)
-	FirstFactorAuth = append(FirstFactorAuth,ldapAuthenticator)
-
-	return newAuthService(us)
-}
-
-func newAuthService(us *UserStore) (as *AuthService) {
-	as = new(AuthService)
-	GAuth := newGAuthAuthenticator()
-	as.authenticator = newUserStoreAuthenticator(us, FirstFactorAuth, GAuth)
-	return
-}
-
-func (as *AuthService) authUser(ar *AuthRequest) (*User, error) {
-	if r, err := ar.Validate(); r {
-		return nil, err
-	}
-	return as.authenticator.auth(nil, ar)
-}
-
-type UserStoreAuthenticator struct {
 	userStore        *UserStore
 	secondFactorAuth Authenticator
 	firstFactorAuth  []Authenticator
 }
 
-func newUserStoreAuthenticator(us *UserStore, ffAuth []Authenticator, sfAuth Authenticator) *UserStoreAuthenticator {
-	res := new(UserStoreAuthenticator)
-	res.firstFactorAuth = ffAuth
-	res.secondFactorAuth = sfAuth
-	res.userStore = us
-	return res
+
+func newAuthService(us *UserStore, ffAuth []Authenticator, sfAuth Authenticator) (as *AuthService) {
+	as = new(AuthService)
+	as.userStore = us
+	as.firstFactorAuth = ffAuth
+	as.secondFactorAuth = sfAuth
+	return
 }
 
-func (a *UserStoreAuthenticator) auth(user *User, ar *AuthRequest) (*User, error) {
-	if user == nil {
-		user = a.userStore.ByName(ar.login)
-		fmt.Println(user)
-		if user != nil {
-			if !user.Enabled {
-				return nil, errors.New("User not enabled")
-			}
-			if !user.IsAuthDefined() {
-				return nil, errors.New("User doesn't have auth type configured")
-			}
+func (as *AuthService) appendFirstFactor( auth Authenticator ) {
+	as.firstFactorAuth = append(as.firstFactorAuth,auth)
+}
+
+func (as *AuthService) authUser(ar *AuthRequest) (user *User, err error) {
+
+	if err = ar.Validate(); err != nil {
+		return
+	}
+
+	user, err = as.getValidUser(ar)
+	if err != nil {
+		return
+	}
+	user, err = as.performFirstFactorAuth(user,ar)
+	if err != nil || user == nil {
+		return nil, fmt.Errorf("User not authenticated, last authenticator error: %s", err)
+	}
+
+	if as.secondFactorAuth != nil && user.HasTwoFactor() {
+		return as.secondFactorAuth.auth(user, ar)
+	}
+
+	return
+}
+
+func (as *AuthService) getValidUser(ar *AuthRequest) (user *User, err error){
+	user = as.userStore.ByName(ar.login)
+
+	if user != nil {
+		if !user.Enabled {
+			return nil, errors.New("User not enabled")
+		}
+		if !user.IsAuthDefined() {
+			return nil, errors.New("User doesn't have auth type configured")
 		}
 	}
 
-	var err error
-	for _, v := range a.firstFactorAuth {
-		user, err = v.auth(user, ar)
+	return
+}
+
+func (as *AuthService) performFirstFactorAuth(user *User, ar *AuthRequest) (authenticatedUser *User, err error) {
+	err = errors.New("Misconfigured Auth Service, there are no First Factor Authenticators defined")
+	for _, v := range as.firstFactorAuth {
+		authenticatedUser, err = v.auth(user, ar)
 		if err == nil {
-			break
+			return
 		}
 	}
 
-	if user == nil {
-		return nil, fmt.Errorf("User not found, last authenticator error: %s", err)
-	}
-
-	if a.secondFactorAuth != nil && user.HasTwoFactor() {
-		return a.secondFactorAuth.auth(user, ar)
-	}
-
-	return user, nil
+	return user, err
 }
+
 
 type GAuthAuthenticator struct{}
 

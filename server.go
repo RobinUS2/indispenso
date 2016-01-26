@@ -288,9 +288,9 @@ func _generateCertificate(fileName string, privateKey *rsa.PrivateKey, validPeri
 // Start server
 func (s *Server) Start() bool {
 	// Users
-	s.userStore = newUserStore()
+	s.userStore = newUserStore(conf.HomeFile("users.json"))
 
-	s.authService = newAuthService(s.userStore)
+	s.authService = createAuthService(s.userStore)
 
 	// Templates
 	s.templateStore = newTemplateStore()
@@ -400,6 +400,16 @@ func (s *Server) Start() bool {
 	}()
 
 	return true
+}
+
+func createAuthService(us *UserStore) *AuthService{
+	as := newAuthService(us,DefaultFirstFactorAuth,newGAuthAuthenticator())
+
+	if conf.EnableLdap {
+		as.appendFirstFactor( newLdapAuthenticator(conf.ldapConfig, us) )
+	}
+
+	return as
 }
 
 // Get logs from dispatched job

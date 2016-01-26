@@ -26,6 +26,11 @@ type Conf struct {
 	ClientPort        int
 	Debug             bool
 	Home              string //home directory
+	LdapConfigFile    string
+	EnableLdap		  bool
+    //
+	ldapConfig        *LdapConfig
+	ldapViper		  *viper.Viper
 	confFlags         *pflag.FlagSet
 }
 
@@ -33,6 +38,8 @@ const defaultHomePath = "/etc/indispenso/"
 
 func newConfig() *Conf {
 	c := new(Conf)
+	c.ldapViper = viper.New()
+	c.ldapConfig = &LdapConfig{}
 
 	viper.SetConfigName("indispenso")
 	viper.SetEnvPrefix("ind")
@@ -50,6 +57,8 @@ func newConfig() *Conf {
 	viper.SetDefault("SslPrivateKeyFile", "key.pem")
 	viper.SetDefault("AutoGenerateCert", true)
 	viper.SetDefault("ClientPort", 898)
+	viper.SetDefault("EnableLdap", false)
+	viper.SetDefault("LdapConfigFile", "")
 
 	//Flags
 	c.confFlags = pflag.NewFlagSet(os.Args[0], pflag.ExitOnError)
@@ -61,6 +70,7 @@ func newConfig() *Conf {
 	c.confFlags.StringP("endpointUri", "e", "", "URI of server interface, used by client")
 	c.confFlags.StringP("token", "t", "", "Secret token")
 	c.confFlags.StringP("hostname", "i", getDefaultHostName(), "Hostname that is use to identify itself")
+	c.confFlags.BoolP("enableLdap", "l", false, "Enable LDAP authentication")
 	c.confFlags.BoolP("help", "h", false, "Print help message")
 
 	c.confFlags.Parse(os.Args[1:])
@@ -76,14 +86,11 @@ func newConfig() *Conf {
 	viper.BindPFlags(c.confFlags)
 	viper.AutomaticEnv()
 
-	homePath := viper.GetString("Home")
-	if len(homePath) > 0 {
-		viper.AddConfigPath(homePath)
-	} else {
-		viper.AddConfigPath("config")
-	}
-
 	viper.ReadInConfig()
+
+	c.setupHome(nil,viper.GetString("Home"))
+	c.setupHome( c.ldapViper,  viper.GetString("Home") )
+
 	c.Update()
 	return c
 }
@@ -91,6 +98,19 @@ func newConfig() *Conf {
 func (c *Conf) EnableAutoUpdate() {
 	viper.OnConfigChange(func(in fsnotify.Event) { c.Update() })
 	viper.WatchConfig()
+}
+
+func (c *Conf) setupHome(viperConf *viper.Viper, homePath string){
+	configPath := "config"
+	if len(homePath) > 0 {
+		configPath = homePath
+	}
+
+	if viperConf != nil {
+		viperConf.AddConfigPath(configPath)
+	}else{
+		viper.AddConfigPath(configPath)
+	}
 }
 
 func (c *Conf) Update() {
@@ -104,10 +124,22 @@ func (c *Conf) Update() {
 	UpdateLegacyBool("server_enabled", "serverEnabled", false)
 
 	viper.Unmarshal(c)
+	if c.EnableLdap {
+		c.setupLdapViper()
+		c.ldapViper.ReadInConfig()
+		c.ldapViper.Unmarshal(c.ldapConfig)
+	}
+
 	c.AutoRepair()
 	if c.Debug {
 		log.Printf("Configuration: %+v", c)
 	}
+}
+
+func (c *Conf) setupLdapViper(){
+	c.ldapViper.SetConfigFile(c.LdapConfigFile)
+	c.ldapViper.SetConfigName("ldap")
+	c.setupHome(c.ldapViper,c.Home)
 }
 
 func UpdateLegacyString(from string, to string) {

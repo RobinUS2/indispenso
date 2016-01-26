@@ -122,7 +122,7 @@ func (s *UserStore) load() {
 		var v []*User
 		je := json.Unmarshal(bytes, &v)
 		if je != nil {
-			log.Printf("Invalid users.json: %s", je)
+			log.Printf("Invalid user storage file (%s): %s", s.ConfFile, je)
 			return
 		}
 		s.MigrateUsers(v)
@@ -271,10 +271,10 @@ func newUser() *User {
 	}
 }
 
-func newUserStore() *UserStore {
+func newUserStore(confFile string) *UserStore {
 	store := &UserStore{
 		Users:    make([]*User, 0),
-		ConfFile: conf.HomeFile("users.json"),
+		ConfFile: confFile,
 	}
 	store.load()
 	store.prepareDefaultUser()
