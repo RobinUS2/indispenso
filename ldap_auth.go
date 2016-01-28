@@ -161,7 +161,7 @@ func (c *LdapConfig) Init() error {
 	regExp, _ := regexp.Compile("(ldaps?)://([^/:]+):?([0-9]{0,})?")
 
 	if !regExp.MatchString(c.ServerAddress) {
-		return errors.New("Cannot parse srever address")
+		return errors.New("Cannot parse server address")
 	}
 
 	matches := regExp.FindAllStringSubmatch(c.ServerAddress, -1)
