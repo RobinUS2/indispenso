@@ -2,16 +2,16 @@ package main
 
 import (
 	"github.com/stretchr/testify/assert"
-	"testing"
 	"github.com/stretchr/testify/mock"
+	"testing"
 )
 
 type AuthenticatorMock struct {
 	mock.Mock
 }
 
-func (m *AuthenticatorMock) auth(user *User, ar *AuthRequest) (*User, error){
-	args := m.Called(user,ar)
+func (m *AuthenticatorMock) auth(user *User, ar *AuthRequest) (*User, error) {
+	args := m.Called(user, ar)
 	userRet := args.Get(0)
 	if userRet == nil {
 		return user, args.Error(1)
@@ -21,7 +21,7 @@ func (m *AuthenticatorMock) auth(user *User, ar *AuthRequest) (*User, error){
 }
 
 func TestAuthWithoutSecondFactor(t *testing.T) {
-	userStore :=  &UserStore{}
+	userStore := &UserStore{}
 	userStore.CreateUser("test", "test", "test@test.pl", []string{})
 	user := userStore.ByName("test")
 	user.TotpSecret = "dsafasfasfsafsafa"
@@ -42,19 +42,18 @@ func TestAuthenticateUserOneFactor(t *testing.T) {
 	userStore.CreateUser("test", "test", "test@test.pl", []string{})
 	usAuth := newAuthService(userStore, DefaultFirstFactorAuth, nil)
 
-	res, err := usAuth.authUser( &AuthRequest{login: "test", credential: "test", token: ""})
+	res, err := usAuth.authUser(&AuthRequest{login: "test", credential: "test", token: ""})
 	assert.NoError(t, err)
 	assert.Equal(t, "test", res.Username)
 	assert.Equal(t, "test@test.pl", res.EmailAddress)
 }
-
 
 func TestExistingUserWithIncorrectPassword(t *testing.T) {
 	userStore := &UserStore{}
 	userStore.CreateUser("test", "test", "test@test.pl", []string{})
 	usAuth := newAuthService(userStore, DefaultFirstFactorAuth, nil)
 
-	res, err := usAuth.authUser( &AuthRequest{login: "test", credential: "test_incorrect", token: ""})
+	res, err := usAuth.authUser(&AuthRequest{login: "test", credential: "test_incorrect", token: ""})
 	assert.Error(t, err)
 	assert.Nil(t, res)
 }
@@ -62,14 +61,14 @@ func TestExistingUserWithIncorrectPassword(t *testing.T) {
 func TestPerformFFAuthWithNoAuthenticatorProvided(t *testing.T) {
 	as := &AuthService{}
 	_, err := as.performFirstFactorAuth(&User{}, &AuthRequest{})
-	assert.Error(t,err)
+	assert.Error(t, err)
 }
 
 func TestValidUserNotFound(t *testing.T) {
-	as := newAuthService(&UserStore{},DefaultFirstFactorAuth,nil)
-	user,err := as.getValidUser(&AuthRequest{login:"test", credential:"test"})
-	assert.NoError(t,err)
-	assert.Nil(t,user)
+	as := newAuthService(&UserStore{}, DefaultFirstFactorAuth, nil)
+	user, err := as.getValidUser(&AuthRequest{login: "test", credential: "test"})
+	assert.NoError(t, err)
+	assert.Nil(t, user)
 }
 
 func TestFewFirstFactorAuth(t *testing.T) {
@@ -79,12 +78,12 @@ func TestFewFirstFactorAuth(t *testing.T) {
 	testUser := userStore.ByName("test")
 
 	testAuth := new(AuthenticatorMock)
-	testAuth.On("auth",mock.AnythingOfType("*main.User"),mock.AnythingOfType("*main.AuthRequest")).Return(nil,nil)
+	testAuth.On("auth", mock.AnythingOfType("*main.User"), mock.AnythingOfType("*main.AuthRequest")).Return(nil, nil)
 	usAuth.appendFirstFactor(testAuth)
 
-	res, err := usAuth.authUser( &AuthRequest{login: "test", credential: "test_incorrect", token: ""})
+	res, err := usAuth.authUser(&AuthRequest{login: "test", credential: "test_incorrect", token: ""})
 	assert.NoError(t, err)
-	assert.Equal(t, testUser,res)
+	assert.Equal(t, testUser, res)
 
 	testAuth.AssertExpectations(t)
 }

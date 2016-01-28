@@ -3,11 +3,11 @@ package main
 import (
 	"encoding/base64"
 	"errors"
-	"golang.org/x/crypto/bcrypt"
 	"fmt"
+	"golang.org/x/crypto/bcrypt"
 )
 
-var DefaultFirstFactorAuth = []Authenticator{ &LocalAuthenticator{} }
+var DefaultFirstFactorAuth = []Authenticator{&LocalAuthenticator{}}
 
 type AuthRequest struct {
 	login      string
@@ -15,7 +15,7 @@ type AuthRequest struct {
 	token      string
 }
 
-func (ar *AuthRequest) Validate() (error) {
+func (ar *AuthRequest) Validate() error {
 	if len(ar.login) < 1 || len(ar.credential) < 1 {
 		return errors.New("Empty login or credential")
 	}
@@ -32,7 +32,6 @@ type AuthService struct {
 	firstFactorAuth  []Authenticator
 }
 
-
 func newAuthService(us *UserStore, ffAuth []Authenticator, sfAuth Authenticator) (as *AuthService) {
 	as = new(AuthService)
 	as.userStore = us
@@ -41,8 +40,8 @@ func newAuthService(us *UserStore, ffAuth []Authenticator, sfAuth Authenticator)
 	return
 }
 
-func (as *AuthService) appendFirstFactor( auth Authenticator ) {
-	as.firstFactorAuth = append(as.firstFactorAuth,auth)
+func (as *AuthService) appendFirstFactor(auth Authenticator) {
+	as.firstFactorAuth = append(as.firstFactorAuth, auth)
 }
 
 func (as *AuthService) authUser(ar *AuthRequest) (user *User, err error) {
@@ -55,7 +54,7 @@ func (as *AuthService) authUser(ar *AuthRequest) (user *User, err error) {
 	if err != nil {
 		return
 	}
-	user, err = as.performFirstFactorAuth(user,ar)
+	user, err = as.performFirstFactorAuth(user, ar)
 	if err != nil || user == nil {
 		return nil, fmt.Errorf("User not authenticated, last authenticator error: %s", err)
 	}
@@ -67,7 +66,7 @@ func (as *AuthService) authUser(ar *AuthRequest) (user *User, err error) {
 	return
 }
 
-func (as *AuthService) getValidUser(ar *AuthRequest) (user *User, err error){
+func (as *AuthService) getValidUser(ar *AuthRequest) (user *User, err error) {
 	user = as.userStore.ByName(ar.login)
 
 	if user != nil {
@@ -94,7 +93,6 @@ func (as *AuthService) performFirstFactorAuth(user *User, ar *AuthRequest) (auth
 	return user, err
 }
 
-
 type GAuthAuthenticator struct{}
 
 func newGAuthAuthenticator() *GAuthAuthenticator {
@@ -110,7 +108,7 @@ func (a *GAuthAuthenticator) auth(user *User, ar *AuthRequest) (*User, error) {
 	if res, err := user.ValidateTotp(ar.token); res {
 		return user, nil
 	} else {
-		if err == nil{
+		if err == nil {
 			err = errors.New("Invalid token/Unknown error")
 		}
 		return nil, err

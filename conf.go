@@ -27,11 +27,11 @@ type Conf struct {
 	Debug             bool
 	Home              string //home directory
 	LdapConfigFile    string
-	EnableLdap		  bool
-    //
-	ldapConfig        *LdapConfig
-	ldapViper		  *viper.Viper
-	confFlags         *pflag.FlagSet
+	EnableLdap        bool
+	//
+	ldapConfig *LdapConfig
+	ldapViper  *viper.Viper
+	confFlags  *pflag.FlagSet
 }
 
 const defaultHomePath = "/etc/indispenso/"
@@ -88,8 +88,8 @@ func newConfig() *Conf {
 
 	viper.ReadInConfig()
 
-	c.setupHome(nil,viper.GetString("Home"))
-	c.setupHome( c.ldapViper,  viper.GetString("Home") )
+	c.setupHome(nil, viper.GetString("Home"))
+	c.setupHome(c.ldapViper, viper.GetString("Home"))
 
 	c.Update()
 	return c
@@ -100,7 +100,7 @@ func (c *Conf) EnableAutoUpdate() {
 	viper.WatchConfig()
 }
 
-func (c *Conf) setupHome(viperConf *viper.Viper, homePath string){
+func (c *Conf) setupHome(viperConf *viper.Viper, homePath string) {
 	configPath := "config"
 	if len(homePath) > 0 {
 		configPath = homePath
@@ -108,7 +108,7 @@ func (c *Conf) setupHome(viperConf *viper.Viper, homePath string){
 
 	if viperConf != nil {
 		viperConf.AddConfigPath(configPath)
-	}else{
+	} else {
 		viper.AddConfigPath(configPath)
 	}
 }
@@ -136,10 +136,10 @@ func (c *Conf) Update() {
 	}
 }
 
-func (c *Conf) setupLdapViper(){
+func (c *Conf) setupLdapViper() {
 	c.ldapViper.SetConfigFile(c.LdapConfigFile)
 	c.ldapViper.SetConfigName("ldap")
-	c.setupHome(c.ldapViper,c.Home)
+	c.setupHome(c.ldapViper, c.Home)
 }
 
 func UpdateLegacyString(from string, to string) {
@@ -163,7 +163,6 @@ func UpdateLegacyBool(from string, to string, defaultValue bool) {
 		viper.Set(to, viper.GetBool(from))
 	}
 }
-
 
 func (c *Conf) IsHelp() bool {
 	return viper.GetBool("help")

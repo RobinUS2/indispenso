@@ -15,6 +15,7 @@ import (
 	"github.com/julienschmidt/httprouter"
 	"github.com/nu7hatch/gouuid"
 	"github.com/petar/rsc/qr"
+	"github.com/spf13/cast"
 	"io/ioutil"
 	"math/big"
 	"net"
@@ -24,7 +25,6 @@ import (
 	"strings"
 	"sync"
 	"time"
-	"github.com/spf13/cast"
 )
 
 // Server methods (you probably only need one or two in HA failover mode)
@@ -358,7 +358,7 @@ func (s *Server) Start() bool {
 		router.DELETE("/user", DeleteUser)
 
 		//Change user
-		router.PUT("/user",ChangeUser)
+		router.PUT("/user", PutUser)
 
 		// Consensus requests
 		router.POST("/consensus/request", PostConsensusRequest)
@@ -406,11 +406,11 @@ func (s *Server) Start() bool {
 	return true
 }
 
-func createAuthService(us *UserStore) *AuthService{
-	as := newAuthService(us,DefaultFirstFactorAuth,newGAuthAuthenticator())
+func createAuthService(us *UserStore) *AuthService {
+	as := newAuthService(us, DefaultFirstFactorAuth, newGAuthAuthenticator())
 
 	if conf.EnableLdap {
-		as.appendFirstFactor( newLdapAuthenticator(conf.ldapConfig, us) )
+		as.appendFirstFactor(newLdapAuthenticator(conf.ldapConfig, us))
 	}
 
 	return as
@@ -483,8 +483,8 @@ func PutUser2fa(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	}
 
 	// Validate
-	valid1,_ := user.ValidateTotp(value1)
-	valid2,_ := user.ValidateTotp(value2)
+	valid1, _ := user.ValidateTotp(value1)
+	valid2, _ := user.ValidateTotp(value2)
 	res := valid1 && valid2 // Both must match
 	if res == false {
 		jr.Error("The two tokens do not match. Make sure that the clock is set correctly on your mobile device and the Indispenso server.")
@@ -718,7 +718,7 @@ func PostConsensusRequest(w http.ResponseWriter, r *http.Request, ps httprouter.
 	}
 
 	// Verify two factor for, so that a hacked account can not request or execute anything without getting access to the 2fa device
-	if res,_:=user.ValidateTotp(r.PostFormValue("totp")); res == false {
+	if res, _ := user.ValidateTotp(r.PostFormValue("totp")); res == false {
 		jr.Error("Invalid two factor token")
 		fmt.Fprint(w, jr.ToString(debug))
 		return
@@ -940,15 +940,15 @@ func PostAuth(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	jr := jresp.NewJsonResp()
 
 	authReq := &AuthRequest{
-		login: strings.TrimSpace(r.PostFormValue("username")),
+		login:      strings.TrimSpace(r.PostFormValue("username")),
 		credential: strings.TrimSpace(r.PostFormValue("password")),
-		token: strings.TrimSpace(r.PostFormValue("2fa")),
+		token:      strings.TrimSpace(r.PostFormValue("2fa")),
 	}
 
 	user, err := server.authService.authUser(authReq)
 	if err != nil {
-		log.Printf("%s\n",err)
-		jr.Error( "Username / password / two-factor combination invalid" ) // Message must be constant to not leak information
+		log.Printf("%s\n", err)
+		jr.Error("Username / password / two-factor combination invalid") // Message must be constant to not leak information
 		fmt.Fprint(w, jr.ToString(debug))
 		return
 	}
@@ -1195,7 +1195,7 @@ func PostUser(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 }
 
 // Modify user
-func ChangeUser(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+func PutUser(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	jr := jresp.NewJsonResp()
 	if !authUser(r) {
 		jr.Error("User not authorized for Change User")
@@ -1226,18 +1226,18 @@ func ChangeUser(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	}
 	for key, _ := range r.PostForm {
 		switch key {
-			case "enable":
-				user.Enabled = cast.ToBool(r.PostFormValue(key))
-			case "username","token":
-				continue
-			default :
-				jr.Error("Invalid change request")
-				fmt.Fprint(w, jr.ToString(debug))
-				return
+		case "enable":
+			user.Enabled = cast.ToBool(r.PostFormValue(key))
+		case "username", "token":
+			continue
+		default:
+			jr.Error("Invalid change request")
+			fmt.Fprint(w, jr.ToString(debug))
+			return
 		}
 	}
 
-	server.userStore.save();
+	server.userStore.save()
 	jr.Set("changed", true)
 	jr.OK()
 	fmt.Fprint(w, jr.ToString(debug))
@@ -1265,7 +1265,6 @@ func GetUsersNames(w http.ResponseWriter, r *http.Request, ps httprouter.Params)
 	jr.OK()
 	fmt.Fprint(w, jr.ToString(debug))
 }
-
 
 // List users
 func GetUsers(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {

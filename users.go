@@ -7,12 +7,12 @@ import (
 	"fmt"
 	"github.com/dgryski/dgoogauth"
 	"github.com/nu7hatch/gouuid"
+	"github.com/oleiade/reflections"
 	"golang.org/x/crypto/bcrypt"
 	"io/ioutil"
 	"strings"
 	"sync"
 	"time"
-	"github.com/oleiade/reflections"
 )
 
 const TOTP_MAX_WINDOWS = 3
@@ -24,6 +24,7 @@ const (
 	AUTH_TYPE_LDAP
 	AUTH_TYPE_TWO_FACTOR
 )
+
 // Users
 
 type UserStore struct {
@@ -130,11 +131,11 @@ func (s *UserStore) load() {
 	}
 }
 
-func (s *UserStore)UpdateUser(user *User, changes map[string]interface{}) ( err error) {
+func (s *UserStore) UpdateUser(user *User, changes map[string]interface{}) (err error) {
 	u := s.ByName(user.Username)
 	u.mux.Lock()
-	for k,v := range changes {
-		err = reflections.SetField(u,k,v)
+	for k, v := range changes {
+		err = reflections.SetField(u, k, v)
 	}
 	u.mux.Unlock()
 
@@ -145,8 +146,6 @@ func (s *UserStore)UpdateUser(user *User, changes map[string]interface{}) ( err 
 	s.save()
 	return nil
 }
-
-
 
 func (s *UserStore) MigrateUsers(users []*User) {
 	for _, v := range users {
@@ -163,12 +162,11 @@ func (s *UserStore) MigrateUsers(users []*User) {
 
 func (s *UserStore) AuthTypes() map[string]int {
 	return map[string]int{
-		"Local":int(AUTH_TYPE_LOCAL),
-		"LDAP":int(AUTH_TYPE_LDAP),
-		"Two factor":int(AUTH_TYPE_TWO_FACTOR),
+		"Local":      int(AUTH_TYPE_LOCAL),
+		"LDAP":       int(AUTH_TYPE_LDAP),
+		"Two factor": int(AUTH_TYPE_TWO_FACTOR),
 	}
 }
-
 
 func (s *UserStore) AddUser(login string, email string, authType AuthType) (*User, error) {
 	login = strings.TrimSpace(login)

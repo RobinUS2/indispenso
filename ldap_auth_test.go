@@ -29,5 +29,5 @@ func TestInvalidProtocol(t *testing.T) {
 	config := &LdapConfig{ServerAddress: "http://123.test.local"}
 	err := config.Init()
 
-	assert.EqualError(t, err, "Cannot parse srever address")
+	assert.EqualError(t, err, "Cannot parse server address")
 }

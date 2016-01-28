@@ -11,7 +11,7 @@ import (
 
 type LocalUserStore interface {
 	AddUser(login string, email string, authType AuthType) (*User, error)
-	UpdateUser(user *User,changes map[string]interface{}) (error)
+	UpdateUser(user *User, changes map[string]interface{}) error
 }
 
 type LdapAuthenticator struct {
@@ -96,7 +96,7 @@ func (a *LdapAuthenticator) auth(user *User, ar *AuthRequest) (*User, error) {
 		}
 	} else {
 		//update user info form LDAP
-		a.userStore.UpdateUser(user, map[string]interface{}{ "EmailAddress": userEntry.GetAttributeValue(a.config.EmailAttr)})
+		a.userStore.UpdateUser(user, map[string]interface{}{"EmailAddress": userEntry.GetAttributeValue(a.config.EmailAttr)})
 	}
 	return user, nil
 }
@@ -145,7 +145,7 @@ type LdapConfig struct {
 }
 
 func (c *LdapConfig) GetUserSearchFilter(login string) string {
-	return fmt.Sprintf("(&(%s))",fmt.Sprintf(c.UserSearchFilter, login))
+	return fmt.Sprintf("(&(%s))", fmt.Sprintf(c.UserSearchFilter, login))
 }
 
 func (c *LdapConfig) Init() error {
@@ -153,7 +153,6 @@ func (c *LdapConfig) Init() error {
 		//already initialized
 		return nil
 	}
-
 
 	c.ldapConfMux.Lock()
 	defer c.ldapConfMux.Unlock()
@@ -177,7 +176,7 @@ func (c *LdapConfig) Init() error {
 		}
 	}
 
-	c.tlsConfig = &tls.Config{InsecureSkipVerify:false,ServerName:c.host}
+	c.tlsConfig = &tls.Config{InsecureSkipVerify: false, ServerName: c.host}
 	c.initialized = true
 	return nil
 }
