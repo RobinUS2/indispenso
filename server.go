@@ -947,7 +947,7 @@ func PostAuth(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 
 	user, err := server.authService.authUser(authReq)
 	if err != nil {
-		fmt.Print(err)
+		fmt.Printf("%s\n",err)
 		jr.Error( "Username / password / two-factor combination invalid" ) // Message must be constant to not leak information
 		fmt.Fprint(w, jr.ToString(debug))
 		return

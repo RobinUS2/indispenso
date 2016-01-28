@@ -12,6 +12,7 @@ import (
 	"strings"
 	"sync"
 	"time"
+	"github.com/oleiade/reflections"
 )
 
 const TOTP_MAX_WINDOWS = 3
@@ -128,6 +129,24 @@ func (s *UserStore) load() {
 		s.Users = v
 	}
 }
+
+func (s *UserStore)UpdateUser(user *User, changes map[string]interface{}) ( err error) {
+	u := s.ByName(user.Username)
+	u.mux.Lock()
+	for k,v := range changes {
+		err = reflections.SetField(u,k,v)
+	}
+	u.mux.Unlock()
+
+	if err != nil {
+		return err
+	}
+
+	s.save()
+	return nil
+}
+
+
 
 func (s *UserStore) MigrateUsers(users []*User) {
 	for _, v := range users {

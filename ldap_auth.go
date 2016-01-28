@@ -11,6 +11,7 @@ import (
 
 type LocalUserStore interface {
 	AddUser(login string, email string, authType AuthType) (*User, error)
+	UpdateUser(user *User,changes map[string]interface{}) (error)
 }
 
 type LdapAuthenticator struct {
@@ -56,8 +57,6 @@ func (c *LdapAuthenticator) createConnection() (conn *ldap.Conn, err error) {
 		if err != nil {
 			return
 		}
-		err = conn.StartTLS(c.config.tlsConfig)
-		return
 	} else {
 		return ldap.DialTLS("tcp", c.config.GetAddress(), c.config.tlsConfig)
 	}
@@ -95,6 +94,9 @@ func (a *LdapAuthenticator) auth(user *User, ar *AuthRequest) (*User, error) {
 		if err != nil {
 			return nil, fmt.Errorf("User authenticated by LDAP but cannot be stored in user store due to: %s", err)
 		}
+	} else {
+		//update user info form LDAP
+		a.userStore.UpdateUser(user, map[string]interface{}{ "EmailAddress": userEntry.GetAttributeValue(a.config.EmailAttr)})
 	}
 	return user, nil
 }
@@ -143,7 +145,7 @@ type LdapConfig struct {
 }
 
 func (c *LdapConfig) GetUserSearchFilter(login string) string {
-	return fmt.Sprintf(c.UserSearchFilter, login)
+	return fmt.Sprintf("(&(%s))",fmt.Sprintf(c.UserSearchFilter, login))
 }
 
 func (c *LdapConfig) Init() error {
