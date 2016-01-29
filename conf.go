@@ -232,7 +232,7 @@ func (c *Conf) HomeFile(fileName string) string {
 }
 
 func (c *Conf) ServerRequest(path string) string {
-	return fmt.Sprintf("%s/%s", strings.TrimRight(conf.EndpointURI, "/"), strings.TrimLeft(path, "/"))
+	return fmt.Sprintf("%s/%s", strings.TrimRight(c.EndpointURI, "/"), strings.TrimLeft(path, "/"))
 }
 
 func (c *Conf) Validate() error {
@@ -250,7 +250,7 @@ func (c *Conf) Validate() error {
 }
 
 func (c *Conf) isClientEnabled() bool {
-	return len(conf.EndpointURI) > 0
+	return len(c.EndpointURI) > 0
 }
 
 func (c *Conf) GetTags() []string {
