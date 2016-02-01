@@ -197,7 +197,7 @@ func (c *Consensus) load() {
 		var v map[string]*ConsensusRequest
 		je := json.Unmarshal(bytes, &v)
 		if je != nil {
-			log.Printf("Invalid users.json: %s", je)
+			log.Printf("Invalid consensus storage file (%s) due to: %s", c.ConfFile, je)
 			return
 		}
 		c.Pending = v

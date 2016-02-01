@@ -220,7 +220,7 @@ func PostHttpCheck(w http.ResponseWriter, r *http.Request, ps httprouter.Params)
 	}
 
 	// Verify two factor for, so that a hacked account can not request or execute anything without getting access to the 2fa device
-	if user.ValidateTotp(r.PostFormValue("totp")) == false {
+	if res, _ := user.ValidateTotp(r.PostFormValue("totp")); res == false {
 		jr.Error("Invalid two factor token")
 		fmt.Fprint(w, jr.ToString(debug))
 		return

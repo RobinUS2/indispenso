@@ -3,8 +3,11 @@ package main
 import (
 	"encoding/base64"
 	"encoding/json"
+	"errors"
+	"fmt"
 	"github.com/dgryski/dgoogauth"
 	"github.com/nu7hatch/gouuid"
+	"github.com/oleiade/reflections"
 	"golang.org/x/crypto/bcrypt"
 	"io/ioutil"
 	"strings"
@@ -13,6 +16,14 @@ import (
 )
 
 const TOTP_MAX_WINDOWS = 3
+
+type AuthType int
+
+const (
+	AUTH_TYPE_LOCAL AuthType = 1 << iota
+	AUTH_TYPE_LDAP
+	AUTH_TYPE_TWO_FACTOR
+)
 
 // Users
 
@@ -63,15 +74,6 @@ func (s *UserStore) save() {
 	}
 }
 
-func (s *UserStore) Auth(hash string, pwd string) bool {
-	bytes, be := base64.URLEncoding.DecodeString(hash)
-	if be != nil {
-		log.Printf("%s", be)
-		bytes = make([]byte, 0)
-	}
-	return bcrypt.CompareHashAndPassword(bytes, []byte(pwd)) == nil
-}
-
 func (s *UserStore) CreateUser(username string, password string, email string, roles []string) bool {
 	s.usersMux.Lock()
 	defer s.usersMux.Unlock()
@@ -99,6 +101,9 @@ func (s *UserStore) CreateUser(username string, password string, email string, r
 		return false
 	}
 	user.PasswordHash = hash
+	if len(password) > 0 {
+		user.AuthType |= AUTH_TYPE_LOCAL
+	}
 	s.Users = append(s.Users, user)
 	return true
 }
@@ -118,11 +123,72 @@ func (s *UserStore) load() {
 		var v []*User
 		je := json.Unmarshal(bytes, &v)
 		if je != nil {
-			log.Printf("Invalid users.json: %s", je)
+			log.Printf("Invalid user storage file (%s): %s", s.ConfFile, je)
 			return
 		}
+		s.MigrateUsers(v)
 		s.Users = v
 	}
+}
+
+func (s *UserStore) UpdateUser(user *User, changes map[string]interface{}) (err error) {
+	u := s.ByName(user.Username)
+	u.mux.Lock()
+	for k, v := range changes {
+		err = reflections.SetField(u, k, v)
+	}
+	u.mux.Unlock()
+
+	if err != nil {
+		return err
+	}
+
+	s.save()
+	return nil
+}
+
+func (s *UserStore) MigrateUsers(users []*User) {
+	for _, v := range users {
+		if !v.IsAuthDefined() {
+			if len(v.PasswordHash) > 0 {
+				v.AuthType |= AUTH_TYPE_LOCAL
+			}
+			if v.LegacyHasTwoFactors() {
+				v.AuthType |= AUTH_TYPE_TWO_FACTOR
+			}
+		}
+	}
+}
+
+func (s *UserStore) AuthTypes() map[string]int {
+	return map[string]int{
+		"Local":      int(AUTH_TYPE_LOCAL),
+		"LDAP":       int(AUTH_TYPE_LDAP),
+		"Two factor": int(AUTH_TYPE_TWO_FACTOR),
+	}
+}
+
+func (s *UserStore) AddUser(login string, email string, authType AuthType) (*User, error) {
+	login = strings.TrimSpace(login)
+
+	// Check unique username
+	for _, usr := range s.Users {
+		if usr.Username == login {
+			return nil, fmt.Errorf("Cannot add new user (%s), user already exsists", login)
+		}
+	}
+
+	user := newUser()
+	user.Username = login
+	user.EmailAddress = email
+	user.Enabled = true
+	user.AuthType |= authType
+
+	s.usersMux.Lock()
+	defer s.usersMux.Unlock()
+	s.Users = append(s.Users, user)
+
+	return user, nil
 }
 
 func (s *UserStore) prepareDefaultUser() {
@@ -150,6 +216,7 @@ type User struct {
 	Username             string
 	EmailAddress         string
 	PasswordHash         string
+	AuthType             AuthType
 	Enabled              bool
 	SessionToken         string
 	TotpSecret           string // Secret for time based 2-factor
@@ -164,14 +231,26 @@ type User struct {
 func (u *User) HasTwoFactor() bool {
 	u.mux.RLock()
 	defer u.mux.RUnlock()
+	return u.IsAuthType(AUTH_TYPE_TWO_FACTOR) && u.LegacyHasTwoFactors()
+}
+
+func (u *User) LegacyHasTwoFactors() bool {
 	return len(u.TotpSecret) > 0 && u.TotpSecretValidated == true
 }
 
+func (u *User) IsAuthType(a AuthType) bool {
+	return u.AuthType&a != 0
+}
+
+func (u *User) IsAuthDefined() bool {
+	return u.AuthType != 0
+}
+
 // Validate totp token
-func (u *User) ValidateTotp(t string) bool {
+func (u *User) ValidateTotp(t string) (bool, error) {
 	// No token set / provided?
 	if len(u.TotpSecret) < 1 || len(strings.TrimSpace(t)) < 1 {
-		return false
+		return false, errors.New("Token not provided")
 	}
 
 	// Validate
@@ -179,8 +258,7 @@ func (u *User) ValidateTotp(t string) bool {
 		Secret:     u.TotpSecret,
 		WindowSize: TOTP_MAX_WINDOWS,
 	}
-	res, _ := cotp.Authenticate(t)
-	return res
+	return cotp.Authenticate(t)
 }
 
 func (u *User) HasRole(r string) bool {
@@ -218,10 +296,10 @@ func newUser() *User {
 	}
 }
 
-func newUserStore() *UserStore {
+func newUserStore(confFile string) *UserStore {
 	store := &UserStore{
 		Users:    make([]*User, 0),
-		ConfFile: conf.HomeFile("users.json"),
+		ConfFile: confFile,
 	}
 	store.load()
 	store.prepareDefaultUser()

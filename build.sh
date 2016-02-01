@@ -13,5 +13,8 @@ go get "github.com/spf13/pflag"
 go get "github.com/spf13/viper"
 go get "github.com/stretchr/testify/assert"
 go get "github.com/jmcvetta/randutil"
+go get "gopkg.in/ldap.v2"
+go get "github.com/stretchr/objx"
+go get "github.com/oleiade/reflections"
 go fmt .
 go test && go build .

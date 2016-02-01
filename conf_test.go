@@ -107,3 +107,36 @@ func TestLegacyOptionsAliasing(t *testing.T) {
 	viper.Set("source", "newTest")
 	assert.Equal(t, "test", viper.GetString("target"))
 }
+
+func TestValidateExistenceOfHomeDir(t *testing.T) {
+	c := &Conf{Token: "sfaufhguahgiuhsughaighapghdsdhgaspohdsghodsahpohgapogh", Home: "/not-exist-indispenso/dir"}
+	assert.Error(t, c.Validate())
+}
+
+func TestIsClientEnabled(t *testing.T) {
+	c := &Conf{EndpointURI: ""}
+	assert.False(t, c.isClientEnabled())
+	c.EndpointURI = "localhost:1000"
+	assert.True(t, c.isClientEnabled())
+}
+
+func TestInvalidTagClean(t *testing.T) {
+	assert.Empty(t, cleanTag("!@test^&"))
+}
+
+func TestServerRequest(t *testing.T) {
+	c := &Conf{EndpointURI: "localhost:1000"}
+
+	assert.Equal(t, "localhost:1000/test", c.ServerRequest("/test"))
+	assert.Equal(t, "localhost:1000/test", c.ServerRequest("test"))
+
+	c.EndpointURI = "localhost:1000/"
+
+	assert.Equal(t, "localhost:1000/test", c.ServerRequest("/test"))
+	assert.Equal(t, "localhost:1000/test", c.ServerRequest("test"))
+}
+
+func TestHomeFileRetrieval(t *testing.T) {
+	c := &Conf{Home: "/tmp/indispenso"}
+	assert.Equal(t, "/tmp/indispenso/main.yaml", c.HomeFile("main.yaml"))
+}
