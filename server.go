@@ -1,6 +1,8 @@
 package main
 
 import (
+	"bufio"
+	"bytes"
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/sha256"
@@ -11,10 +13,12 @@ import (
 	"encoding/pem"
 	"fmt"
 	"github.com/RobinUS2/golang-jresp"
+	"github.com/boombuler/barcode"
+	"github.com/boombuler/barcode/qr"
 	"github.com/dgryski/dgoogauth"
 	"github.com/julienschmidt/httprouter"
 	"github.com/nu7hatch/gouuid"
-	"github.com/petar/rsc/qr"
+	"image/png"
 	"github.com/spf13/cast"
 	"io/ioutil"
 	"math/big"
@@ -532,7 +536,7 @@ func GetUser2fa(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	qrCodeImageUri := cotp.ProvisionURI(fmt.Sprintf("indispenso:%s", user.Username))
 
 	// QR code
-	qrCode, qrErr := qr.Encode(qrCodeImageUri, qr.H)
+	baseQrImage, qrErr := qr.Encode(qrCodeImageUri, qr.H, qr.Auto)
 	if qrErr != nil {
 		jr.Error("Failed to generate QR code")
 		fmt.Fprint(w, jr.ToString(debug))
@@ -543,8 +547,20 @@ func GetUser2fa(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	user.TotpSecret = secret
 	server.userStore.save()
 
+	qrImage, errScale := barcode.Scale(baseQrImage, 300, 300)
+	if errScale != nil {
+		jr.Error("Failed to generate QR code")
+		fmt.Fprint(w, jr.ToString(debug))
+		return
+	}
+
+	var pngQrBuffer bytes.Buffer
+	pngQrWriter := bufio.NewWriter(&pngQrBuffer)
+	png.Encode(pngQrWriter, qrImage)
+	pngQrWriter.Flush()
+
 	jr.Set("Secret", user.TotpSecret)
-	jr.Set("Png", qrCode.PNG())
+	jr.Set("Png", pngQrBuffer.Bytes())
 	jr.OK()
 	fmt.Fprint(w, jr.ToString(debug))
 }
