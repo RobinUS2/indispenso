@@ -1,8 +1,6 @@
 package main
 
 import (
-	"bufio"
-	"bytes"
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/sha256"
@@ -13,12 +11,8 @@ import (
 	"encoding/pem"
 	"fmt"
 	"github.com/RobinUS2/golang-jresp"
-	"github.com/boombuler/barcode"
-	"github.com/boombuler/barcode/qr"
-	"github.com/dgryski/dgoogauth"
 	"github.com/julienschmidt/httprouter"
 	"github.com/nu7hatch/gouuid"
-	"image/png"
 	"github.com/spf13/cast"
 	"io/ioutil"
 	"math/big"
@@ -161,7 +155,7 @@ func (c *RegisteredClient) GetDispatchedCmds() map[string]*Cmd {
 	// Swap?
 	if dirty {
 		c.mux.Lock()
-		if debug {
+		if conf.Debug {
 			log.Printf("Cleaning up dispatched commands of client %s size went from %d to %d", c.ClientId, len(c.DispatchedCmds), len(newMap))
 		}
 		c.DispatchedCmds = newMap
@@ -425,7 +419,7 @@ func GetClientCmdLogs(w http.ResponseWriter, r *http.Request, ps httprouter.Para
 	jr := jresp.NewJsonResp()
 	if !authUser(r) {
 		jr.Error("User not authorized for GetClientCmdLogs ")
-		fmt.Fprint(w, jr.ToString(debug))
+		fmt.Fprint(w, jr.ToString(conf.Debug))
 		return
 	}
 
@@ -433,7 +427,7 @@ func GetClientCmdLogs(w http.ResponseWriter, r *http.Request, ps httprouter.Para
 	registeredClient := server.GetClient(ps.ByName("clientId"))
 	if registeredClient == nil {
 		jr.Error("Client not registered")
-		fmt.Fprint(w, jr.ToString(debug))
+		fmt.Fprint(w, jr.ToString(conf.Debug))
 		return
 	}
 
@@ -444,7 +438,7 @@ func GetClientCmdLogs(w http.ResponseWriter, r *http.Request, ps httprouter.Para
 	registeredClient.mux.RUnlock()
 	if cmd == nil {
 		jr.Error("Command not found")
-		fmt.Fprint(w, jr.ToString(debug))
+		fmt.Fprint(w, jr.ToString(conf.Debug))
 		return
 	}
 
@@ -452,7 +446,7 @@ func GetClientCmdLogs(w http.ResponseWriter, r *http.Request, ps httprouter.Para
 	jr.Set("log_error", cmd.BufOutputErr)
 
 	jr.OK()
-	fmt.Fprint(w, jr.ToString(debug))
+	fmt.Fprint(w, jr.ToString(conf.Debug))
 }
 
 // Enable user two factor
@@ -460,7 +454,7 @@ func PutUser2fa(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	jr := jresp.NewJsonResp()
 	if !authUser(r) {
 		jr.Error("User not authorized for PutUser2fa")
-		fmt.Fprint(w, jr.ToString(debug))
+		fmt.Fprint(w, jr.ToString(conf.Debug))
 		return
 	}
 
@@ -468,12 +462,12 @@ func PutUser2fa(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	user := getUser(r)
 	if len(user.TotpSecret) < 1 {
 		jr.Error("Two factor authentication not setup")
-		fmt.Fprint(w, jr.ToString(debug))
+		fmt.Fprint(w, jr.ToString(conf.Debug))
 		return
 	}
 	if user.HasTwoFactor() {
 		jr.Error("Two factor authentication already setup")
-		fmt.Fprint(w, jr.ToString(debug))
+		fmt.Fprint(w, jr.ToString(conf.Debug))
 		return
 	}
 
@@ -482,7 +476,7 @@ func PutUser2fa(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	value2 := r.PostFormValue("token_2")
 	if value1 == value2 || strings.TrimSpace(value1) == strings.TrimSpace(value2) {
 		jr.Error("The two values should not be the same. Wait for the next token (in a few seconds) to show up and provide that.")
-		fmt.Fprint(w, jr.ToString(debug))
+		fmt.Fprint(w, jr.ToString(conf.Debug))
 		return
 	}
 
@@ -492,7 +486,7 @@ func PutUser2fa(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	res := valid1 && valid2 // Both must match
 	if res == false {
 		jr.Error("The two tokens do not match. Make sure that the clock is set correctly on your mobile device and the Indispenso server.")
-		fmt.Fprint(w, jr.ToString(debug))
+		fmt.Fprint(w, jr.ToString(conf.Debug))
 		return
 	}
 
@@ -505,7 +499,7 @@ func PutUser2fa(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 
 	jr.Set("enabled", res)
 	jr.OK()
-	fmt.Fprint(w, jr.ToString(debug))
+	fmt.Fprint(w, jr.ToString(conf.Debug))
 }
 
 // Get user two factor data
@@ -513,7 +507,7 @@ func GetUser2fa(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	jr := jresp.NewJsonResp()
 	if !authUser(r) {
 		jr.Error("User not authorized for GetUser2fa")
-		fmt.Fprint(w, jr.ToString(debug))
+		fmt.Fprint(w, jr.ToString(conf.Debug))
 		return
 	}
 
@@ -521,48 +515,29 @@ func GetUser2fa(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	user := getUser(r)
 	if user.HasTwoFactor() {
 		jr.Error("Two factor authentication already setup")
-		fmt.Fprint(w, jr.ToString(debug))
+		fmt.Fprint(w, jr.ToString(conf.Debug))
 		return
 	}
 
-	// Create TOTP conf
-	secret := TotpSecret()
-	cotp := dgoogauth.OTPConfig{
-		Secret:     secret,
-		WindowSize: TOTP_MAX_WINDOWS,
-	}
-
-	// Image uri
-	qrCodeImageUri := cotp.ProvisionURI(fmt.Sprintf("indispenso:%s", user.Username))
-
-	// QR code
-	baseQrImage, qrErr := qr.Encode(qrCodeImageUri, qr.H, qr.Auto)
-	if qrErr != nil {
-		jr.Error("Failed to generate QR code")
-		fmt.Fprint(w, jr.ToString(debug))
+	if err := user.GenerateOTPSecret(); err != nil {
+		jr.Error(err.Error())
+		fmt.Fprint(w, jr.ToString(conf.Debug))
 		return
 	}
 
-	// Save user, not yet enabled
-	user.TotpSecret = secret
 	server.userStore.save()
 
-	qrImage, errScale := barcode.Scale(baseQrImage, 300, 300)
-	if errScale != nil {
-		jr.Error("Failed to generate QR code")
-		fmt.Fprint(w, jr.ToString(debug))
+	qrImageBytes, err := user.TotpQrImage()
+	if err != nil {
+		jr.Error(err.Error())
+		fmt.Fprint(w, jr.ToString(conf.Debug))
 		return
 	}
 
-	var pngQrBuffer bytes.Buffer
-	pngQrWriter := bufio.NewWriter(&pngQrBuffer)
-	png.Encode(pngQrWriter, qrImage)
-	pngQrWriter.Flush()
-
 	jr.Set("Secret", user.TotpSecret)
-	jr.Set("Png", pngQrBuffer.Bytes())
+	jr.Set("Png", qrImageBytes)
 	jr.OK()
-	fmt.Fprint(w, jr.ToString(debug))
+	fmt.Fprint(w, jr.ToString(conf.Debug))
 }
 
 // Get dispatched jobs list (no detail)
@@ -570,7 +545,7 @@ func GetDispatched(w http.ResponseWriter, r *http.Request, ps httprouter.Params)
 	jr := jresp.NewJsonResp()
 	if !authUser(r) {
 		jr.Error("User not authorized for GetDispatech")
-		fmt.Fprint(w, jr.ToString(debug))
+		fmt.Fprint(w, jr.ToString(conf.Debug))
 		return
 	}
 
@@ -595,7 +570,7 @@ func GetDispatched(w http.ResponseWriter, r *http.Request, ps httprouter.Params)
 	jr.Set("dispatched", list)
 
 	jr.OK()
-	fmt.Fprint(w, jr.ToString(debug))
+	fmt.Fprint(w, jr.ToString(conf.Debug))
 }
 
 // Get pending execution request
@@ -603,7 +578,7 @@ func GetConsensusPending(w http.ResponseWriter, r *http.Request, ps httprouter.P
 	jr := jresp.NewJsonResp()
 	if !authUser(r) {
 		jr.Error("User not authorized for GetConsensusPending")
-		fmt.Fprint(w, jr.ToString(debug))
+		fmt.Fprint(w, jr.ToString(conf.Debug))
 		return
 	}
 	user := getUser(r)
@@ -637,7 +612,7 @@ func GetConsensusPending(w http.ResponseWriter, r *http.Request, ps httprouter.P
 	server.consensus.pendingMux.RUnlock()
 
 	jr.OK()
-	fmt.Fprint(w, jr.ToString(debug))
+	fmt.Fprint(w, jr.ToString(conf.Debug))
 }
 
 // Approve execution request
@@ -645,14 +620,14 @@ func PostConsensusApprove(w http.ResponseWriter, r *http.Request, ps httprouter.
 	jr := jresp.NewJsonResp()
 	if !authUser(r) {
 		jr.Error("User not authorized for PostConsensusApprove")
-		fmt.Fprint(w, jr.ToString(debug))
+		fmt.Fprint(w, jr.ToString(conf.Debug))
 		return
 	}
 
 	user := getUser(r)
 	if !user.HasRole("approver") {
 		jr.Error("User not allowed for PostConsensusApprove")
-		fmt.Fprint(w, jr.ToString(debug))
+		fmt.Fprint(w, jr.ToString(conf.Debug))
 		return
 	}
 
@@ -661,7 +636,7 @@ func PostConsensusApprove(w http.ResponseWriter, r *http.Request, ps httprouter.
 	req := server.consensus.Get(id)
 	if req == nil {
 		jr.Error("Request not found")
-		fmt.Fprint(w, jr.ToString(debug))
+		fmt.Fprint(w, jr.ToString(conf.Debug))
 		return
 	}
 	res := req.Approve(user)
@@ -669,7 +644,7 @@ func PostConsensusApprove(w http.ResponseWriter, r *http.Request, ps httprouter.
 
 	jr.Set("approved", res)
 	jr.OK()
-	fmt.Fprint(w, jr.ToString(debug))
+	fmt.Fprint(w, jr.ToString(conf.Debug))
 }
 
 // Cancel execution request
@@ -677,14 +652,14 @@ func DeleteConsensusRequest(w http.ResponseWriter, r *http.Request, ps httproute
 	jr := jresp.NewJsonResp()
 	if !authUser(r) {
 		jr.Error("User not authorized for  DeleteConsensusRequest")
-		fmt.Fprint(w, jr.ToString(debug))
+		fmt.Fprint(w, jr.ToString(conf.Debug))
 		return
 	}
 
 	user := getUser(r)
 	if !user.HasRole("requester") {
 		jr.Error("User not allowed to DeleteConsensusRequest")
-		fmt.Fprint(w, jr.ToString(debug))
+		fmt.Fprint(w, jr.ToString(conf.Debug))
 		return
 	}
 
@@ -693,7 +668,7 @@ func DeleteConsensusRequest(w http.ResponseWriter, r *http.Request, ps httproute
 	req := server.consensus.Get(id)
 	if req == nil {
 		jr.Error("Request not found")
-		fmt.Fprint(w, jr.ToString(debug))
+		fmt.Fprint(w, jr.ToString(conf.Debug))
 		return
 	}
 
@@ -702,7 +677,7 @@ func DeleteConsensusRequest(w http.ResponseWriter, r *http.Request, ps httproute
 	isCreator := req.RequestUserId == user.Id
 	if !isAdmin && !isCreator {
 		jr.Error("Only the creator or admins can cancel a request")
-		fmt.Fprint(w, jr.ToString(debug))
+		fmt.Fprint(w, jr.ToString(conf.Debug))
 		return
 	}
 
@@ -713,7 +688,7 @@ func DeleteConsensusRequest(w http.ResponseWriter, r *http.Request, ps httproute
 	jr.Set("cancelled", res)
 
 	jr.OK()
-	fmt.Fprint(w, jr.ToString(debug))
+	fmt.Fprint(w, jr.ToString(conf.Debug))
 }
 
 // Create execution request
@@ -721,7 +696,7 @@ func PostConsensusRequest(w http.ResponseWriter, r *http.Request, ps httprouter.
 	jr := jresp.NewJsonResp()
 	if !authUser(r) {
 		jr.Error("User not authorized for PostConsensusRequest")
-		fmt.Fprint(w, jr.ToString(debug))
+		fmt.Fprint(w, jr.ToString(conf.Debug))
 		return
 	}
 
@@ -729,14 +704,14 @@ func PostConsensusRequest(w http.ResponseWriter, r *http.Request, ps httprouter.
 	user := getUser(r)
 	if !user.HasRole("requester") {
 		jr.Error("User not allowed to PostConsensusRequest")
-		fmt.Fprint(w, jr.ToString(debug))
+		fmt.Fprint(w, jr.ToString(conf.Debug))
 		return
 	}
 
 	// Verify two factor for, so that a hacked account can not request or execute anything without getting access to the 2fa device
 	if res, _ := user.ValidateTotp(r.PostFormValue("totp")); res == false {
 		jr.Error("Invalid two factor token")
-		fmt.Fprint(w, jr.ToString(debug))
+		fmt.Fprint(w, jr.ToString(conf.Debug))
 		return
 	}
 
@@ -744,7 +719,7 @@ func PostConsensusRequest(w http.ResponseWriter, r *http.Request, ps httprouter.
 	reason := strings.TrimSpace(r.PostFormValue("reason"))
 	if len(reason) < 4 {
 		jr.Error("Please provide a valid reason")
-		fmt.Fprint(w, jr.ToString(debug))
+		fmt.Fprint(w, jr.ToString(conf.Debug))
 		return
 	}
 
@@ -758,7 +733,7 @@ func PostConsensusRequest(w http.ResponseWriter, r *http.Request, ps httprouter.
 	server.consensus.save()
 
 	jr.OK()
-	fmt.Fprint(w, jr.ToString(debug))
+	fmt.Fprint(w, jr.ToString(conf.Debug))
 }
 
 // Create validation rule for templates
@@ -766,7 +741,7 @@ func PostTemplateValidation(w http.ResponseWriter, r *http.Request, ps httproute
 	jr := jresp.NewJsonResp()
 	if !authUser(r) {
 		jr.Error("User not authorized for PostTemplateValidation")
-		fmt.Fprint(w, jr.ToString(debug))
+		fmt.Fprint(w, jr.ToString(conf.Debug))
 		return
 	}
 
@@ -775,7 +750,7 @@ func PostTemplateValidation(w http.ResponseWriter, r *http.Request, ps httproute
 	template := server.templateStore.Get(id)
 	if template == nil {
 		jr.Error("Template not found")
-		fmt.Fprint(w, jr.ToString(debug))
+		fmt.Fprint(w, jr.ToString(conf.Debug))
 		return
 	}
 
@@ -788,7 +763,7 @@ func PostTemplateValidation(w http.ResponseWriter, r *http.Request, ps httproute
 	// Text must have length
 	if len(strings.TrimSpace(txt)) < 1 {
 		jr.Error("Text can not be empty")
-		fmt.Fprint(w, jr.ToString(debug))
+		fmt.Fprint(w, jr.ToString(conf.Debug))
 		return
 	}
 
@@ -804,7 +779,7 @@ func PostTemplateValidation(w http.ResponseWriter, r *http.Request, ps httproute
 	// Done
 	jr.Set("saved", res)
 	jr.OK()
-	fmt.Fprint(w, jr.ToString(debug))
+	fmt.Fprint(w, jr.ToString(conf.Debug))
 }
 
 // Delete validation rule from template
@@ -812,7 +787,7 @@ func DeleteTemplateValidation(w http.ResponseWriter, r *http.Request, ps httprou
 	jr := jresp.NewJsonResp()
 	if !authUser(r) {
 		jr.Error("User not authorized for DeleteTemplateValidation")
-		fmt.Fprint(w, jr.ToString(debug))
+		fmt.Fprint(w, jr.ToString(conf.Debug))
 		return
 	}
 
@@ -821,7 +796,7 @@ func DeleteTemplateValidation(w http.ResponseWriter, r *http.Request, ps httprou
 	template := server.templateStore.Get(templateId)
 	if template == nil {
 		jr.Error("Template not found")
-		fmt.Fprint(w, jr.ToString(debug))
+		fmt.Fprint(w, jr.ToString(conf.Debug))
 		return
 	}
 
@@ -837,7 +812,7 @@ func DeleteTemplateValidation(w http.ResponseWriter, r *http.Request, ps httprou
 	// Done
 	jr.Set("saved", res)
 	jr.OK()
-	fmt.Fprint(w, jr.ToString(debug))
+	fmt.Fprint(w, jr.ToString(conf.Debug))
 }
 
 // Get templates
@@ -845,7 +820,7 @@ func GetTemplate(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	jr := jresp.NewJsonResp()
 	if !authUser(r) {
 		jr.Error("User not authorized for GetTemplate")
-		fmt.Fprint(w, jr.ToString(debug))
+		fmt.Fprint(w, jr.ToString(conf.Debug))
 		return
 	}
 
@@ -853,7 +828,7 @@ func GetTemplate(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	jr.Set("templates", server.templateStore.Templates)
 	server.templateStore.templateMux.RUnlock()
 	jr.OK()
-	fmt.Fprint(w, jr.ToString(debug))
+	fmt.Fprint(w, jr.ToString(conf.Debug))
 }
 
 // Create template
@@ -861,14 +836,14 @@ func PostTemplate(w http.ResponseWriter, r *http.Request, ps httprouter.Params) 
 	jr := jresp.NewJsonResp()
 	if !authUser(r) {
 		jr.Error("User not authorized for PostTemplate")
-		fmt.Fprint(w, jr.ToString(debug))
+		fmt.Fprint(w, jr.ToString(conf.Debug))
 		return
 	}
 
 	user := getUser(r)
 	if !user.HasRole("admin") {
 		jr.Error("User not allowed to PostTemplate")
-		fmt.Fprint(w, jr.ToString(debug))
+		fmt.Fprint(w, jr.ToString(conf.Debug))
 		return
 	}
 
@@ -896,7 +871,7 @@ func PostTemplate(w http.ResponseWriter, r *http.Request, ps httprouter.Params) 
 		break
 	default:
 		jr.Error("Strategy not found")
-		fmt.Fprint(w, jr.ToString(debug))
+		fmt.Fprint(w, jr.ToString(conf.Debug))
 		return
 	}
 
@@ -905,15 +880,15 @@ func PostTemplate(w http.ResponseWriter, r *http.Request, ps httprouter.Params) 
 	minAuth, minAuthE := strconv.ParseInt(minAuthStr, 10, 0)
 	if len(minAuthStr) < 1 {
 		jr.Error("Fill in min auth")
-		fmt.Fprint(w, jr.ToString(debug))
+		fmt.Fprint(w, jr.ToString(conf.Debug))
 		return
 	} else if minAuthE != nil {
 		jr.Error(fmt.Sprintf("%s", minAuthE))
-		fmt.Fprint(w, jr.ToString(debug))
+		fmt.Fprint(w, jr.ToString(conf.Debug))
 		return
 	} else if minAuth < 1 {
 		jr.Error("Min auth must be at least 1")
-		fmt.Fprint(w, jr.ToString(debug))
+		fmt.Fprint(w, jr.ToString(conf.Debug))
 		return
 	}
 
@@ -922,15 +897,15 @@ func PostTemplate(w http.ResponseWriter, r *http.Request, ps httprouter.Params) 
 	timeout, timeoutE := strconv.ParseInt(timeoutStr, 10, 0)
 	if len(timeoutStr) < 1 {
 		jr.Error("Fill in timeout")
-		fmt.Fprint(w, jr.ToString(debug))
+		fmt.Fprint(w, jr.ToString(conf.Debug))
 		return
 	} else if timeoutE != nil {
 		jr.Error(fmt.Sprintf("%s", timeoutE))
-		fmt.Fprint(w, jr.ToString(debug))
+		fmt.Fprint(w, jr.ToString(conf.Debug))
 		return
 	} else if timeout < 1 {
 		jr.Error("Timeout must be at least 1 second")
-		fmt.Fprint(w, jr.ToString(debug))
+		fmt.Fprint(w, jr.ToString(conf.Debug))
 		return
 	}
 
@@ -939,7 +914,7 @@ func PostTemplate(w http.ResponseWriter, r *http.Request, ps httprouter.Params) 
 	valid, err := template.IsValid()
 	if !valid {
 		jr.Error(fmt.Sprintf("%s", err))
-		fmt.Fprint(w, jr.ToString(debug))
+		fmt.Fprint(w, jr.ToString(conf.Debug))
 		return
 	}
 
@@ -948,7 +923,7 @@ func PostTemplate(w http.ResponseWriter, r *http.Request, ps httprouter.Params) 
 	jr.Set("template", template)
 	jr.Set("saved", true)
 	jr.OK()
-	fmt.Fprint(w, jr.ToString(debug))
+	fmt.Fprint(w, jr.ToString(conf.Debug))
 }
 
 // Login
@@ -965,7 +940,7 @@ func PostAuth(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	if err != nil {
 		log.Printf("%s\n", err)
 		jr.Error("Username / password / two-factor combination invalid") // Message must be constant to not leak information
-		fmt.Fprint(w, jr.ToString(debug))
+		fmt.Fprint(w, jr.ToString(conf.Debug))
 		return
 	}
 
@@ -986,7 +961,7 @@ func PostAuth(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	jr.Set("user_id", user.Id)
 	jr.Set("two_factor_enabled", user.HasTwoFactor())
 	jr.OK()
-	fmt.Fprint(w, jr.ToString(debug))
+	fmt.Fprint(w, jr.ToString(conf.Debug))
 }
 
 // List of all tags
@@ -994,7 +969,7 @@ func GetTags(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	jr := jresp.NewJsonResp()
 	if !authUser(r) {
 		jr.Error("User not authorized for GetTags")
-		fmt.Fprint(w, jr.ToString(debug))
+		fmt.Fprint(w, jr.ToString(conf.Debug))
 		return
 	}
 	server.tagsMux.RLock()
@@ -1005,7 +980,7 @@ func GetTags(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	jr.Set("tags", tags)
 	server.tagsMux.RUnlock()
 	jr.OK()
-	fmt.Fprint(w, jr.ToString(debug))
+	fmt.Fprint(w, jr.ToString(conf.Debug))
 }
 
 // Change password
@@ -1013,7 +988,7 @@ func PutUserPassword(w http.ResponseWriter, r *http.Request, ps httprouter.Param
 	jr := jresp.NewJsonResp()
 	if !authUser(r) {
 		jr.Error("User not authorized for PutUserPassword")
-		fmt.Fprint(w, jr.ToString(debug))
+		fmt.Fprint(w, jr.ToString(conf.Debug))
 		return
 	}
 
@@ -1021,7 +996,7 @@ func PutUserPassword(w http.ResponseWriter, r *http.Request, ps httprouter.Param
 	newPwd := r.PostFormValue("password")
 	if len(newPwd) < 16 {
 		jr.Error("Password must be at least 16 characters, please pick a strong one!")
-		fmt.Fprint(w, jr.ToString(debug))
+		fmt.Fprint(w, jr.ToString(conf.Debug))
 		return
 	}
 
@@ -1029,7 +1004,7 @@ func PutUserPassword(w http.ResponseWriter, r *http.Request, ps httprouter.Param
 	newPwd2 := r.PostFormValue("password2")
 	if newPwd != newPwd2 {
 		jr.Error("Please confirm your password")
-		fmt.Fprint(w, jr.ToString(debug))
+		fmt.Fprint(w, jr.ToString(conf.Debug))
 		return
 	}
 
@@ -1045,7 +1020,7 @@ func PutUserPassword(w http.ResponseWriter, r *http.Request, ps httprouter.Param
 
 	jr.Set("saved", true)
 	jr.OK()
-	fmt.Fprint(w, jr.ToString(debug))
+	fmt.Fprint(w, jr.ToString(conf.Debug))
 }
 
 // User from request
@@ -1086,13 +1061,13 @@ func DeleteTemplate(w http.ResponseWriter, r *http.Request, ps httprouter.Params
 	jr := jresp.NewJsonResp()
 	if !authUser(r) {
 		jr.Error("User not authorized for DeleteTemplate")
-		fmt.Fprint(w, jr.ToString(debug))
+		fmt.Fprint(w, jr.ToString(conf.Debug))
 		return
 	}
 	usr := getUser(r)
 	if !usr.HasRole("admin") {
 		jr.Error("User not allowed to DeleteTemplate")
-		fmt.Fprint(w, jr.ToString(debug))
+		fmt.Fprint(w, jr.ToString(conf.Debug))
 		return
 	}
 
@@ -1102,7 +1077,7 @@ func DeleteTemplate(w http.ResponseWriter, r *http.Request, ps httprouter.Params
 	// Make sure it's not used by an HTTP check
 	if len(server.httpCheckStore.FindByTemplate(id)) > 0 {
 		jr.Error("This template is used by one or multiple http checks. You need to remove those first before deleting the template.")
-		fmt.Fprint(w, jr.ToString(debug))
+		fmt.Fprint(w, jr.ToString(conf.Debug))
 		return
 	}
 
@@ -1112,7 +1087,7 @@ func DeleteTemplate(w http.ResponseWriter, r *http.Request, ps httprouter.Params
 
 	jr.Set("saved", true)
 	jr.OK()
-	fmt.Fprint(w, jr.ToString(debug))
+	fmt.Fprint(w, jr.ToString(conf.Debug))
 }
 
 // Delete user
@@ -1120,20 +1095,20 @@ func DeleteUser(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	jr := jresp.NewJsonResp()
 	if !authUser(r) {
 		jr.Error("User not authorized for DeleteUser")
-		fmt.Fprint(w, jr.ToString(debug))
+		fmt.Fprint(w, jr.ToString(conf.Debug))
 		return
 	}
 	usr := getUser(r)
 	if !usr.HasRole("admin") {
 		jr.Error("User not allowed to DeleteUser")
-		fmt.Fprint(w, jr.ToString(debug))
+		fmt.Fprint(w, jr.ToString(conf.Debug))
 		return
 	}
 
 	// Verify two factor for deletion of a user
 	if res, _ := usr.ValidateTotp(r.URL.Query().Get("admin_totp")); res == false {
 		jr.Error("Invalid two factor token")
-		fmt.Fprint(w, jr.ToString(debug))
+		fmt.Fprint(w, jr.ToString(conf.Debug))
 		return
 	}
 
@@ -1143,7 +1118,7 @@ func DeleteUser(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	// Can not remove yourself
 	if usr.Username == username {
 		jr.Error("You can not remove yourself. If you want to achieve this, make a new admin account. Login as that new account and then remove the old account.")
-		fmt.Fprint(w, jr.ToString(debug))
+		fmt.Fprint(w, jr.ToString(conf.Debug))
 		return
 	}
 
@@ -1153,7 +1128,7 @@ func DeleteUser(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 
 	jr.Set("saved", true)
 	jr.OK()
-	fmt.Fprint(w, jr.ToString(debug))
+	fmt.Fprint(w, jr.ToString(conf.Debug))
 }
 
 // Create user
@@ -1161,20 +1136,20 @@ func PostUser(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	jr := jresp.NewJsonResp()
 	if !authUser(r) {
 		jr.Error("User not authorized for PostUser")
-		fmt.Fprint(w, jr.ToString(debug))
+		fmt.Fprint(w, jr.ToString(conf.Debug))
 		return
 	}
 	usr := getUser(r)
 	if !usr.HasRole("admin") {
 		jr.Error("User not allowed to PostUser")
-		fmt.Fprint(w, jr.ToString(debug))
+		fmt.Fprint(w, jr.ToString(conf.Debug))
 		return
 	}
 
 	// Verify two factor for creation of new user, so that a hacked admin can not create a new user and use that to sign of for new commands
 	if res, _ := usr.ValidateTotp(r.PostFormValue("admin_totp")); res == false {
 		jr.Error("Invalid two factor token")
-		fmt.Fprint(w, jr.ToString(debug))
+		fmt.Fprint(w, jr.ToString(conf.Debug))
 		return
 	}
 
@@ -1186,7 +1161,7 @@ func PostUser(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	newPwd := r.PostFormValue("password")
 	if len(newPwd) < 16 {
 		jr.Error("Password must be at least 16 characters, please pick a strong one!")
-		fmt.Fprint(w, jr.ToString(debug))
+		fmt.Fprint(w, jr.ToString(conf.Debug))
 		return
 	}
 
@@ -1194,7 +1169,7 @@ func PostUser(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	newPwd2 := r.PostFormValue("password2")
 	if newPwd != newPwd2 {
 		jr.Error("Please confirm your password")
-		fmt.Fprint(w, jr.ToString(debug))
+		fmt.Fprint(w, jr.ToString(conf.Debug))
 		return
 	}
 
@@ -1207,7 +1182,7 @@ func PostUser(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 
 	jr.Set("saved", res)
 	jr.OK()
-	fmt.Fprint(w, jr.ToString(debug))
+	fmt.Fprint(w, jr.ToString(conf.Debug))
 }
 
 // Modify user
@@ -1215,20 +1190,20 @@ func PutUser(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	jr := jresp.NewJsonResp()
 	if !authUser(r) {
 		jr.Error("User not authorized for Change User")
-		fmt.Fprint(w, jr.ToString(debug))
+		fmt.Fprint(w, jr.ToString(conf.Debug))
 		return
 	}
 	admin := getUser(r)
 	if !admin.HasRole("admin") {
 		jr.Error("User not allowed to Change User")
-		fmt.Fprint(w, jr.ToString(debug))
+		fmt.Fprint(w, jr.ToString(conf.Debug))
 		return
 	}
 
 	// Verify two factor for change user
 	if res, _ := admin.ValidateTotp(r.PostFormValue("token")); res == false {
 		jr.Error("Invalid two factor token")
-		fmt.Fprint(w, jr.ToString(debug))
+		fmt.Fprint(w, jr.ToString(conf.Debug))
 		return
 	}
 
@@ -1237,7 +1212,7 @@ func PutUser(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	user := server.userStore.ByName(username)
 	if user == nil {
 		jr.Error("Cannot find user to modify")
-		fmt.Fprint(w, jr.ToString(debug))
+		fmt.Fprint(w, jr.ToString(conf.Debug))
 		return
 	}
 	for key, _ := range r.PostForm {
@@ -1248,7 +1223,7 @@ func PutUser(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 			continue
 		default:
 			jr.Error("Invalid change request")
-			fmt.Fprint(w, jr.ToString(debug))
+			fmt.Fprint(w, jr.ToString(conf.Debug))
 			return
 		}
 	}
@@ -1256,7 +1231,7 @@ func PutUser(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	server.userStore.save()
 	jr.Set("changed", true)
 	jr.OK()
-	fmt.Fprint(w, jr.ToString(debug))
+	fmt.Fprint(w, jr.ToString(conf.Debug))
 }
 
 // Get user names
@@ -1264,7 +1239,7 @@ func GetUsersNames(w http.ResponseWriter, r *http.Request, ps httprouter.Params)
 	jr := jresp.NewJsonResp()
 	if !authUser(r) {
 		jr.Error("User not authorized for GetUsersNames")
-		fmt.Fprint(w, jr.ToString(debug))
+		fmt.Fprint(w, jr.ToString(conf.Debug))
 		return
 	}
 	// Availble to anyone
@@ -1279,7 +1254,7 @@ func GetUsersNames(w http.ResponseWriter, r *http.Request, ps httprouter.Params)
 	jr.Set("users", users)
 	server.userStore.usersMux.RUnlock()
 	jr.OK()
-	fmt.Fprint(w, jr.ToString(debug))
+	fmt.Fprint(w, jr.ToString(conf.Debug))
 }
 
 // List users
@@ -1287,13 +1262,13 @@ func GetUsers(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	jr := jresp.NewJsonResp()
 	if !authUser(r) {
 		jr.Error("User not authorized for GetUsers")
-		fmt.Fprint(w, jr.ToString(debug))
+		fmt.Fprint(w, jr.ToString(conf.Debug))
 		return
 	}
 	usr := getUser(r)
 	if !usr.HasRole("admin") {
 		jr.Error("User not allowed to GetUsers")
-		fmt.Fprint(w, jr.ToString(debug))
+		fmt.Fprint(w, jr.ToString(conf.Debug))
 		return
 	}
 	server.userStore.usersMux.RLock()
@@ -1310,7 +1285,7 @@ func GetUsers(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	jr.Set("authTypes", server.userStore.AuthTypes())
 	server.userStore.usersMux.RUnlock()
 	jr.OK()
-	fmt.Fprint(w, jr.ToString(debug))
+	fmt.Fprint(w, jr.ToString(conf.Debug))
 }
 
 // List clients
@@ -1318,7 +1293,7 @@ func GetClients(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	jr := jresp.NewJsonResp()
 	if !authUser(r) {
 		jr.Error("User not authorized for GetClients")
-		fmt.Fprint(w, jr.ToString(debug))
+		fmt.Fprint(w, jr.ToString(conf.Debug))
 		return
 	}
 
@@ -1371,7 +1346,7 @@ outer:
 
 	jr.Set("clients", clients)
 	jr.OK()
-	fmt.Fprint(w, jr.ToString(debug))
+	fmt.Fprint(w, jr.ToString(conf.Debug))
 }
 
 // Register client with token, this is used for signing commands towards the client which will then verify them
@@ -1379,7 +1354,7 @@ func PostClientAuth(w http.ResponseWriter, r *http.Request, ps httprouter.Params
 	jr := jresp.NewJsonResp()
 	if !auth(r) {
 		jr.Error("User not authorized for PostClientAuth")
-		fmt.Fprint(w, jr.ToString(debug))
+		fmt.Fprint(w, jr.ToString(conf.Debug))
 		return
 	}
 
@@ -1387,7 +1362,7 @@ func PostClientAuth(w http.ResponseWriter, r *http.Request, ps httprouter.Params
 	registeredClient := server.GetClient(ps.ByName("clientId"))
 	if registeredClient == nil {
 		jr.Error("Client not registered")
-		fmt.Fprint(w, jr.ToString(debug))
+		fmt.Fprint(w, jr.ToString(conf.Debug))
 		return
 	}
 
@@ -1395,7 +1370,7 @@ func PostClientAuth(w http.ResponseWriter, r *http.Request, ps httprouter.Params
 	token, tokenE := secureRandomString(32)
 	if tokenE != nil {
 		jr.Error("Failed to generate token")
-		fmt.Fprint(w, jr.ToString(debug))
+		fmt.Fprint(w, jr.ToString(conf.Debug))
 		return
 	}
 
@@ -1415,7 +1390,7 @@ func PostClientAuth(w http.ResponseWriter, r *http.Request, ps httprouter.Params
 	jr.Set("token", token)
 	jr.Set("token_signature", tokenSignature)
 	jr.OK()
-	fmt.Fprint(w, jr.ToString(debug))
+	fmt.Fprint(w, jr.ToString(conf.Debug))
 }
 
 // Set command logs
@@ -1423,7 +1398,7 @@ func PutClientCmdLogs(w http.ResponseWriter, r *http.Request, ps httprouter.Para
 	jr := jresp.NewJsonResp()
 	if !auth(r) {
 		jr.Error("Client not authorized for PutClientCmdLogs")
-		fmt.Fprint(w, jr.ToString(debug))
+		fmt.Fprint(w, jr.ToString(conf.Debug))
 		return
 	}
 
@@ -1431,7 +1406,7 @@ func PutClientCmdLogs(w http.ResponseWriter, r *http.Request, ps httprouter.Para
 	registeredClient := server.GetClient(ps.ByName("clientId"))
 	if registeredClient == nil {
 		jr.Error("Client not registered")
-		fmt.Fprint(w, jr.ToString(debug))
+		fmt.Fprint(w, jr.ToString(conf.Debug))
 		return
 	}
 
@@ -1442,7 +1417,7 @@ func PutClientCmdLogs(w http.ResponseWriter, r *http.Request, ps httprouter.Para
 	registeredClient.mux.RUnlock()
 	if cmd == nil {
 		jr.Error("Command not found")
-		fmt.Fprint(w, jr.ToString(debug))
+		fmt.Fprint(w, jr.ToString(conf.Debug))
 		return
 	}
 
@@ -1450,7 +1425,7 @@ func PutClientCmdLogs(w http.ResponseWriter, r *http.Request, ps httprouter.Para
 	body, err := ioutil.ReadAll(r.Body)
 	if err != nil {
 		jr.Error("Failed to read body")
-		fmt.Fprint(w, jr.ToString(debug))
+		fmt.Fprint(w, jr.ToString(conf.Debug))
 		return
 	}
 
@@ -1463,7 +1438,7 @@ func PutClientCmdLogs(w http.ResponseWriter, r *http.Request, ps httprouter.Para
 	je := json.Unmarshal(body, &m)
 	if je != nil {
 		jr.Error("Failed to parse json")
-		fmt.Fprint(w, jr.ToString(debug))
+		fmt.Fprint(w, jr.ToString(conf.Debug))
 		return
 	}
 
@@ -1482,7 +1457,7 @@ func PutClientCmdLogs(w http.ResponseWriter, r *http.Request, ps httprouter.Para
 	}
 
 	jr.OK()
-	fmt.Fprint(w, jr.ToString(debug))
+	fmt.Fprint(w, jr.ToString(conf.Debug))
 }
 
 // Set command state
@@ -1490,7 +1465,7 @@ func PutClientCmdState(w http.ResponseWriter, r *http.Request, ps httprouter.Par
 	jr := jresp.NewJsonResp()
 	if !auth(r) {
 		jr.Error("Client not authorized for PutClientCmdState")
-		fmt.Fprint(w, jr.ToString(debug))
+		fmt.Fprint(w, jr.ToString(conf.Debug))
 		return
 	}
 
@@ -1498,7 +1473,7 @@ func PutClientCmdState(w http.ResponseWriter, r *http.Request, ps httprouter.Par
 	registeredClient := server.GetClient(ps.ByName("clientId"))
 	if registeredClient == nil {
 		jr.Error("Client not registered")
-		fmt.Fprint(w, jr.ToString(debug))
+		fmt.Fprint(w, jr.ToString(conf.Debug))
 		return
 	}
 
@@ -1509,7 +1484,7 @@ func PutClientCmdState(w http.ResponseWriter, r *http.Request, ps httprouter.Par
 	registeredClient.mux.RUnlock()
 	if cmd == nil {
 		jr.Error("Command not found")
-		fmt.Fprint(w, jr.ToString(debug))
+		fmt.Fprint(w, jr.ToString(conf.Debug))
 		return
 	}
 
@@ -1520,7 +1495,7 @@ func PutClientCmdState(w http.ResponseWriter, r *http.Request, ps httprouter.Par
 	cmd.SetState(state)
 
 	jr.OK()
-	fmt.Fprint(w, jr.ToString(debug))
+	fmt.Fprint(w, jr.ToString(conf.Debug))
 }
 
 // Commands
@@ -1528,7 +1503,7 @@ func ClientCmds(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	jr := jresp.NewJsonResp()
 	if !auth(r) {
 		jr.Error("Client not authorized for ClientCmds")
-		fmt.Fprint(w, jr.ToString(debug))
+		fmt.Fprint(w, jr.ToString(conf.Debug))
 		return
 	}
 
@@ -1537,14 +1512,14 @@ func ClientCmds(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	registeredClient := server.GetClient(clientId)
 	if registeredClient == nil {
 		jr.Error(fmt.Sprintf("Client %s not registered", clientId))
-		fmt.Fprint(w, jr.ToString(debug))
+		fmt.Fprint(w, jr.ToString(conf.Debug))
 		return
 	}
 
 	// Do we have a token? If not, ignore as the client will discard the commands without hmac signatures
 	if len(registeredClient.AuthToken) < 1 {
 		jr.Error(fmt.Sprintf("Client %s auth token not available", registeredClient.ClientId))
-		fmt.Fprint(w, jr.ToString(debug))
+		fmt.Fprint(w, jr.ToString(conf.Debug))
 		return
 	}
 
@@ -1566,7 +1541,7 @@ func ClientCmds(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 		jr.Set("cmds", make([]string, 0))
 	}
 	jr.OK()
-	fmt.Fprint(w, jr.ToString(debug))
+	fmt.Fprint(w, jr.ToString(conf.Debug))
 }
 
 // Ping
@@ -1574,7 +1549,7 @@ func ClientPing(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	jr := jresp.NewJsonResp()
 	if !auth(r) {
 		jr.Error("Client not authorized for ClientPing")
-		fmt.Fprint(w, jr.ToString(debug))
+		fmt.Fprint(w, jr.ToString(conf.Debug))
 		return
 	}
 	tags := strings.Split(r.URL.Query().Get("tags"), ",")
@@ -1582,7 +1557,7 @@ func ClientPing(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	jr.Set("ack", true)
 	jr.Set("server_instance_id", server.InstanceId)
 	jr.OK()
-	fmt.Fprint(w, jr.ToString(debug))
+	fmt.Fprint(w, jr.ToString(conf.Debug))
 }
 
 // Home
@@ -1596,7 +1571,7 @@ func Ping(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	jr := jresp.NewJsonResp()
 	jr.Set("ping", "pong")
 	jr.OK()
-	fmt.Fprint(w, jr.ToString(debug))
+	fmt.Fprint(w, jr.ToString(conf.Debug))
 }
 
 // Auth
