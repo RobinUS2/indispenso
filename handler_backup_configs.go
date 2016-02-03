@@ -18,7 +18,7 @@ func GetBackupConfigs(w http.ResponseWriter, r *http.Request, ps httprouter.Para
 	jr := jresp.NewJsonResp()
 	if !authUser(r) {
 		jr.Error("Not authorized")
-		fmt.Fprint(w, jr.ToString(debug))
+		fmt.Fprint(w, jr.ToString(conf.Debug))
 		return
 	}
 
@@ -26,7 +26,7 @@ func GetBackupConfigs(w http.ResponseWriter, r *http.Request, ps httprouter.Para
 	usr := getUser(r)
 	if !usr.HasRole("admin") {
 		jr.Error("Not allowed")
-		fmt.Fprint(w, jr.ToString(debug))
+		fmt.Fprint(w, jr.ToString(conf.Debug))
 		return
 	}
 
@@ -59,7 +59,7 @@ func GetBackupConfigs(w http.ResponseWriter, r *http.Request, ps httprouter.Para
 		f, err := zw.Create(path.Base(file.Name))
 		if err != nil {
 			jr.Error(fmt.Sprintf("Failed creating zip: %s", err))
-			fmt.Fprint(w, jr.ToString(debug))
+			fmt.Fprint(w, jr.ToString(conf.Debug))
 			return
 		}
 
@@ -67,7 +67,7 @@ func GetBackupConfigs(w http.ResponseWriter, r *http.Request, ps httprouter.Para
 		fileB, fileE := ioutil.ReadFile(fileName)
 		if fileE != nil {
 			jr.Error(fmt.Sprintf("Failed creating zip: %s", fileE))
-			fmt.Fprint(w, jr.ToString(debug))
+			fmt.Fprint(w, jr.ToString(conf.Debug))
 			return
 		}
 
@@ -75,7 +75,7 @@ func GetBackupConfigs(w http.ResponseWriter, r *http.Request, ps httprouter.Para
 		_, err = f.Write(fileB)
 		if err != nil {
 			jr.Error(fmt.Sprintf("Failed creating zip: %s", err))
-			fmt.Fprint(w, jr.ToString(debug))
+			fmt.Fprint(w, jr.ToString(conf.Debug))
 			return
 		}
 	}
@@ -85,7 +85,7 @@ func GetBackupConfigs(w http.ResponseWriter, r *http.Request, ps httprouter.Para
 	err := zw.Close()
 	if err != nil {
 		jr.Error(fmt.Sprintf("Failed creating zip: %s", err))
-		fmt.Fprint(w, jr.ToString(debug))
+		fmt.Fprint(w, jr.ToString(conf.Debug))
 		return
 	}
 
