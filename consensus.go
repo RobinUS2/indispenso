@@ -218,11 +218,14 @@ func (c *Consensus) AddRequest(templateId string, clientIds []string, user *User
 	cr.RequestUserId = user.Id
 	cr.Reason = reason
 
-	audit.Log(user, "Consensus", fmt.Sprintf("Request %s, reason: %s", cr.Id, cr.Reason))
+	message := fmt.Sprintf("Request %s, reason: %s", cr.Id, cr.Reason)
+	audit.Log(user, "Consensus", message)
 
 	c.pendingMux.Lock()
 	c.Pending[cr.Id] = cr
 	c.pendingMux.Unlock()
+
+	server.notifications.Notify(&Message{Type: NEW_CONSENSUS, Content: message, Url: conf.ServerRequest("/console/#!pending")})
 
 	return cr
 }
@@ -235,12 +238,17 @@ func newConsensus() *Consensus {
 	c.load()
 	return c
 }
+
+func consensusRequestFinishedNotification(consensusRequest *ConsensusRequest) {
+	server.notifications.Notify(&Message{Type: EXECUTION_DONE, Content: "", Url: conf.ServerRequest("/console/#!pending")})
+}
+
 func newConsensusRequest() *ConsensusRequest {
 	id, _ := uuid.NewV4()
 	return &ConsensusRequest{
 		Id:             id.String(),
 		ApproveUserIds: make(map[string]bool),
 		CreateTime:     time.Now().Unix(),
-		Callbacks:      make([]func(*ConsensusRequest), 0),
+		Callbacks:      []func(*ConsensusRequest){consensusRequestFinishedNotification},
 	}
 }
