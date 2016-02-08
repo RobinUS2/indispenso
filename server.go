@@ -40,6 +40,7 @@ type Server struct {
 	executionCoordinator *ExecutionCoordinator
 	httpCheckStore       *HttpCheckStore
 	authService          *AuthService
+	notifications        *NotificationManager
 
 	InstanceId string // Unique ID generated at startup of the server, used for re-authentication and client-side refresh after and update/restart
 }
@@ -303,6 +304,9 @@ func (s *Server) Start() bool {
 	// HTTP checks
 	s.httpCheckStore = newHttpCheckStore()
 
+	//Notifications
+	s.notifications = newNotificationManager()
+
 	// Print info
 	log.Printf("Starting server at https://localhost:%d/", conf.ServerPort)
 
@@ -402,6 +406,23 @@ func (s *Server) Start() bool {
 	}()
 
 	return true
+}
+
+func (s *Server) SetupNotifications(conf *Conf) {
+	for _, n := range conf.GetNotifications() {
+		if !n.IsEnabled() {
+			continue
+		}
+		if err := n.IsValid(); err != nil {
+			log.Printf("Invalid notification service config: %s", err)
+		}
+		service, err := n.GetService()
+		if err != nil {
+			log.Printf("Cannot instantiate notification service: %s", err)
+		}
+		s.notifications.register(service)
+		log.Printf("Succesfully registerd notification %s", n.GetName())
+	}
 }
 
 func createAuthService(us *UserStore) *AuthService {

@@ -49,6 +49,7 @@ func main() {
 	if conf.ServerEnabled {
 		server = newServer()
 		server.Start()
+		server.SetupNotifications(conf)
 
 		// Empty seed? Then go for local
 		if len(conf.EndpointURI) < 1 {

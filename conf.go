@@ -28,10 +28,15 @@ type Conf struct {
 	Home              string //home directory
 	LdapConfigFile    string
 	EnableLdap        bool
-	//
+
+	//Ldap
 	ldapConfig *LdapConfig
 	ldapViper  *viper.Viper
-	confFlags  *pflag.FlagSet
+
+	//Notifications
+	notificationConfigs []NotificationServiceConfig
+
+	confFlags *pflag.FlagSet
 }
 
 const defaultHomePath = "/etc/indispenso/"
@@ -40,6 +45,7 @@ func newConfig() *Conf {
 	c := new(Conf)
 	c.ldapViper = viper.New()
 	c.ldapConfig = &LdapConfig{}
+	c.notificationConfigs = []NotificationServiceConfig{}
 
 	viper.SetConfigName("indispenso")
 	viper.SetEnvPrefix("ind")
@@ -91,8 +97,30 @@ func newConfig() *Conf {
 	c.setupHome(nil, viper.GetString("Home"))
 	c.setupHome(c.ldapViper, viper.GetString("Home"))
 
+	c.SetupNotificationConfig("slack", &SlackNotifyConfig{})
 	c.Update()
 	return c
+}
+
+func (c *Conf) SetupNotificationConfig(filename string, config NotificationServiceConfig) {
+	viperConfig := viper.New()
+
+	c.setupHome(viperConfig, viper.GetString("Home"))
+	viperConfig.SetConfigName(filename)
+
+	if err := viperConfig.ReadInConfig(); err != nil {
+		log.Printf("Cannot read notification config: %s", err)
+	}
+	viperConfig.Unmarshal(config)
+
+	viper.OnConfigChange(func(in fsnotify.Event) { viperConfig.ReadInConfig(); viperConfig.Unmarshal(config) })
+	viper.WatchConfig()
+
+	c.notificationConfigs = append(c.notificationConfigs, config)
+}
+
+func (c *Conf) GetNotifications() []NotificationServiceConfig {
+	return c.notificationConfigs
 }
 
 func (c *Conf) EnableAutoUpdate() {

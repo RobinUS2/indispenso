@@ -1,42 +1,61 @@
 package main
 
+import "sync"
+
+const (
+	NEW_CONSENSUS  NotificationType = "New Consensus Request"
+	EXECUTION_DONE NotificationType = "Execution done"
+)
+
 type NotificationService interface {
-	SetReceiver(MessageReceiver)
+	GetConsumer() func(*Message)
 }
 
 type NotificationType string
 
+type NotificationServiceConfig interface {
+	IsValid() error
+	IsEnabled() bool
+	GetService() (NotificationService, error)
+	GetName() string
+}
+
 type Message struct {
 	Content string
 	Type    NotificationType
-}
-
-type MessageReceiver struct {
-	channel  chan BroadcastMessage
-	consumer func(msg Message)
-}
-
-type BroadcastMessage struct {
-	channel chan BroadcastMessage
-	value   Message
+	Url     string
 }
 
 func newMessage(content string, nType NotificationType) *Message {
 	return &Message{Content: content, Type: nType}
 }
 
-type NotificationManager struct {
-	listenChan chan chan (chan BroadcastMessage)
-	sendOut    chan Message
+type MessageReceiver struct {
+	channel  chan *Message
+	consumer func(*Message)
 }
 
-func newNotificationManager() NotificationManager {
-	listenChan := make(chan chan (chan BroadcastMessage))
-	sendChan := make(chan Message)
+func (r *MessageReceiver) run() {
+	for {
+		select {
+		case msg := <-r.channel:
+			r.consumer(msg)
+		default:
+		}
+	}
+}
 
-	b := NotificationManager{
-		listenChan: listenChan,
-		sendOut:    sendChan,
+type NotificationManager struct {
+	muxReceivers     sync.RWMutex
+	listeners        []*MessageReceiver
+	sendOut          chan *Message
+	registerReceiver chan *MessageReceiver
+}
+
+func newNotificationManager() *NotificationManager {
+	b := &NotificationManager{
+		listeners: []*MessageReceiver{},
+		sendOut:   make(chan *Message, 100),
 	}
 
 	go b.dispatcher()
@@ -44,53 +63,34 @@ func newNotificationManager() NotificationManager {
 }
 
 func (m *NotificationManager) dispatcher() {
-	currentChannel := make(chan BroadcastMessage, 1)
 	for {
 		select {
 		case value := <-m.sendOut:
-			if &value == nil {
-				currentChannel <- BroadcastMessage{}
-				return
+			for _, listener := range m.listeners {
+				select {
+				case listener.channel <- value:
+				default:
+					log.Printf("Ommit passing notification to listener, channel full")
+				}
 			}
-			msgToBroadcast := BroadcastMessage{
-				channel: make(chan BroadcastMessage, 1),
-				value:   value,
-			}
-			currentChannel <- msgToBroadcast
-			currentChannel = msgToBroadcast.channel
-		case result := <-m.listenChan:
-			result <- currentChannel
+		default:
 		}
 	}
 }
 
+func (m *NotificationManager) registerWithChannelSize(service NotificationService, channelSize int) {
+	msgReceiver := &MessageReceiver{channel: make(chan *Message, channelSize), consumer: service.GetConsumer()}
+	go msgReceiver.run()
+
+	m.muxReceivers.Lock()
+	defer m.muxReceivers.Unlock()
+	m.listeners = append(m.listeners, msgReceiver)
+}
+
 func (m *NotificationManager) register(service NotificationService) {
-	channel := make(chan chan BroadcastMessage, 0)
-	m.listenChan <- channel
-	service.SetReceiver(MessageReceiver{channel: <-channel, consumer: func(msg Message) {}})
+	m.registerWithChannelSize(service, 1000)
 }
 
-func (m *NotificationManager) Notify(msg Message) {
+func (m *NotificationManager) Notify(msg *Message) {
 	m.sendOut <- msg
-}
-
-func (r *MessageReceiver) Read() Message {
-	broadcastMsg := <-r.channel
-	msg := broadcastMsg.value
-
-	r.channel <- broadcastMsg
-	r.channel = broadcastMsg.channel
-	return msg
-}
-
-func (r *MessageReceiver) consumeMsg() {
-	for msg := r.Read(); &msg != nil; msg = r.Read() {
-		go r.consumeMsg()
-		r.consumer(msg)
-	}
-}
-
-func (r *MessageReceiver) Consume(consumer func(msg Message)) {
-	r.consumer = consumer
-	go r.consumeMsg()
 }
