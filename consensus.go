@@ -240,7 +240,8 @@ func newConsensus() *Consensus {
 }
 
 func consensusRequestFinishedNotification(consensusRequest *ConsensusRequest) {
-	server.notifications.Notify(&Message{Type: EXECUTION_DONE, Content: "", Url: conf.ServerRequest("/console/#!pending")})
+	msg := fmt.Sprintf("Consesnsus request(id: %s) finished within %d s", consensusRequest.Id, consensusRequest.CompleteTime-consensusRequest.StartTime)
+	server.notifications.Notify(&Message{Type: EXECUTION_DONE, Content: msg, Url: conf.ServerRequest("/console/#!history")})
 }
 
 func newConsensusRequest() *ConsensusRequest {
