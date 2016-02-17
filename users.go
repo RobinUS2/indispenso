@@ -45,6 +45,18 @@ func (s *UserStore) ByName(username string) *User {
 	return nil
 }
 
+func (s *UserStore) ById(userId string) *User {
+	s.usersMux.Lock()
+	defer s.usersMux.Unlock()
+
+	for _, user := range s.Users {
+		if user.Id == userId {
+			return user
+		}
+	}
+	return nil
+}
+
 func (s *UserStore) RemoveByName(username string) {
 	s.usersMux.Lock()
 	defer s.usersMux.Unlock()

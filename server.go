@@ -16,6 +16,7 @@ import (
 	"github.com/nu7hatch/gouuid"
 	"github.com/petar/rsc/qr"
 	"github.com/spf13/cast"
+	"github.com/unilama/indispenso/data_table"
 	"io/ioutil"
 	"math/big"
 	"net"
@@ -367,7 +368,7 @@ func (s *Server) Start() bool {
 		router.GET("/consensus/pending", GetConsensusPending)
 
 		// Dispatched commands list
-		router.GET("/dispatched", GetDispatched)
+		router.POST("/dispatched", data_table.DefaultStoreHandler(DispatchedCmdQuery))
 
 		// Http checks
 		router.GET("/http-check/:id", GetHttpCheck)
@@ -549,37 +550,42 @@ func GetUser2fa(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	fmt.Fprint(w, jr.ToString(debug))
 }
 
-// Get dispatched jobs list (no detail)
-func GetDispatched(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-	jr := jresp.NewJsonResp()
-	if !authUser(r) {
-		jr.Error("User not authorized for GetDispatech")
-		fmt.Fprint(w, jr.ToString(debug))
-		return
-	}
-
-	// List
-	list := make([]map[string]interface{}, 0)
-
+func DispatchedCmdQuery(tableStore *data_table.DefaultStore) *data_table.DefaultStore {
 	// Fetch and create
 	server.clientsMux.RLock()
 	for _, client := range server.clients {
 		for _, d := range client.GetDispatchedCmds() {
-			elm := make(map[string]interface{})
-			elm["Id"] = d.Id
-			elm["ClientId"] = client.ClientId
-			elm["State"] = d.State
-			elm["Created"] = d.Created
-			elm["RequestUserId"] = d.RequestUserId
-			elm["TemplateId"] = d.TemplateId
-			list = append(list, elm)
+			commandTime := time.Unix(d.Created, 0)
+			row := make(map[string]interface{})
+			row["created"] = commandTime.Format("2006-01-02 15:04:05")
+
+			template := server.templateStore.Get(d.TemplateId)
+			if template != nil {
+				row["template"] = template.Title
+			} else {
+				row["template"] = "-"
+			}
+
+			user := server.userStore.ById(d.RequestUserId)
+			if user != nil {
+				row["user"] = user.Username
+			} else {
+				row["user"] = "-"
+			}
+
+			row["client"] = client.ClientId
+			row["state"] = d.State
+			row["link"] = fmt.Sprintf("logs?id=%s&client=%s", d.Id, client.ClientId)
+			rowObj := tableStore.CreateRow(row)
+			if time.Since(commandTime).Hours() > 24 {
+				rowObj.RowClass = "history-old"
+			}
+			tableStore.AddRow(rowObj)
 		}
 	}
 	server.clientsMux.RUnlock()
-	jr.Set("dispatched", list)
 
-	jr.OK()
-	fmt.Fprint(w, jr.ToString(debug))
+	return tableStore
 }
 
 // Get pending execution request
