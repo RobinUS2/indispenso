@@ -14,7 +14,6 @@ var conf *Conf
 var server *Server
 var client *Client
 var log *Log
-var debug bool
 var shutdown chan bool = make(chan bool)
 
 const CLIENT_PING_INTERVAL int = 60                       // In seconds

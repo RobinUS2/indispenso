@@ -36,7 +36,7 @@ func (ece *ExecutionCoordinatorEntry) ExecuteCallbacks() {
 
 // Called after a command has finished, see if there is more work to start
 func (ece *ExecutionCoordinatorEntry) Next() {
-	if debug {
+	if conf.Debug {
 		log.Println("Next")
 	}
 
@@ -46,7 +46,7 @@ func (ece *ExecutionCoordinatorEntry) Next() {
 
 	// Is all work from this batch done?
 	var allFinished bool = true
-	if debug {
+	if conf.Debug {
 		log.Printf("Current batch %d", ece.iteration)
 	}
 
@@ -58,7 +58,7 @@ outer:
 		defer client.mux.RUnlock()
 		for _, cmd := range client.DispatchedCmds {
 			if cmd.ConsensusRequestId == ece.Id && cmd.ExecutionIterationId == ece.iteration {
-				if debug {
+				if conf.Debug {
 					log.Printf("%s was started in the previous iteration %v", cmd.Id, cmd)
 				}
 				if cmd.State != "finished" {
@@ -76,7 +76,7 @@ outer:
 			// All is done, execute the callbacks
 			ece.ExecuteCallbacks()
 		}
-		if debug {
+		if conf.Debug {
 			log.Printf("No additional work to start for consensus request %s", ece.Id)
 		}
 		return
@@ -84,7 +84,7 @@ outer:
 
 	// Can we start something new?
 	if allFinished == false {
-		if debug {
+		if conf.Debug {
 			log.Printf("Still work being executed for request %s", ece.Id)
 		}
 		return
@@ -127,7 +127,7 @@ outer:
 	}
 
 	// Start command(s)
-	if debug {
+	if conf.Debug {
 		log.Printf("Starting %d cmds for consensus request %s", cmdsToStart, ece.Id)
 	}
 	for i := 0; i < cmdsToStart; i++ {

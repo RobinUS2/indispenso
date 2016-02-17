@@ -1,14 +1,19 @@
 package main
 
 import (
+	"bufio"
+	"bytes"
 	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/boombuler/barcode"
+	"github.com/boombuler/barcode/qr"
 	"github.com/dgryski/dgoogauth"
 	"github.com/nu7hatch/gouuid"
 	"github.com/oleiade/reflections"
 	"golang.org/x/crypto/bcrypt"
+	"image/png"
 	"io/ioutil"
 	"strings"
 	"sync"
@@ -254,11 +259,15 @@ func (u *User) ValidateTotp(t string) (bool, error) {
 	}
 
 	// Validate
-	cotp := dgoogauth.OTPConfig{
+	cotp := u.otpConfig()
+	return cotp.Authenticate(t)
+}
+
+func (u *User) otpConfig() dgoogauth.OTPConfig {
+	return dgoogauth.OTPConfig{
 		Secret:     u.TotpSecret,
 		WindowSize: TOTP_MAX_WINDOWS,
 	}
-	return cotp.Authenticate(t)
 }
 
 func (u *User) HasRole(r string) bool {
@@ -278,6 +287,40 @@ func (u *User) TouchSession(ip string) {
 	defer u.mux.Unlock()
 	u.SessionLastTimestamp = time.Now()
 	u.SessionIpAddress = ip
+}
+
+func (u *User) TotpQrImage() ([]byte, error) {
+	otpConfig := u.otpConfig()
+
+	// Image uri
+	qrCodeImageUri := otpConfig.ProvisionURI(fmt.Sprintf("indispenso:%s", u.Username))
+
+	// QR code
+	baseQrImage, qrErr := qr.Encode(qrCodeImageUri, qr.H, qr.Auto)
+	if qrErr != nil {
+		return nil, fmt.Errorf("Failed to generate QR code: %s", qrErr)
+	}
+
+	qrImage, errScale := barcode.Scale(baseQrImage, 300, 300)
+	if errScale != nil {
+		return nil, fmt.Errorf("Failed to generate QR code scaling problem: %s", errScale)
+	}
+
+	var pngQrBuffer bytes.Buffer
+	pngQrWriter := bufio.NewWriter(&pngQrBuffer)
+	png.Encode(pngQrWriter, qrImage)
+	pngQrWriter.Flush()
+
+	return pngQrBuffer.Bytes(), nil
+}
+
+func (u *User) GenerateOTPSecret() (err error) {
+	// Create TOTP conf
+	secret := TotpSecret()
+	// Save user, not yet enabled
+	u.TotpSecret = secret
+
+	return
 }
 
 func (u *User) StartSession() string {

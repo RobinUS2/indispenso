@@ -43,7 +43,7 @@ func GetHttpCheck(w http.ResponseWriter, r *http.Request, ps httprouter.Params) 
 	c := server.httpCheckStore.Get(id)
 	if c == nil || c.Enabled == false {
 		jr.Error("Check not found")
-		fmt.Fprint(w, jr.ToString(debug))
+		fmt.Fprint(w, jr.ToString(conf.Debug))
 		return
 	}
 
@@ -51,7 +51,7 @@ func GetHttpCheck(w http.ResponseWriter, r *http.Request, ps httprouter.Params) 
 	token := r.URL.Query().Get("token")
 	if len(token) < 1 || token != c.SecureToken {
 		jr.Error("Secure token invalid")
-		fmt.Fprint(w, jr.ToString(debug))
+		fmt.Fprint(w, jr.ToString(conf.Debug))
 		return
 	}
 
@@ -59,7 +59,7 @@ func GetHttpCheck(w http.ResponseWriter, r *http.Request, ps httprouter.Params) 
 	cr := server.consensus.AddRequest(c.TemplateId, c.ClientIds, server.httpCheckStore.SystemUser, "")
 	if cr == nil {
 		jr.Error("Unable to start check")
-		fmt.Fprint(w, jr.ToString(debug))
+		fmt.Fprint(w, jr.ToString(conf.Debug))
 		return
 	}
 
@@ -77,7 +77,7 @@ func GetHttpCheck(w http.ResponseWriter, r *http.Request, ps httprouter.Params) 
 	select {
 	case <-time.After(time.Duration(c.Timeout) * time.Second):
 		jr.Error("Timeout")
-		fmt.Fprint(w, jr.ToString(debug))
+		fmt.Fprint(w, jr.ToString(conf.Debug))
 		return
 	case <-done:
 	}
@@ -87,7 +87,7 @@ func GetHttpCheck(w http.ResponseWriter, r *http.Request, ps httprouter.Params) 
 
 	// Print results
 	jr.OK()
-	fmt.Fprint(w, jr.ToString(debug))
+	fmt.Fprint(w, jr.ToString(conf.Debug))
 }
 
 // Get item
@@ -155,7 +155,7 @@ func GetHttpChecks(w http.ResponseWriter, r *http.Request, ps httprouter.Params)
 	jr := jresp.NewJsonResp()
 	if !authUser(r) {
 		jr.Error("Not authorized")
-		fmt.Fprint(w, jr.ToString(debug))
+		fmt.Fprint(w, jr.ToString(conf.Debug))
 		return
 	}
 
@@ -163,14 +163,14 @@ func GetHttpChecks(w http.ResponseWriter, r *http.Request, ps httprouter.Params)
 	user := getUser(r)
 	if !user.HasRole("admin") {
 		jr.Error("Not authorized")
-		fmt.Fprint(w, jr.ToString(debug))
+		fmt.Fprint(w, jr.ToString(conf.Debug))
 		return
 	}
 	server.httpCheckStore.mux.RLock()
 	jr.Set("checks", server.httpCheckStore.Checks)
 	server.httpCheckStore.mux.RUnlock()
 	jr.OK()
-	fmt.Fprint(w, jr.ToString(debug))
+	fmt.Fprint(w, jr.ToString(conf.Debug))
 }
 
 // Delete HTTP check
@@ -178,7 +178,7 @@ func DeleteHttpCheck(w http.ResponseWriter, r *http.Request, ps httprouter.Param
 	jr := jresp.NewJsonResp()
 	if !authUser(r) {
 		jr.Error("Not authorized")
-		fmt.Fprint(w, jr.ToString(debug))
+		fmt.Fprint(w, jr.ToString(conf.Debug))
 		return
 	}
 
@@ -186,7 +186,7 @@ func DeleteHttpCheck(w http.ResponseWriter, r *http.Request, ps httprouter.Param
 	user := getUser(r)
 	if !user.HasRole("admin") {
 		jr.Error("Not authorized")
-		fmt.Fprint(w, jr.ToString(debug))
+		fmt.Fprint(w, jr.ToString(conf.Debug))
 		return
 	}
 
@@ -199,7 +199,7 @@ func DeleteHttpCheck(w http.ResponseWriter, r *http.Request, ps httprouter.Param
 	res := server.httpCheckStore.save()
 	jr.Set("saved", res)
 	jr.OK()
-	fmt.Fprint(w, jr.ToString(debug))
+	fmt.Fprint(w, jr.ToString(conf.Debug))
 }
 
 // Create HTTP Check
@@ -207,7 +207,7 @@ func PostHttpCheck(w http.ResponseWriter, r *http.Request, ps httprouter.Params)
 	jr := jresp.NewJsonResp()
 	if !authUser(r) {
 		jr.Error("Not authorized")
-		fmt.Fprint(w, jr.ToString(debug))
+		fmt.Fprint(w, jr.ToString(conf.Debug))
 		return
 	}
 
@@ -215,14 +215,14 @@ func PostHttpCheck(w http.ResponseWriter, r *http.Request, ps httprouter.Params)
 	user := getUser(r)
 	if !user.HasRole("admin") {
 		jr.Error("Not authorized")
-		fmt.Fprint(w, jr.ToString(debug))
+		fmt.Fprint(w, jr.ToString(conf.Debug))
 		return
 	}
 
 	// Verify two factor for, so that a hacked account can not request or execute anything without getting access to the 2fa device
 	if res, _ := user.ValidateTotp(r.PostFormValue("totp")); res == false {
 		jr.Error("Invalid two factor token")
-		fmt.Fprint(w, jr.ToString(debug))
+		fmt.Fprint(w, jr.ToString(conf.Debug))
 		return
 	}
 
@@ -231,7 +231,7 @@ func PostHttpCheck(w http.ResponseWriter, r *http.Request, ps httprouter.Params)
 	template := server.templateStore.Get(templateId)
 	if template == nil {
 		jr.Error("Template not found")
-		fmt.Fprint(w, jr.ToString(debug))
+		fmt.Fprint(w, jr.ToString(conf.Debug))
 		return
 	}
 
@@ -251,7 +251,7 @@ func PostHttpCheck(w http.ResponseWriter, r *http.Request, ps httprouter.Params)
 
 	// Done
 	jr.OK()
-	fmt.Fprint(w, jr.ToString(debug))
+	fmt.Fprint(w, jr.ToString(conf.Debug))
 }
 
 // Load from disk

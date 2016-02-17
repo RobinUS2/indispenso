@@ -49,7 +49,7 @@ func (c *Cmd) SetState(state string) {
 	c.State = state
 
 	// Debug logging
-	if debug {
+	if conf.Debug {
 		log.Printf("Cmd %s went from state %s to %s", c.Id, oldState, c.State)
 	}
 
@@ -111,7 +111,7 @@ func (c *Cmd) _validate() {
 
 	// Done and passed validation
 	if failedValidation == false {
-		if debug {
+		if conf.Debug {
 			log.Printf("Validation passed for %s", c.Id)
 		}
 		c.SetState("finished")
@@ -270,7 +270,7 @@ func (c *Cmd) Execute(client *Client) {
 	// 	for scanner.Scan() {
 	// 		txt := scanner.Text()
 	// 		c.LogOutput(txt)
-	// 		if debug {
+	// 		if conf.Debug {
 	// 			log.Println(scanner.Text())
 	// 		}
 	// 	}
@@ -288,7 +288,7 @@ func (c *Cmd) Execute(client *Client) {
 	// 	for scanner.Scan() {
 	// 		txt := scanner.Text()
 	// 		c.LogError(txt)
-	// 		if debug {
+	// 		if conf.Debug {
 	// 			log.Println(scanner.Text())
 	// 		}
 	// 	}

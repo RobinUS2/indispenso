@@ -50,7 +50,7 @@ func (s *Client) Start() bool {
 
 		}()
 	} else {
-		if debug {
+		if conf.Debug {
 			log.Printf("Client server of %s disabled", s.Id)
 		}
 	}
@@ -240,7 +240,7 @@ func (s *Client) _reqUnsafe(method string, uri string, data []byte) ([]byte, err
 	url := conf.ServerRequest(uri)
 
 	// Log
-	if debug {
+	if conf.Debug {
 		log.Printf("%s %s (req bytes %d)", method, url, len(data))
 	}
 
