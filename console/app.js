@@ -103,7 +103,7 @@ var app = {
 
 	initTables : function(optsExtend) {
 		var baseOpts = { 
-			bPaginate : false, 
+			bPaginate : false,
 			order: [[ 0, "asc" ]]
 		};
 		var opts = baseOpts;
@@ -1028,81 +1028,32 @@ var app = {
 
 		history : {
 			load : function() {
-				app.ajax('/clients').done(function(resp) { 
-					var resp = app.handleResponse(resp);
-					var clients = resp.clients;
-					app.ajax('/templates').done(function(resp) { 
-						var resp = app.handleResponse(resp);
-						var templates = resp.templates;
-						app.ajax('/users/names').done(function(resp) {
-							var resp = app.handleResponse(resp);
-							var userNames = resp.users;
-
-							// Prepare ID => object map for users
-							var userMap = {};
-							$(userNames).each(function(i, user) {
-								userMap[user.Id] = user;
-							});
-
-							// Current time
-							var now = new Date();
-
-							// Load items
-							app.ajax('/dispatched').done(function(resp) { 
-								var dispatched = resp.dispatched;
-								// Print template
-								var html = [];
-								$(dispatched).each(function(i, elm) {
-									// Template data
-									var template = templates[elm.TemplateId];
-									if (typeof template === 'undefined') {
-										template = {
-											Title: '-',
-										};
-									}
-
-									// Find client
-									var client = {
-										ClientId : '-'
-									};
-									$(clients).each(function(j, c) {
-										if (c.ClientId === elm.ClientId) {
-											client = c;
-										}
-									});
-
-									// User data
-									var user = {
-										Username : '-'
-									};
-									if (typeof userMap[elm.RequestUserId] !== 'undefined') {
-										user = userMap[elm.RequestUserId];
-									}
-
-									// Date
-									var d = new Date(elm.Created * 1000);
-
-									// Markup classes placeholder
-									var classes = [];
-
-									// Grayed out? After 24 hours
-									var secondsOld = (now.getTime() - d.getTime()) / 1000;
-									if (secondsOld > 86400) {
-										classes.push('history-old');
-									}
-
-									// Print line
-									html.push('<tr class="' + classes.join(' ') + '"><td>' + d.toISOString().replace('T', ' ').slice(0, 19) + '</td><td>' + template.Title + '</td><td>' + user.Username + '</td><td>' + client.ClientId + '</td><td>' + elm.State + '</td><td><div class="btn-group btn-group-xs pull-right"><a class="btn btn-default" data-nav="logs?id=' + elm.Id + '&client=' + elm.ClientId + '" href="#"><i class="fa fa-list-alt" title="Logs"></i></a></div></td></tr>');
-								});
-								app.bindData('dispatched', html.join("\n"));
-
-								app.initTables({ order: [[ 0, "desc" ]] });
-								
-								app.initNav(); // Bind logs button
-							});
-						});
-					});
-				});
+				app.initTables({
+								   order: [[ 0, "desc" ]],
+								   processing: true,
+								   serverSide: true,
+								   bPaginate: true,
+								   ajax: {
+									   url: "/dispatched",
+									   type: "POST"
+								   },
+								   "drawCallback": function( settings ) {
+									   app.initNav(); // Bind logs button
+								   },
+					               columns: [
+									   { "data": "created" },
+									   { "data": "template" },
+									   { "data": "user" },
+									   { "data": "client" },
+									   { "data": "state" },
+									   {
+										   "data": "link",
+										   render : function( data, type, row, meta ){
+											   return "<div class='btn-group btn-group-xs pull-right'><a class='btn btn-default' data-nav='"+data+"' href='#'><i class='fa fa-list-alt' title='Logs'></i></a></div>"
+										   }
+									   }
+								   ]
+							   });
 			}
 		},
 
