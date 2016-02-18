@@ -31,6 +31,7 @@ type ConsensusRequest struct {
 	StartTime      int64                     // Unix TS for start of command execution
 	CompleteTime   int64                     // Unix TS for completion of command exectuion
 	Callbacks      []func(*ConsensusRequest) `json:"-"` // Will be called on completions
+	callbacksMux   sync.RWMutex
 }
 
 func (c *Consensus) Get(id string) *ConsensusRequest {
@@ -108,6 +109,13 @@ func (c *ConsensusRequest) start() bool {
 	c.CompleteTime = time.Now().Unix()
 
 	return true
+}
+
+func (c *ConsensusRequest) AddCallback(callback func(*ConsensusRequest)) {
+	c.callbacksMux.Lock()
+	defer c.callbacksMux.Unlock()
+
+	c.Callbacks = append(c.Callbacks, callback)
 }
 
 // Check whether this request is good to dispatch
@@ -239,17 +247,12 @@ func newConsensus() *Consensus {
 	return c
 }
 
-func consensusRequestFinishedNotification(consensusRequest *ConsensusRequest) {
-	msg := fmt.Sprintf("Consesnsus request(id: %s) finished within %d s", consensusRequest.Id, consensusRequest.CompleteTime-consensusRequest.StartTime)
-	server.notifications.Notify(&Message{Type: EXECUTION_DONE, Content: msg, Url: conf.ServerRequest("/console/#!history")})
-}
-
 func newConsensusRequest() *ConsensusRequest {
 	id, _ := uuid.NewV4()
 	return &ConsensusRequest{
 		Id:             id.String(),
 		ApproveUserIds: make(map[string]bool),
 		CreateTime:     time.Now().Unix(),
-		Callbacks:      []func(*ConsensusRequest){consensusRequestFinishedNotification},
+		Callbacks:      []func(*ConsensusRequest){},
 	}
 }
