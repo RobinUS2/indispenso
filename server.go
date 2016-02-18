@@ -750,11 +750,17 @@ func PostConsensusRequest(w http.ResponseWriter, r *http.Request, ps httprouter.
 
 	// Create request
 	cr := server.consensus.AddRequest(templateId, clientIds, user, reason)
+	cr.AddCallback(consensusRequestFinishedNotification)
 	cr.check() // Check whether it can run straight away
 	server.consensus.save()
 
 	jr.OK()
 	fmt.Fprint(w, jr.ToString(conf.Debug))
+}
+
+func consensusRequestFinishedNotification(consensusRequest *ConsensusRequest) {
+	msg := fmt.Sprintf("Consesnsus request(id: %s) finished within %d s", consensusRequest.Id, consensusRequest.CompleteTime-consensusRequest.StartTime)
+	server.notifications.Notify(&Message{Type: EXECUTION_DONE, Content: msg, Url: conf.ServerRequest("/console/#!history")})
 }
 
 // Create validation rule for templates

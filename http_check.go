@@ -68,7 +68,7 @@ func GetHttpCheck(w http.ResponseWriter, r *http.Request, ps httprouter.Params) 
 	cb := func(cr *ConsensusRequest) {
 		done <- true
 	}
-	cr.Callbacks = append(cr.Callbacks, cb)
+	cr.AddCallback(cb)
 
 	// Trigger execution
 	cr.check()
