@@ -113,6 +113,33 @@ or
     $ indispenso --help
     
 
+## Notifications
+
+Indispenso has availability to post notifications about activities that it performs.
+Currently we send notifications in this cases:
+ * New consensus request is created
+ * Consensus request is executed
+
+Below information how to configure systems that notifications will be send to.
+Please refer to each system configuration/usage documentation for more details .
+
+### Slack
+
+To enable Slack notifications just to need place slack.{json,toml,yaml,yml,properties,props,prop} configuration file in indispenso [home directory](#home-directory) it will be automatically used.
+
+#### Configuration
+
+Template of slack configuration file is available here: [config/slack.yaml.tmpl](config/slack.yaml.tmpl)
+
+available config options:
+
+  Name        | Description
+------------- | -------------
+ Token        | Api token you can create it here: [https://api.slack.com/web](https://api.slack.com/web)
+ ChannelName  | Name of channel that you want to post
+ NotifyAs     | Username that will be used to notify
+
+
 ## Goals
 - Easy management of servers, applications and infrastructure
 - Secure access and granular permission control
