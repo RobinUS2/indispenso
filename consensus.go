@@ -31,6 +31,7 @@ type ConsensusRequest struct {
 	StartTime      int64                     // Unix TS for start of command execution
 	CompleteTime   int64                     // Unix TS for completion of command exectuion
 	Callbacks      []func(*ConsensusRequest) `json:"-"` // Will be called on completions
+	callbacksMux   sync.RWMutex
 }
 
 func (c *Consensus) Get(id string) *ConsensusRequest {
@@ -108,6 +109,13 @@ func (c *ConsensusRequest) start() bool {
 	c.CompleteTime = time.Now().Unix()
 
 	return true
+}
+
+func (c *ConsensusRequest) AddCallback(callback func(*ConsensusRequest)) {
+	c.callbacksMux.Lock()
+	defer c.callbacksMux.Unlock()
+
+	c.Callbacks = append(c.Callbacks, callback)
 }
 
 // Check whether this request is good to dispatch
@@ -218,11 +226,14 @@ func (c *Consensus) AddRequest(templateId string, clientIds []string, user *User
 	cr.RequestUserId = user.Id
 	cr.Reason = reason
 
-	audit.Log(user, "Consensus", fmt.Sprintf("Request %s, reason: %s", cr.Id, cr.Reason))
+	message := fmt.Sprintf("Request %s, reason: %s", cr.Id, cr.Reason)
+	audit.Log(user, "Consensus", message)
 
 	c.pendingMux.Lock()
 	c.Pending[cr.Id] = cr
 	c.pendingMux.Unlock()
+
+	server.notifications.Notify(&Message{Type: NEW_CONSENSUS, Content: message, Url: conf.ServerRequest("/console/#!pending")})
 
 	return cr
 }
@@ -235,12 +246,13 @@ func newConsensus() *Consensus {
 	c.load()
 	return c
 }
+
 func newConsensusRequest() *ConsensusRequest {
 	id, _ := uuid.NewV4()
 	return &ConsensusRequest{
 		Id:             id.String(),
 		ApproveUserIds: make(map[string]bool),
 		CreateTime:     time.Now().Unix(),
-		Callbacks:      make([]func(*ConsensusRequest), 0),
+		Callbacks:      []func(*ConsensusRequest){},
 	}
 }

@@ -47,6 +47,7 @@ func GetBackupConfigs(w http.ResponseWriter, r *http.Request, ps httprouter.Para
 		{conf.GetSslCertFile()},
 		{conf.GetSslPrivateKeyFile()},
 		{conf.ConfFile()},
+		{conf.ldapViper.ConfigFileUsed()},
 	}
 	for _, file := range files {
 		fileName := file.Name
@@ -63,7 +64,7 @@ func GetBackupConfigs(w http.ResponseWriter, r *http.Request, ps httprouter.Para
 			return
 		}
 
-		// Read contents from file\
+		// Read contents from file
 		fileB, fileE := ioutil.ReadFile(fileName)
 		if fileE != nil {
 			jr.Error(fmt.Sprintf("Failed creating zip: %s", fileE))
