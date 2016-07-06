@@ -3,6 +3,7 @@ DIR=$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )
 cd ${DIR}
 go get "github.com/julienschmidt/httprouter"
 go get "github.com/RobinUS2/golang-jresp"
+go get "github.com/RobinUS2/indispenso/data_table"
 go get "github.com/nu7hatch/gouuid"
 go get "github.com/antonholmquist/jason"
 go get "github.com/kylelemons/go-gypsy/yaml"
@@ -18,5 +19,6 @@ go get "github.com/stretchr/objx"
 go get "github.com/oleiade/reflections"
 go get "github.com/HuKeping/rbtree"
 go get "github.com/bluele/slack"
+go get "gopkg.in/fsnotify.v1"
 go fmt .
 go test && go build .
